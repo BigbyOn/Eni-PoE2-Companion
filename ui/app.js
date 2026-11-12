@@ -397,9 +397,12 @@ function renderBuild() {
           <h2>${esc(l10n(b.name))}</h2>
           <div class="small">${esc(b.class)} · ${esc(b.ascendancy)} · ${esc(t("build.patch"))} ${esc(b.patch)}</div>
         </div>
-        <div class="field" style="min-width:220px">
-          <label>${esc(t("build.select"))}</label>
-          <select id="build-select">${BUILDS.map((x) => `<option value="${esc(x.id)}" ${x.id === b.id ? "selected" : ""}>${esc(l10n(x.name))}</option>`).join("")}</select>
+        <div class="row" style="align-items:flex-end">
+          <div class="field" style="min-width:220px">
+            <label>${esc(t("build.select"))}</label>
+            <select id="build-select">${BUILDS.map((x) => `<option value="${esc(x.id)}" ${x.id === b.id ? "selected" : ""}>${esc(l10n(x.name))}</option>`).join("")}</select>
+          </div>
+          <button class="btn sm ghost" data-act="pob-import">${esc(t("build.import_pob"))}</button>
         </div>
       </div>
       <p class="muted" style="margin:8px 0 0">${esc(l10n(b.summary))}</p>
@@ -735,6 +738,36 @@ async function runAi(task) {
       <div class="small">${esc(t("ai.manifest", { path: res.manifest }))}</div>`;
   } catch (err) {
     box.innerHTML = `<div class="small bad-text">${esc(t("ai.failed"))}: ${esc(String(err))}</div>`;
+  }
+}
+
+function openPobImport() {
+  $("#modal-title").textContent = t("build.import_pob_title");
+  $("#modal-body").innerHTML = `
+    <div class="small" style="margin-bottom:8px">${esc(t("build.import_pob_hint"))}</div>
+    <textarea id="pob-code" rows="7" placeholder="${esc(t("build.import_pob_placeholder"))}"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" data-act="pob-run">${esc(t("build.import_pob_run"))}</button>
+      <button class="btn ghost" data-act="modal-close">${esc(t("common.close"))}</button>
+      <span class="small bad-text" id="pob-error"></span>
+    </div>`;
+  $("#modal").hidden = false;
+}
+
+async function runPobImport() {
+  const code = $("#pob-code")?.value || "";
+  const err = $("#pob-error");
+  if (err) err.textContent = "";
+  try {
+    const doc = await invoke("build_import_pob", { code });
+    BUILDS = BUILDS.filter((b) => b.id !== doc.id);
+    BUILDS.push(doc);
+    await invoke("build_select", { id: doc.id });
+    $("#modal").hidden = true;
+    toast(`${t("build.import_pob_done")}: ${l10n(doc.name)}`);
+    renderSection();
+  } catch (e) {
+    if (err) err.textContent = `${t("build.import_pob_failed")}: ${String(e)}`;
   }
 }
 
@@ -1306,6 +1339,12 @@ async function act(name, el) {
       await invoke("item_delete", { id: el.dataset.id });
       await loadItems();
       break;
+    case "pob-import":
+      openPobImport();
+      break;
+    case "pob-run":
+      await runPobImport();
+      break;
     case "item-price": {
       const box = el.closest(".item")?.querySelector(".price-slot");
       if (box) {
@@ -1531,6 +1570,13 @@ async function boot() {
   go((location.hash || "#home").slice(1));
   await listen("state", async (e) => {
     S = e.payload;
+    // A build imported (or removed) elsewhere must show up here too.
+    const ids = BUILDS.map((b) => b.id).sort().join(",");
+    if ((S.build_ids || []).slice().sort().join(",") !== ids) {
+      try {
+        BUILDS = await invoke("builds_list");
+      } catch {}
+    }
     if (S.saved.lang !== LANG) {
       setLang(S.saved.lang);
       renderNav();

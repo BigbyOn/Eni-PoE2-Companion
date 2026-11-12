@@ -296,6 +296,36 @@ const tradeDisabled = await main.eval(`(async () => {
 const tradeState = JSON.parse(tradeDisabled);
 check("trade: hidden button and clear refusal while disabled", tradeState.priceBtn === false && /выключена/.test(tradeState.err), tradeDisabled);
 
+// 7e. PoB code import (the code is built in-page with CompressionStream)
+const pob = JSON.parse(await main.eval(`(async () => {
+  const xml = '<?xml version="1.0" encoding="UTF-8"?><PathOfBuilding><Build level="42" className="Ranger" ascendClassName="Deadeye"/><Skills><Skill enabled="true" label="LA"><Gem nameSpec="Lightning Arrow" enabled="true"/><Gem nameSpec="Rapid Attacks" enabled="true"/></Skill></Skills><Tree><Spec nodes="1,2,3"/></Tree><Items><Item>' + 'Rarity: Unique' + String.fromCharCode(10) + 'Doom Loop' + String.fromCharCode(10) + 'Prismatic Ring' + String.fromCharCode(10) + '</Item></Items></PathOfBuilding>';
+  const data = new TextEncoder().encode(xml);
+  const cs = new CompressionStream('deflate');
+  const writer = cs.writable.getWriter();
+  writer.write(data);
+  writer.close();
+  const buf = await new Response(cs.readable).arrayBuffer();
+  let bin = '';
+  new Uint8Array(buf).forEach((b) => (bin += String.fromCharCode(b)));
+  const code = btoa(bin);
+  const doc = await window.__TAURI__.core.invoke('build_import_pob', { code });
+  await new Promise(r => setTimeout(r, 300));
+  return JSON.stringify({
+    id: doc.id, cls: doc.class, asc: doc.ascendancy,
+    skill: doc.stages[0].skills[0].name, supports: doc.stages[0].skills[0].supports,
+    nodes: doc.stages[0].passives.length, gear: doc.stages[0].gear.length,
+    active: S.saved.profiles[0].build_id === doc.id,
+    inList: BUILDS.some((b) => b.id === doc.id),
+    inState: (S.build_ids || []).includes(doc.id),
+  });
+})()`));
+check("pob: code decoded and imported", pob.cls === "Ranger" && pob.asc === "Deadeye", JSON.stringify(pob));
+check("pob: gems parsed", pob.skill === "Lightning Arrow" && pob.supports.includes("Rapid Attacks"), `${pob.skill} + ${pob.supports.join(",")}`);
+check("pob: gear and tree facts", pob.gear >= 1 && pob.nodes >= 1, JSON.stringify(pob));
+check("pob: build selected and listed", pob.active === true && (pob.inList === true || pob.inState === true), JSON.stringify(pob));
+const badPob = await main.eval(`(async () => { try { await window.__TAURI__.core.invoke('build_import_pob', { code: 'not-a-code' }); return 'unexpected'; } catch (e) { return String(e); } })()`);
+check("pob: garbage code refused", /base64|zlib|PoB/i.test(badPob), badPob);
+
 // 8. AI request preparation (local only)
 const ai = JSON.parse(await main.eval(`(async () => JSON.stringify(await window.__TAURI__.core.invoke('ai_prepare', { ids: [${JSON.stringify(shot.id)}], task: 'analyse_item' })))()`));
 check("ai: request description written locally", existsSync(ai.path) && ai.json.includes("analyse_item"), ai.path);

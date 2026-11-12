@@ -18,6 +18,7 @@ mod game;
 mod item;
 mod logparse;
 mod model;
+mod pob;
 mod screens;
 mod tail;
 mod trade;
@@ -602,6 +603,11 @@ fn snapshot(state: State<App>) -> Snapshot {
 }
 
 #[tauri::command]
+fn builds_list(state: State<App>) -> Vec<builds::BuildDoc> {
+    state.builds.read().map(|b| b.clone()).unwrap_or_default()
+}
+
+#[tauri::command]
 fn campaign_data(state: State<App>) -> campaign::Campaign {
     state.campaign.read().unwrap().clone()
 }
@@ -890,6 +896,32 @@ fn zone_map(app: AppHandle, state: State<App>, zone: String) {
         }
         push_event(s, "manual", format!("Локация сопоставлена: {zone}"), String::from("таблица соответствий"));
     });
+}
+
+/// Imports a Path of Building code: stores it as a normal local build and
+/// makes it the active one. Only structural data; no guide text is copied.
+#[tauri::command]
+fn build_import_pob(app: AppHandle, state: State<App>, code: String) -> Result<builds::BuildDoc, String> {
+    let xml = pob::decode(&code)?;
+    let parsed = pob::parse_xml(&xml)?;
+    let id = format!("pob-{}", new_id("b"));
+    let json = pob::to_build_json(&parsed, &id);
+    let text = serde_json::to_string_pretty(&json).map_err(|e| e.to_string())?;
+    let doc = builds::BuildDoc::parse(&text).map_err(|e| format!("Импортированный билд не прошёл проверку: {e}"))?;
+    let dir = state.dir.join("builds");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Папка билдов: {e}"))?;
+    std::fs::write(dir.join(format!("{id}.json")), &text).map_err(|e| format!("Запись билда: {e}"))?;
+    let library = builds::load_library(Some(&dir));
+    if let Ok(mut guard) = state.builds.write() {
+        *guard = library;
+    }
+    state.update(&app, |s, _| {
+        if let Some(p) = s.saved.profile_mut() {
+            p.build_id = id.clone();
+        }
+        push_event(s, "manual", format!("Импорт PoB: {}", doc.name.ru), format!("{} · {} уровень", doc.class, parsed.level));
+    });
+    Ok(doc.clone())
 }
 
 #[tauri::command]
@@ -1525,6 +1557,7 @@ fn main() {    tauri::Builder::default()
             bootstrap,
             snapshot,
             campaign_data,
+            builds_list,
             save_settings,
             save_overlay,
             preview_look,
@@ -1538,6 +1571,7 @@ fn main() {    tauri::Builder::default()
             campaign_manual_zone,
             zone_map,
             build_select,
+            build_import_pob,
             build_toggle,
             history_list,
             history_export,
