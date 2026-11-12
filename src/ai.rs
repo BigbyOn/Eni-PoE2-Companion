@@ -129,6 +129,9 @@ pub struct Request {
     /// Local file names (inside the screenshots directory) the request refers to.
     pub images: Vec<ImageRef>,
     pub question: String,
+    /// Item text copied from the game (Ctrl+C), if the request is about an item.
+    #[serde(default)]
+    pub item_text: Option<String>,
     pub context: Context,
 }
 
@@ -158,7 +161,19 @@ pub struct Context {
     pub next_steps: Vec<String>,
 }
 
-pub fn prepare(task: Task, cfg: &AiCfg, shots: &[Shot], profile: &Profile, build: &BuildDoc, lang: &str, question: &str, goal: &str, next: &[String]) -> Request {
+#[allow(clippy::too_many_arguments)]
+pub fn prepare(
+    task: Task,
+    cfg: &AiCfg,
+    shots: &[Shot],
+    profile: &Profile,
+    build: &BuildDoc,
+    lang: &str,
+    question: &str,
+    goal: &str,
+    next: &[String],
+    item_text: Option<&str>,
+) -> Request {
     let provider_id = if provider(&cfg.provider).is_some() { cfg.provider.clone() } else { "deepseek".to_string() };
     let p = provider(&provider_id).expect("checked above");
     let model = if cfg.model.trim().is_empty() { p.default_model.to_string() } else { cfg.model.trim().to_string() };
@@ -173,6 +188,7 @@ pub fn prepare(task: Task, cfg: &AiCfg, shots: &[Shot], profile: &Profile, build
             .map(|s| ImageRef { file: s.file.clone(), kind: s.kind.clone(), w: s.w, h: s.h, sha256: s.sha256.clone(), note: s.note.clone() })
             .collect(),
         question: question.chars().take(1000).collect(),
+        item_text: item_text.map(|t| t.chars().take(4000).collect()),
         context: Context {
             character: profile.name.clone(),
             class: profile.class.clone(),
@@ -253,6 +269,11 @@ pub fn build_prompt(req: &Request, lang: &str, vision: bool) -> String {
         if !c.next_steps.is_empty() {
             out.push_str(&format!("Следующие шаги: {}.\n", c.next_steps.join("; ")));
         }
+    }
+    if let Some(item) = req.item_text.as_deref().filter(|t| !t.trim().is_empty()) {
+        out.push_str(if lang == "en" { "Item copied from the game:\n" } else { "Предмет, скопированный из игры:\n" });
+        out.push_str(item.trim());
+        out.push('\n');
     }
     if !req.images.is_empty() {
         let kinds: Vec<String> = req.images.iter().map(|i| format!("{} ({})", i.kind, i.file)).collect();
@@ -594,7 +615,7 @@ mod tests {
 
     fn request(model: &str, reasoning: &str) -> Request {
         let build = BuildDoc::parse(crate::builds::BUNDLED).unwrap();
-        prepare(Task::AnalyseItem, &cfg("deepseek", model, reasoning), &[shot()], &profile(), &build, "ru", "Что улучшить?", "Убить босса", &["Cemetery of the Eternals".into()])
+        prepare(Task::AnalyseItem, &cfg("deepseek", model, reasoning), &[shot()], &profile(), &build, "ru", "Что улучшить?", "Убить босса", &["Cemetery of the Eternals".into()], None)
     }
 
     #[test]
@@ -697,6 +718,30 @@ mod tests {
         assert_eq!(unprotect_key(&blob).unwrap(), secret);
         assert!(protect_key("").is_err());
         assert!(unprotect_key("not-base64").is_err());
+    }
+
+    #[test]
+    fn item_text_goes_into_the_prompt() {
+        let build = BuildDoc::parse(crate::builds::BUNDLED).unwrap();
+        let raw = "Item Class: Rings\nRarity: Rare\nDoom Loop\n+18 to maximum Life\n";
+        let req = prepare(
+            Task::AnalyseItem,
+            &cfg("deepseek", "deepseek-chat", "auto"),
+            &[],
+            &profile(),
+            &build,
+            "ru",
+            "Стоит ли менять?",
+            "Куда идти",
+            &[],
+            Some(raw),
+        );
+        let prompt = build_prompt(&req, "ru", false);
+        assert!(prompt.contains("Предмет, скопированный из игры:"));
+        assert!(prompt.contains("Doom Loop"));
+        assert!(prompt.contains("Стоит ли менять?"));
+        let body = build_body(&req, &prompt, "ru", &[], false);
+        assert!(serde_json::to_string(&body).unwrap().contains("Doom Loop"));
     }
 
     #[test]

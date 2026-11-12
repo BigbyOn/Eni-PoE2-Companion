@@ -220,3 +220,9 @@ a:hover{color:var(--gold2)}
 .ai-answer h3{color:var(--gold);font-size:14px;margin-bottom:6px}
 .ai-answer .ai-text{white-space:normal;line-height:1.5;color:var(--ink);font-size:13.5px}
 .ai-answer summary{cursor:pointer;color:var(--ink3)}
+
+/* ---------- imported items ---------- */
+.item{padding:9px 10px;border:1px solid var(--line);border-left:2px solid var(--gold-dim);border-radius:3px;margin-bottom:8px;background:#13100c}
+.item b{color:var(--gold2);font-weight:600}
+.item .tag.boss{color:#e0a79e;border-color:#5a3630}
+.item summary{cursor:pointer;color:var(--ink3)}

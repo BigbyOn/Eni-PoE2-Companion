@@ -20,6 +20,7 @@
 | `src/capture.rs` | GDI `BitBlt` клиентской области игры |
 | `src/game.rs` | окно игры, размещение оверлея, перетаскивание, показ/скрытие |
 | `src/ai.rs` | ИИ: DeepSeek/OpenAI по кнопке, сборка запросов, DPAPI для ключа |
+| `src/item.rs` | разбор текста предмета из буфера (EN/RU) и локальная оценка под билд |
 | `src/clip.rs` | запись в буфер обмена |
 | `ui/index.html`, `ui/app.js`, `ui/app.css`, `ui/i18n.js` | главное окно: 7 разделов, RU/EN |
 | `ui/overlay.*` | оверлей трёх режимов |
@@ -42,7 +43,7 @@
 ## Проверка
 
 ```powershell
-cargo test                    # 52 юнит-теста (журналы, локации, ИИ-запросы, DPAPI, повреждённые данные)
+cargo test                    # 60 юнит-тестов (журналы, локации, предметы, ИИ-запросы, DPAPI)
 cargo build                   # debug
 npx --yes @tauri-apps/cli@2.12.1 build   # NSIS + MSI
 ```

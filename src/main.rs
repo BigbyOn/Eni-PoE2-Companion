@@ -15,6 +15,7 @@ mod capture;
 mod clip;
 mod discover;
 mod game;
+mod item;
 mod logparse;
 mod model;
 mod screens;
@@ -56,7 +57,29 @@ struct Snapshot {
     build_ids: Vec<String>,
     ai_has_key: bool,
     ai_providers: Vec<ai::ProviderInfo>,
+    /// Number of imported items (the records themselves come from `items_list`).
+    items_count: usize,
+    /// Vendor/stash regexes, shown by the overlay list.
+    regexes: Vec<RegexItem>,
+    /// The regex list is open in the overlay right now.
+    regex_open: bool,
+    /// Short confirmation shown in the overlay after an import.
+    last_item: Option<ItemToast>,
+    /// Session counters, reset when the app starts.
+    session_started: String,
+    session_deaths: u32,
+    session_zones: u32,
+    session_levels: u32,
+    zone_since: String,
     version: String,
+}
+
+#[derive(Serialize, Clone, Debug)]
+struct ItemToast {
+    name: String,
+    score: i32,
+    slot: String,
+    ts: String,
 }
 
 impl Snapshot {
@@ -64,6 +87,8 @@ impl Snapshot {
     /// list, no encrypted key.
     fn public(&self) -> Snapshot {
         let mut s = self.clone();
+        s.items_count = s.saved.items.len();
+        s.saved.items.clear();
         s.saved.history.clear();
         s.saved.shots.clear();
         s.ai_has_key = s.saved.ai.key_protected.is_some();
@@ -90,6 +115,8 @@ struct App {
     dir: PathBuf,
     /// Area id of the last area the log reported, for zone mapping.
     last_area: Mutex<String>,
+    /// Overlay regex list toggle (runtime only).
+    regex_open: Mutex<bool>,
 }
 
 fn action_label(action: &str) -> &'static str {
@@ -99,6 +126,8 @@ fn action_label(action: &str) -> &'static str {
         "mode" => "режим оверлея",
         "hide" => "скрыть оверлей",
         "screenshot" => "скриншот",
+        "item" => "импорт предмета",
+        "regex" => "regex-список",
         _ => "главное окно",
     }
 }
@@ -166,6 +195,7 @@ impl App {
         let mut s = self.snap.lock().unwrap();
         s.game_running = game_running;
         s.shots_dir = s.saved.shots_dir.clone().unwrap_or_else(screens::default_shots_dir);
+        s.regexes = s.saved.regexes.clone();
         s.public()
     }
 
@@ -190,6 +220,8 @@ impl App {
         s.campaign_version = campaign.version.clone();
         s.campaign_act = s.saved.profile().map(|p| p.act).unwrap_or(1);
         s.build_ids = self.builds.read().map(|b| b.iter().map(|d| d.id.clone()).collect()).unwrap_or_default();
+        s.regexes = s.saved.regexes.clone();
+        s.items_count = s.saved.items.len();
         s.game_running = self.shared.lock().unwrap().game.is_some();
         s.shots_dir = s.saved.shots_dir.clone().unwrap_or_else(screens::default_shots_dir);
         let saved = s.saved.clone();
@@ -276,6 +308,49 @@ impl App {
         shared.panel.y = s.saved.overlay.y;
     }
 
+    /// Reads the item under the cursor from the clipboard, parses and scores it.
+    fn import_item(&self, app: &AppHandle) -> Result<ItemRecord, String> {
+        let text = clip::read().map_err(|e| format!("Буфер обмена: {e}"))?;
+        let parsed = item::parse(&text)
+            .ok_or("В буфере нет текста предмета. Наведи курсор на предмет в игре и нажми Ctrl+C, затем повтори.")?;
+        let (profile_id, level) = {
+            let s = self.snap.lock().unwrap();
+            (s.saved.active.clone(), s.saved.profile().map(|p| p.level).unwrap_or(1))
+        };
+        let analysis = item::analyze(&parsed, level);
+        let record = ItemRecord {
+            id: new_id("item"),
+            ts: now_iso(),
+            profile: profile_id,
+            raw: text.chars().take(8000).collect(),
+            parsed: parsed.clone(),
+            analysis: analysis.clone(),
+            ai: None,
+        };
+        let toast = ItemToast { name: parsed.name.clone(), score: analysis.score, slot: parsed.slot.clone(), ts: now_iso() };
+        let title = if parsed.name.is_empty() { parsed.base.clone() } else { parsed.name.clone() };
+        let detail = format!("{} · {}", parsed.rarity, analysis.matches.join(", "));
+        self.update(app, |s, _| {
+            s.saved.items.push(record.clone());
+            if s.saved.items.len() > 200 {
+                s.saved.items.remove(0);
+            }
+            s.last_item = Some(toast.clone());
+            push_event(s, "item", format!("Предмет: {title}"), detail);
+        });
+        Ok(record)
+    }
+
+    fn toggle_regex(&self, app: &AppHandle) {
+        let open = {
+            let mut r = self.regex_open.lock().unwrap();
+            *r = !*r;
+            *r
+        };
+        self.shared.lock().unwrap().regex_open = open;
+        self.update(app, |s, _| s.regex_open = open);
+    }
+
     fn action(&self, app: &AppHandle, action: &str) {
         match action {
             "next" => self.step(app, 1),
@@ -287,6 +362,12 @@ impl App {
                     eprintln!("screenshot: {e}");
                 }
             }
+            "item" => {
+                if let Err(e) = self.import_item(app) {
+                    eprintln!("item import: {e}");
+                }
+            }
+            "regex" => self.toggle_regex(app),
             _ => toggle_main(app),
         }
     }
@@ -377,7 +458,16 @@ impl App {
                             p.step = i;
                         }
                     }
+                    s.session_zones += 1;
+                    s.zone_since = now_iso();
                     push_event(s, "zone", zone, String::new());
+                });
+            }
+            logparse::Event::Death { name } => {
+                self.update(app, |s, _| {
+                    let who = name.clone().unwrap_or_default();
+                    s.session_deaths += 1;
+                    push_event(s, "death", if who.is_empty() { "Смерть".into() } else { format!("{who}: смерть") }, String::new());
                 });
             }
             logparse::Event::Level { name, class, level } => {
@@ -405,6 +495,7 @@ impl App {
                         if p.levels.len() > 200 {
                             p.levels.remove(0);
                         }
+                        s.session_levels += 1;
                     }
                 });
                 let (who, lvl) = {
@@ -529,6 +620,8 @@ struct SettingsIn {
     /// New key in plain text; only ever stored DPAPI-encrypted.
     ai_key: Option<String>,
     ai_clear_key: bool,
+    #[serde(default)]
+    regexes: Vec<RegexItem>,
 }
 
 #[tauri::command]
@@ -561,6 +654,12 @@ fn save_settings(app: AppHandle, state: State<App>, settings: SettingsIn) -> Res
         s.saved.log = log.clone();
         s.saved.overlay = settings.overlay.clone().clamped();
         s.saved.shots_dir = shots_dir.clone();
+        s.saved.regexes = settings
+            .regexes
+            .into_iter()
+            .filter(|r| !r.value.trim().is_empty())
+            .map(|r| RegexItem { name: r.name.trim().chars().take(40).collect(), value: r.value.trim().to_string() })
+            .collect();
         s.saved.zone_aliases = settings
             .zone_aliases
             .into_iter()
@@ -1082,7 +1181,7 @@ struct AiInput {
     enabled: bool,
 }
 
-fn ai_input(state: &State<App>, ids: &[String], task: ai::Task, question: &str) -> Result<AiInput, String> {
+fn ai_input(state: &State<App>, ids: &[String], task: ai::Task, question: &str, item_text: Option<&str>) -> Result<AiInput, String> {
     let (cfg, shots, profile, lang, shots_dir) = {
         let s = state.snap.lock().unwrap();
         let shots: Vec<Shot> = s.saved.shots.iter().filter(|x| ids.contains(&x.id)).cloned().collect();
@@ -1107,7 +1206,7 @@ fn ai_input(state: &State<App>, ids: &[String], task: ai::Task, question: &str) 
             .find(|b| b.id == profile.build_id)
             .or_else(|| builds.first())
             .ok_or("Нет загруженных билдов")?;
-        ai::prepare(task, &cfg, &shots, &profile, build, &lang, question, &goal, &next)
+        ai::prepare(task, &cfg, &shots, &profile, build, &lang, question, &goal, &next, item_text)
     };
     // Only a vision model gets the pixels; text models get the description only.
     let mut images = Vec::new();
@@ -1140,10 +1239,81 @@ fn write_manifest(input: &AiInput) -> Result<String, String> {
     Ok(path.display().to_string())
 }
 
+#[tauri::command]
+fn items_list(state: State<App>) -> Vec<ItemRecord> {
+    let s = state.snap.lock().unwrap();
+    let mut v = s.saved.items.clone();
+    v.reverse();
+    v
+}
+
+#[tauri::command]
+fn item_import(app: AppHandle, state: State<App>) -> Result<ItemRecord, String> {
+    state.import_item(&app)
+}
+
+#[tauri::command]
+fn item_delete(app: AppHandle, state: State<App>, id: String) {
+    state.update(&app, |s, _| s.saved.items.retain(|x| x.id != id));
+}
+
+/// AI analysis over the imported item text (works with text-only models).
+#[tauri::command]
+async fn item_ai(app: AppHandle, state: State<'_, App>, id: String, question: String) -> Result<AiAnswerView, String> {
+    let (raw, answer_label) = {
+        let s = state.snap.lock().unwrap();
+        let rec = s.saved.items.iter().find(|x| x.id == id).ok_or("Предмет не найден")?;
+        (rec.raw.clone(), format!("{} · {}", rec.parsed.name, rec.parsed.base))
+    };
+    let input = ai_input(&state, &[], ai::Task::AnalyseItem, &question, Some(&raw))?;
+    ensure_ai_ready(&input)?;
+    let manifest = write_manifest(&input)?;
+    let (request, key, images) = (input.request.clone(), input.key.clone(), input.images.clone());
+    let lang = { state.snap.lock().unwrap().saved.lang.clone() };
+    let answer = tauri::async_runtime::spawn_blocking(move || ai::complete(&request, &key, &lang, images))
+        .await
+        .map_err(|e| format!("Запрос ИИ прерван: {e}"))??;
+    let summary = answer.text.chars().take(300).collect::<String>();
+    let label = format!("ИИ по предмету: {answer_label}");
+    state.update(&app, |s, _| {
+        if let Some(rec) = s.saved.items.iter_mut().find(|x| x.id == id) {
+            rec.ai = Some(summary);
+        }
+        push_event(s, "ai", label, answer.text.chars().take(160).collect());
+    });
+    Ok(AiAnswerView {
+        text: answer.text,
+        reasoning: answer.reasoning,
+        model: answer.model,
+        provider: answer.provider,
+        prompt_tokens: answer.prompt_tokens,
+        completion_tokens: answer.completion_tokens,
+        image_sent: answer.image_sent,
+        manifest,
+    })
+}
+
+#[tauri::command]
+fn regex_toggle(app: AppHandle, state: State<App>) {
+    state.toggle_regex(&app);
+}
+
+#[tauri::command]
+fn copy_regex(app: AppHandle, state: State<App>, value: String) -> Result<(), String> {
+    clip::copy(&value).map_err(|e| e.to_string())?;
+    {
+        let mut r = state.regex_open.lock().unwrap();
+        *r = false;
+    }
+    state.shared.lock().unwrap().regex_open = false;
+    state.update(&app, |s, _| s.regex_open = false);
+    Ok(())
+}
+
 /// Writes the AI request description next to the screenshots. Nothing is sent.
 #[tauri::command]
 fn ai_prepare(app: AppHandle, state: State<App>, ids: Vec<String>, task: String) -> Result<AiPrepared, String> {
-    let input = ai_input(&state, &ids, ai::Task::parse(&task), "")?;
+    let input = ai_input(&state, &ids, ai::Task::parse(&task), "", None)?;
     let path = write_manifest(&input)?;
     let json = serde_json::to_string_pretty(&input.request).map_err(|e| e.to_string())?;
     let _ = app.emit("state", state.public());
@@ -1153,7 +1323,7 @@ fn ai_prepare(app: AppHandle, state: State<App>, ids: Vec<String>, task: String)
 /// Sends the request. Explicit user action only: the button in the screenshot view.
 #[tauri::command]
 async fn ai_analyze(app: AppHandle, state: State<'_, App>, ids: Vec<String>, task: String, question: String) -> Result<AiAnswerView, String> {
-    let input = ai_input(&state, &ids, ai::Task::parse(&task), &question)?;
+    let input = ai_input(&state, &ids, ai::Task::parse(&task), &question, None)?;
     ensure_ai_ready(&input)?;
     let manifest = write_manifest(&input)?;
     let (request, key, images) = (input.request.clone(), input.key.clone(), input.images.clone());
@@ -1179,7 +1349,7 @@ async fn ai_analyze(app: AppHandle, state: State<'_, App>, ids: Vec<String>, tas
 /// Round-trip check from the settings page: one short message, no images.
 #[tauri::command]
 async fn ai_test(state: State<'_, App>) -> Result<String, String> {
-    let input = ai_input(&state, &[], ai::Task::Answer, "Ответь одним словом: работает")?;
+    let input = ai_input(&state, &[], ai::Task::Answer, "Ответь одним словом: работает", None)?;
     ensure_ai_ready(&input)?;
     let (request, key) = (input.request.clone(), input.key.clone());
     let lang = { state.snap.lock().unwrap().saved.lang.clone() };
@@ -1217,6 +1387,7 @@ fn diagnostics(state: State<App>) -> String {
     out.push_str(&format!("profiles: {} (active {})\n", s.saved.profiles.len(), s.saved.active));
     out.push_str(&format!("history: {} events\n", s.saved.history.len()));
     out.push_str(&format!("screenshots: {} entries\n", s.saved.shots.len()));
+    out.push_str(&format!("items: {} imported, {} regexes\n", s.saved.items.len(), s.saved.regexes.len()));
     out.push_str(&format!("hotkey error: {}\n", s.hotkey_error.clone().unwrap_or_else(|| "нет".into())));
     out.push_str(&format!("zone unknown: {}\n", s.zone_unknown));
     out.push_str(&format!("area id: {}\n", s.area_id));
@@ -1349,6 +1520,12 @@ fn main() {    tauri::Builder::default()
             ai_prepare,
             ai_analyze,
             ai_test,
+            items_list,
+            item_import,
+            item_delete,
+            item_ai,
+            regex_toggle,
+            copy_regex,
             diagnostics,
             reveal_data_dir,
             show_main_window,
@@ -1408,6 +1585,15 @@ fn main() {    tauri::Builder::default()
                     build_ids: build_docs.iter().map(|b| b.id.clone()).collect(),
                     ai_has_key: false,
                     ai_providers: ai::PROVIDERS.to_vec(),
+                    items_count: 0,
+                    regexes: Vec::new(),
+                    regex_open: false,
+                    last_item: None,
+                    session_started: now_iso(),
+                    session_deaths: 0,
+                    session_zones: 0,
+                    session_levels: 0,
+                    zone_since: String::new(),
                     version: VERSION.to_string(),
                 }),
                 campaign: RwLock::new(campaign),
@@ -1417,6 +1603,7 @@ fn main() {    tauri::Builder::default()
                 failed: Mutex::new(Vec::new()),
                 dir: dir.clone(),
                 last_area: Mutex::new(String::new()),
+                regex_open: Mutex::new(false),
             });
             // Windows are created only now ("create": false in tauri.conf.json):
             // their pages call commands right away, and those need the state above.
@@ -1487,13 +1674,13 @@ mod tests {
     #[test]
     fn hotkeys_parse_and_reject_duplicates() {
         let mut h = Hotkeys::default();
-        assert_eq!(parse_hotkeys(&h).unwrap().len(), 6);
+        assert_eq!(parse_hotkeys(&h).unwrap().len(), 8);
         h.screenshot = h.next.clone();
         assert!(parse_hotkeys(&h).unwrap_err().contains("занято"));
         h.screenshot = "Ctrl+Nonsense".into();
         assert!(parse_hotkeys(&h).is_err());
         h.screenshot = String::new();
-        assert_eq!(parse_hotkeys(&h).unwrap().len(), 5, "an empty field is simply unused");
+        assert_eq!(parse_hotkeys(&h).unwrap().len(), 7, "an empty field is simply unused");
     }
 
     #[test]

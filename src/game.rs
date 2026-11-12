@@ -56,6 +56,8 @@ pub struct Shared {
     pub minimized: bool,
     /// A screenshot is being taken: keep the overlay off the image.
     pub capturing: bool,
+    /// The vendor/stash regex list is open: show the panel even when hidden.
+    pub regex_open: bool,
 }
 
 /// Hands the keyboard back to the game after the main window closes.
@@ -73,6 +75,9 @@ pub fn foreground_is(handles: &[isize]) -> bool {
 /// The overlay is allowed on screen when the game window exists and (if
 /// `only_in_game`) is in the foreground or the companion window is.
 pub fn should_show(shared: &Shared) -> bool {
+    if shared.regex_open && shared.game.is_some() && !shared.minimized {
+        return true;
+    }
     if shared.user_hidden || shared.game.is_none() || shared.minimized || shared.capturing {
         return false;
     }

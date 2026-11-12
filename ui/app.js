@@ -12,6 +12,7 @@ let CAMP = null; // campaign route
 let BUILDS = [];
 let VERSION = "";
 let SHOTS = []; // screenshots of the active profile
+let ITEMS = []; // imported items
 let HISTORY = []; // loaded history records
 let section = "home";
 let capturing = null; // hotkey button waiting for keys
@@ -164,6 +165,7 @@ function renderSection() {
   } catch (err) {
     $("#content").innerHTML = `<div class="card"><h2>${esc(t("common.error"))}</h2><pre class="diag">${esc(err?.stack || err)}</pre></div>`;
   }
+  updateSessionClocks();
   $("#content").focus({ preventScroll: true });
 }
 
@@ -230,6 +232,15 @@ function renderHome() {
         </div>`
       )
       .join("")}</div>
+    <div class="card tight">
+      <div class="row">
+        <span class="chip">${esc(t("session.title"))}: <b id="sess-elapsed">—</b></span>
+        <span class="chip">${esc(t("session.zone"))}: <b id="sess-zone">—</b></span>
+        <span class="chip">${esc(t("session.deaths"))}: <b>${S.session_deaths || 0}</b></span>
+        <span class="chip">${esc(t("session.levels"))}: <b>+${S.session_levels || 0}</b></span>
+        <span class="chip">${esc(t("session.zones"))}: <b>${S.session_zones || 0}</b></span>
+      </div>
+    </div>
     <div class="card">
       <h3>${esc(t("home.quick"))}</h3>
       <div class="row">
@@ -370,6 +381,16 @@ function renderBuild() {
   const doneCount = [...done].filter((id) => b.stages.some((s) => s.checklist.some((c) => c.id === id))).length;
 
   $("#content").innerHTML = `
+    <div class="card">
+      <div class="row between">
+        <h2>${esc(t("items.title"))}</h2>
+        <div class="row">
+          <button class="btn primary" data-act="item-import">${esc(t("items.import"))}</button>
+        </div>
+      </div>
+      <div class="small" style="margin:4px 0 8px">${esc(t("items.hint"))}</div>
+      <div id="item-list"></div>
+    </div>
     <div class="card">
       <div class="row between">
         <div>
@@ -514,7 +535,7 @@ function renderCampaign() {
 
 // ---------------------------------------------------------------- history
 function renderHistory() {
-  const kinds = ["zone", "level", "reward", "task", "manual", "shot", "ai"];
+  const kinds = ["zone", "level", "reward", "task", "manual", "shot", "ai", "item", "death"];
   const p = profile();
   $("#content").innerHTML = `
     <div class="card tight">
@@ -740,6 +761,8 @@ function renderSettings() {
     ["hide", "set.hk_hide"],
     ["screenshot", "set.hk_screenshot"],
     ["main", "set.hk_main"],
+    ["item", "set.hk_item"],
+    ["regex", "set.hk_regex"],
   ];
   const providerOptions = [{ id: "disabled", label: t("common.none") }, ...(S.ai_providers || [])]
     .map((p) => `<option value="${esc(p.id)}" ${p.id === (S.saved.ai.provider || "disabled") ? "selected" : ""}>${esc(p.label)}</option>`)
@@ -834,6 +857,15 @@ function renderSettings() {
       <button class="btn sm ghost" data-act="alias-add" style="margin-top:6px">+ ${esc(t("set.add_alias"))}</button>
     </div>
 
+    <div class="card aliases">
+      <h2>${esc(t("set.regexes"))}</h2>
+      <div class="small" style="margin-bottom:8px">${esc(t("set.regexes_hint"))}</div>
+      <div id="regex-rows">
+        ${(S.saved.regexes || []).map((r) => regexRow(r)).join("")}
+      </div>
+      <button class="btn sm ghost" data-act="regex-add" style="margin-top:6px">+ ${esc(t("set.regex_add"))}</button>
+    </div>
+
     <div class="card">
       <h2>${esc(t("set.ai"))}</h2>
       <div class="small" style="margin-bottom:8px">${esc(t("set.ai_hint"))}</div>
@@ -893,6 +925,8 @@ function renderSettings() {
     </div>
   </div>`;
 
+  loadItems();
+
   const bind = (id, out, suffix = "%") => {
     const el = $(id);
     if (!el) return;
@@ -933,12 +967,81 @@ function renderSettings() {
   $("#st-ai-enabled")?.addEventListener("change", syncAi);
   syncAi();
 
+  $$("#regex-rows .arow button").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      btn.closest(".arow").remove();
+    })
+  );
   $$("#alias-rows .arow button").forEach((btn) =>
     btn.addEventListener("click", () => {
       btn.closest(".arow").remove();
     })
   );
   refreshDiagnostics();
+}
+
+function regexRow(r = { name: "", value: "" }) {
+  return `<div class="arow">
+    <input type="text" class="rname" placeholder="${esc(t("set.regex_name"))}" value="${esc(r.name)}">
+    <input type="text" class="rvalue" placeholder="${esc(t("set.regex_value"))}" value="${esc(r.value)}">
+    <button class="icon" type="button">✕</button>
+  </div>`;
+}
+
+function itemCard(rec) {
+  const p = rec.parsed || {};
+  const a = rec.analysis || {};
+  const matches = (a.matches || []).map((m) => `<span class="tag must">${esc(m)}</span>`).join(" ");
+  const warnings = (a.warnings || []).map((w) => `<span class="tag boss">${esc(w)}</span>`).join(" ");
+  const score = a.score || 0;
+  const cls = score >= 3 ? "good-text" : score > 0 ? "warn-text" : "bad-text";
+  return `<div class="item">
+    <div class="row between">
+      <div><b>${esc(p.name || p.base)}</b>${p.base && p.base !== p.name ? ` <span class="small">${esc(p.base)}</span>` : ""}</div>
+      <div class="row">
+        <span class="small ${cls}">${esc(t("items.score"))}: ${score}</span>
+        <button class="btn sm ghost" data-act="item-ai" data-id="${esc(rec.id)}">${esc(t("items.ai"))}</button>
+        <button class="btn sm danger" data-act="item-delete" data-id="${esc(rec.id)}">${esc(t("items.delete"))}</button>
+      </div>
+    </div>
+    <div class="small">${esc(p.rarity || "")}${p.slot ? " · " + esc(p.slot) : ""}${p.item_level ? ` · ${esc(t("items.ilvl"))} ${p.item_level}` : ""} · ${fmtTime(rec.ts)}</div>
+    <div class="chips" style="margin-top:5px">${matches}${warnings}</div>
+    <div class="ai-slot" style="margin-top:6px" ${rec.ai ? "" : "hidden"}>
+      ${rec.ai ? `<div class="ai-answer"><div class="small">${esc(t("ai.answer"))}</div><div class="ai-text">${esc(rec.ai).replaceAll("\n", "<br>")}</div></div>` : ""}
+    </div>
+    <details style="margin-top:6px"><summary class="small">${esc(t("items.raw"))}</summary><pre class="diag" style="max-height:180px;margin-top:4px">${esc(rec.raw)}</pre></details>
+  </div>`;
+}
+
+function renderItemList() {
+  const box = $("#item-list");
+  if (!box) return;
+  box.innerHTML = ITEMS.length ? ITEMS.map(itemCard).join("") : `<div class="small">${esc(t("items.empty"))}</div>`;
+}
+
+async function loadItems() {
+  try {
+    ITEMS = await invoke("items_list");
+  } catch {
+    ITEMS = [];
+  }
+  renderItemList();
+}
+
+function since(iso) {
+  if (!iso) return "—";
+  const secs = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return h ? `${h} ч ${String(m).padStart(2, "0")} мин` : m ? `${m} мин ${String(s).padStart(2, "0")} с` : `${s} с`;
+}
+
+function updateSessionClocks() {
+  const e = $("#sess-elapsed");
+  if (e) e.textContent = since(S.session_started);
+  const z = $("#sess-zone");
+  if (z) z.textContent = since(S.zone_since);
 }
 
 function aliasRow(a = { alias: "", zone: "" }, i = "") {
@@ -994,6 +1097,7 @@ function baseSettings() {
     overlay: S.saved.overlay,
     shots_dir: S.saved.shots_dir,
     zone_aliases: S.saved.zone_aliases,
+    regexes: S.saved.regexes,
     ai_provider: S.saved.ai.provider,
     ai_model: S.saved.ai.model,
     ai_reasoning: S.saved.ai.reasoning || "auto",
@@ -1024,6 +1128,9 @@ function collectSettings({ keepKey = false } = {}) {
     overlay,
     shots_dir: $("#st-shots-dir")?.value.trim() || null,
     zone_aliases: aliases,
+    regexes: $$("#regex-rows .arow")
+      .map((row) => ({ name: row.querySelector(".rname").value.trim(), value: row.querySelector(".rvalue").value.trim() }))
+      .filter((r) => r.value),
     ai_provider: $("#st-ai-provider")?.value || "disabled",
     ai_model: $("#st-ai-model")?.value.trim() || "",
     ai_reasoning: $("#st-ai-reasoning")?.value || "auto",
@@ -1168,6 +1275,41 @@ async function act(name, el) {
       } catch (err) {
         toast(String(err), true);
       }
+      break;
+    case "item-import": {
+      try {
+        const rec = await invoke("item_import");
+        toast(`${t("items.imported")}: ${rec.parsed.name || rec.parsed.base}`);
+        await loadItems();
+      } catch (err) {
+        toast(String(err), true);
+      }
+      break;
+    }
+    case "item-delete":
+      await invoke("item_delete", { id: el.dataset.id });
+      await loadItems();
+      break;
+    case "item-ai": {
+      const box = el.closest(".item")?.querySelector(".ai-slot");
+      if (box) {
+        box.hidden = false;
+        box.innerHTML = `<div class="small">${esc(t("ai.waiting"))}</div>`;
+      }
+      el.disabled = true;
+      try {
+        await invoke("item_ai", { id: el.dataset.id, question: "" });
+        await loadItems();
+      } catch (err) {
+        if (box) box.innerHTML = `<div class="small bad-text">${esc(t("ai.failed"))}: ${esc(String(err))}</div>`;
+        toast(String(err), true);
+      } finally {
+        el.disabled = false;
+      }
+      break;
+    }
+    case "regex-add":
+      $("#regex-rows")?.insertAdjacentHTML("beforeend", regexRow());
       break;
     case "pick-log": {
       const path = await invoke("pick_log_file");

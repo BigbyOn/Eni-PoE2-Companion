@@ -1,8 +1,8 @@
 //! Text into the Windows clipboard (regex strings, export paths).
 //! From poe2overlay (MIT, © 2026 Michael Malura); see NOTICE.
 
-use windows::Win32::Foundation::HANDLE;
-use windows::Win32::System::DataExchange::{CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData};
+use windows::Win32::Foundation::{HANDLE, HGLOBAL};
+use windows::Win32::System::DataExchange::{CloseClipboard, EmptyClipboard, GetClipboardData, OpenClipboard, SetClipboardData};
 use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE};
 use windows::Win32::System::Ole::CF_UNICODETEXT;
 
@@ -18,6 +18,30 @@ pub fn copy(text: &str) -> windows::core::Result<()> {
             // The clipboard owns the memory from here on.
             SetClipboardData(CF_UNICODETEXT.0 as u32, Some(HANDLE(mem.0)))?;
             Ok(())
+        })();
+        let _ = CloseClipboard();
+        result
+    }
+}
+
+/// Reads Unicode text from the clipboard (used for item import).
+pub fn read() -> windows::core::Result<String> {
+    unsafe {
+        OpenClipboard(None)?;
+        let result = (|| {
+            let handle = GetClipboardData(CF_UNICODETEXT.0 as u32)?;
+            let hglobal = HGLOBAL(handle.0);
+            let ptr = GlobalLock(hglobal) as *const u16;
+            if ptr.is_null() {
+                return Ok(String::new());
+            }
+            let mut len = 0usize;
+            while *ptr.add(len) != 0 {
+                len += 1;
+            }
+            let text = String::from_utf16_lossy(std::slice::from_raw_parts(ptr, len));
+            let _ = GlobalUnlock(hglobal);
+            Ok(text)
         })();
         let _ = CloseClipboard();
         result

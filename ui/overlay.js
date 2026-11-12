@@ -48,8 +48,43 @@ function goalHtml(text) {
   return esc(text).replace(/\*\*(.+?)\*\*/g, '<span class="name">$1</span>');
 }
 
+function renderRegex() {
+  const panel = $("#panel");
+  const look = preview || S.saved.overlay;
+  panel.hidden = false;
+  panel.className = "regex";
+  panel.style.setProperty("--panel", `rgba(12,11,9,${(look.opacity ?? 88) / 100})`);
+  panel.style.zoom = `${(look.scale ?? 100) / 100}`;
+  $("#act").textContent = t("overlay.regex_title");
+  $("#lvls").textContent = "";
+  const list = S.regexes || [];
+  $("#body").innerHTML = list.length
+    ? `<div class="small" style="margin-bottom:5px">${esc(t("overlay.regex_hint"))}</div>` +
+      list
+        .map(
+          (r, i) =>
+            `<button class="regex-item" data-regex="${esc(r.value)}" title="${esc(r.value)}"><b>${i + 1}. ${esc(r.name || "Regex")}</b><span>${esc(r.value)}</span></button>`
+        )
+        .join("")
+    : `<div class="small">${esc(t("overlay.regex_empty"))}</div>`;
+  reportSize();
+}
+
+function itemToast() {
+  const li = S.last_item;
+  if (!li) return "";
+  const age = Date.now() - new Date(li.ts).getTime();
+  if (!(age >= 0 && age < 8000)) return "";
+  setTimeout(() => render(), 1500);
+  return `<div class="item-toast">${esc(t("overlay.item_imported"))}: <b>${esc(li.name)}</b> · ${li.score}</div>`;
+}
+
 function render() {
   if (!S || !CAMP) return;
+  if (S.regex_open) {
+    renderRegex();
+    return;
+  }
   const p = profile();
   const s = step();
   const panel = $("#panel");
@@ -85,17 +120,18 @@ function render() {
   document.querySelector('[data-act="mode"]').title = t("overlay.mode");
   document.querySelector('[data-act="hide"]').title = t("overlay.hide");
 
+  const toast = itemToast();
   if (m === "compact") {
     const zone = esc(p?.zone || zoneLabel(s));
     $("#body").innerHTML = go
       ? `<div class="go">${esc(t("overlay.go_to"))} <span class="dest">${esc(zoneLabel(s))}</span>:</div> <span class="goal">${goalHtml(l10n(s.goal))}</span>`
-      : `<span class="zone">${zone}${S.zone_unknown ? " · " + esc(t("overlay.zone_unknown")) : ""}</span> <span class="goal">${goalHtml(l10n(s.goal))}</span>
+      : `${toast}<span class="zone">${zone}${S.zone_unknown ? " · " + esc(t("overlay.zone_unknown")) : ""}</span> <span class="goal">${goalHtml(l10n(s.goal))}</span>
          ${dest ? `<span class="then">${esc(t("overlay.next_dest"))}: <b>${esc(zoneLabel(dest))}</b></span>` : ""}`;
     reportSize();
     return;
   }
 
-  let html = "";
+  let html = toast;
   if (go) html += `<div class="go">${esc(t("overlay.go_to"))} <span class="dest">${esc(zoneLabel(s))}</span> <span class="pct">· ${esc(p.zone)}</span></div>`;
   html += `<div class="zone">${esc(zoneLabel(s))}${S.zone_unknown ? ` · <span class="warn">${esc(t("overlay.zone_unknown"))}</span>` : ""}</div>`;
   html += `<div class="goal">${goalHtml(l10n(s.goal))}</div>`;
@@ -132,6 +168,11 @@ function reportSize() {
 new ResizeObserver(reportSize).observe($("#panel"));
 
 document.addEventListener("click", (e) => {
+  const rx = e.target.closest("[data-regex]");
+  if (rx) {
+    invoke("copy_regex", { value: rx.dataset.regex });
+    return;
+  }
   const btn = e.target.closest("[data-act]");
   if (btn) {
     const what = btn.dataset.act;

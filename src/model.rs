@@ -4,6 +4,7 @@
 //! atomic (temp file + rename) and a file that does not parse is kept as
 //! `state.corrupt-<timestamp>.json` instead of being silently overwritten.
 
+use crate::item::{Analysis, ParsedItem};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -75,6 +76,10 @@ pub struct Hotkeys {
     pub screenshot: String,
     /// Open the main window.
     pub main: String,
+    /// Import the item under the cursor from the clipboard.
+    pub item: String,
+    /// Show the vendor/stash regex list in the overlay.
+    pub regex: String,
 }
 
 impl Default for Hotkeys {
@@ -86,12 +91,14 @@ impl Default for Hotkeys {
             hide: "Ctrl+Alt+KeyG".into(),
             screenshot: "Ctrl+Alt+KeyS".into(),
             main: "Shift+Space".into(),
+            item: "Ctrl+Alt+KeyI".into(),
+            regex: "Ctrl+Alt+KeyR".into(),
         }
     }
 }
 
 impl Hotkeys {
-    pub fn entries(&self) -> [(&'static str, &String); 6] {
+    pub fn entries(&self) -> [(&'static str, &String); 8] {
         [
             ("next", &self.next),
             ("prev", &self.prev),
@@ -99,6 +106,8 @@ impl Hotkeys {
             ("hide", &self.hide),
             ("screenshot", &self.screenshot),
             ("main", &self.main),
+            ("item", &self.item),
+            ("regex", &self.regex),
         ]
     }
 }
@@ -253,6 +262,29 @@ pub struct HistoryEvent {
     pub detail: String,
 }
 
+/// An item imported from the clipboard, with its local analysis.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct ItemRecord {
+    pub id: String,
+    pub ts: String,
+    pub profile: String,
+    /// Raw clipboard text, capped when stored.
+    pub raw: String,
+    pub parsed: ParsedItem,
+    pub analysis: Analysis,
+    /// Last AI answer for this item, if the user asked one.
+    #[serde(default)]
+    pub ai: Option<String>,
+}
+
+/// A vendor/stash search regex the player keeps at hand.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct RegexItem {
+    pub name: String,
+    pub value: String,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Shot {
     pub id: String,
@@ -305,9 +337,16 @@ pub struct Saved {
     pub active: String,
     pub history: Vec<HistoryEvent>,
     pub shots: Vec<Shot>,
+    /// Items imported from the clipboard (newest last).
+    #[serde(default)]
+    pub items: Vec<ItemRecord>,
+    /// Vendor/stash regexes shown by the regex hotkey.
+    #[serde(default = "default_regexes")]
+    pub regexes: Vec<RegexItem>,
     pub buildings_dir: Option<PathBuf>,
     pub shots_dir: Option<PathBuf>,
     pub ai: AiCfg,
+    #[serde(default = "default_aliases")]
     pub zone_aliases: Vec<ZoneAlias>,
 }
 
@@ -325,6 +364,8 @@ impl Default for Saved {
             profiles: vec![profile],
             history: Vec::new(),
             shots: Vec::new(),
+            items: Vec::new(),
+            regexes: default_regexes(),
             buildings_dir: None,
             shots_dir: None,
             ai: AiCfg::default(),
@@ -339,6 +380,16 @@ impl Default for Saved {
 /// The area id is the language-independent fallback: `G1_1` is The Riverbank,
 /// `G1_town` is the act 1 town. Users add more in the settings; the app also
 /// offers to map an unknown zone right when it first appears.
+/// Starter regexes for the vendor/stash search box (short, editable).
+pub fn default_regexes() -> Vec<RegexItem> {
+    vec![
+        RegexItem { name: "Сопротивления".into(), value: r#""[egdl] to.at|resistance|сопротив""#.into() },
+        RegexItem { name: "Жизнь и мана".into(), value: r#""life|mana|здоров|мана""#.into() },
+        RegexItem { name: "Скорость бега".into(), value: r#""movement speed|скорость передвижения""#.into() },
+        RegexItem { name: "Камни и руны".into(), value: r#""gem|rune|камень|руна""#.into() },
+    ]
+}
+
 pub fn default_aliases() -> Vec<ZoneAlias> {
     vec![
         ZoneAlias { alias: "Берег реки".into(), zone: "The Riverbank".into() },
@@ -391,6 +442,24 @@ impl Saved {
             self.history.drain(..keep);
         }
         self.shots.retain(|s| !s.id.is_empty() && !s.file.is_empty() && !s.file.contains("..") && !s.file.contains(['/', '\\']));
+        for item in &mut self.items {
+            if item.raw.len() > 8000 {
+                item.raw.truncate(8000);
+            }
+            item.parsed.mods.truncate(24);
+        }
+        if self.items.len() > 200 {
+            let keep = self.items.len() - 200;
+            self.items.drain(..keep);
+        }
+        self.regexes.retain(|r| !r.value.trim().is_empty());
+        for r in &mut self.regexes {
+            r.name = r.name.chars().take(40).collect();
+            r.value = r.value.chars().take(400).collect();
+        }
+        if self.regexes.len() > 100 {
+            self.regexes.truncate(100);
+        }
         self
     }
 
@@ -491,6 +560,14 @@ mod tests {
         assert_eq!(back.history.len(), 1);
         assert_eq!(back.profiles.len(), 1);
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn missing_fields_use_defaults() {
+        let s: Saved = serde_json::from_str(r#"{"lang":"ru"}"#).unwrap();
+        assert_eq!(s.regexes.len(), 4, "default regexes missing: {:?}", s.regexes);
+        assert_eq!(s.hotkeys.item, "Ctrl+Alt+KeyI");
+        assert!(Saved::default().regexes.len() == 4);
     }
 
     #[test]

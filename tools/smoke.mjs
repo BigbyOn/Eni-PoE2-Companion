@@ -126,7 +126,7 @@ const langRes = await main.eval(`(async () => {
   s.lang = 'en';
   await window.__TAURI__.core.invoke('save_settings', { settings: {
     lang: s.lang, route: s.route, hotkeys: s.hotkeys, log: s.log, overlay: s.overlay,
-    shots_dir: s.shots_dir, zone_aliases: s.zone_aliases,
+    shots_dir: s.shots_dir, zone_aliases: s.zone_aliases, regexes: s.regexes || [],
     ai_provider: s.ai.provider, ai_model: s.ai.model, ai_reasoning: s.ai.reasoning || 'auto', ai_enabled: s.ai.enabled, ai_key: '', ai_clear_key: false } });
   await new Promise(r => setTimeout(r, 400));
   return document.documentElement.lang + '|' + document.querySelector('#nav-items button').textContent.trim();
@@ -139,7 +139,7 @@ await main.eval(`(async () => {
   s.lang = 'ru';
   await window.__TAURI__.core.invoke('save_settings', { settings: {
     lang: 'ru', route: s.route, hotkeys: s.hotkeys, log: s.log, overlay: s.overlay,
-    shots_dir: s.shots_dir, zone_aliases: s.zone_aliases,
+    shots_dir: s.shots_dir, zone_aliases: s.zone_aliases, regexes: s.regexes || [],
     ai_provider: s.ai.provider, ai_model: s.ai.model, ai_reasoning: s.ai.reasoning || 'auto', ai_enabled: s.ai.enabled, ai_key: '', ai_clear_key: false } });
   await new Promise(r => setTimeout(r, 300));
   return document.documentElement.lang;
@@ -154,7 +154,7 @@ await main.eval(`(async () => {
   await window.__TAURI__.core.invoke('save_settings', { settings: {
     lang: s.lang, route: s.route, hotkeys: s.hotkeys,
     log: { mode: 'manual', path: ${JSON.stringify(logPath)} },
-    overlay: s.overlay, shots_dir: ${JSON.stringify(shotsDir)}, zone_aliases: s.zone_aliases,
+    overlay: s.overlay, shots_dir: ${JSON.stringify(shotsDir)}, zone_aliases: s.zone_aliases, regexes: s.regexes || [],
     ai_provider: s.ai.provider, ai_model: s.ai.model, ai_reasoning: s.ai.reasoning || 'auto', ai_enabled: s.ai.enabled, ai_key: '', ai_clear_key: false } });
 })()`);
 await waitFor(main, "S.log_found && String(S.log_path).includes('_smoke') && S.saved.profiles[0].level === 6");
@@ -268,6 +268,15 @@ const modalUi = JSON.parse(await main.eval(`(async () => {
 check("ai ui: modal actions", modalUi.buttons.includes("analyse_item") && modalUi.buttons.includes("next_upgrades") && modalUi.question && modalUi.answer, JSON.stringify(modalUi));
 await main.eval(`(async () => { document.querySelector('#modal').hidden = true; activeShot = null; })()`);
 
+// 7d. item import from the clipboard
+const item = JSON.parse(await main.eval(`(async () => JSON.stringify(await window.__TAURI__.core.invoke('item_import')))()`));
+check("items: clipboard text parsed", item.parsed && item.parsed.name === "Doom Loop" && item.parsed.slot === "ring", JSON.stringify(item.parsed));
+check("items: build-fit analysis", item.analysis.matches.includes("сопротивления") && item.analysis.score > 0, JSON.stringify(item.analysis));
+const itemAi = await main.eval(`(async () => { try { await window.__TAURI__.core.invoke('item_ai', { id: ${JSON.stringify(item.id)}, question: '' }); return 'unexpected success'; } catch (e) { return String(e); } })()`);
+check("items: AI disabled refuses", /ИИ выключен|Не задан API-ключ/.test(itemAi), itemAi);
+const items = JSON.parse(await main.eval(`(async () => JSON.stringify(await window.__TAURI__.core.invoke('items_list')))()`));
+check("items: list returns the record", items.length >= 1 && items[0].id === item.id, String(items.length));
+
 // 8. AI request preparation (local only)
 const ai = JSON.parse(await main.eval(`(async () => JSON.stringify(await window.__TAURI__.core.invoke('ai_prepare', { ids: [${JSON.stringify(shot.id)}], task: 'analyse_item' })))()`));
 check("ai: request description written locally", existsSync(ai.path) && ai.json.includes("analyse_item"), ai.path);
@@ -291,6 +300,19 @@ if (overlayTarget) {
     return out.join('|');
   })()`);
   check("overlay: all three modes render", modes.split("|").length === 3 && !modes.includes(":0"), modes);
+  const rx = JSON.parse(await ov.eval(`(async () => {
+    await window.__TAURI__.core.invoke('regex_toggle');
+    await new Promise(r => setTimeout(r, 500));
+    return JSON.stringify({ open: S.regex_open, count: document.querySelectorAll('.regex-item').length });
+  })()`));
+  check("overlay: regex list opens", rx.open === true && rx.count >= 3, JSON.stringify(rx));
+  const rxCopy = JSON.parse(await ov.eval(`(async () => {
+    const btn = document.querySelector('.regex-item');
+    btn.click();
+    await new Promise(r => setTimeout(r, 500));
+    return JSON.stringify({ open: S.regex_open });
+  })()`));
+  check("overlay: regex click copies and closes", rxCopy.open === false, JSON.stringify(rxCopy));
   check("overlay: no page exceptions", ov.errors.length === 0, ov.errors.join("; "));
   ov.close();
 }

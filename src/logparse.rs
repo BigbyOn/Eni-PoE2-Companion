@@ -49,6 +49,8 @@ pub enum Event {
     Reward(String),
     /// The file got shorter: it was truncated or replaced.
     Truncated,
+    /// `: Name has been slain.` / `: Name был повержен.`
+    Death { name: Option<String> },
 }
 
 /// Rewards in the log start with one of these after the `] : ` prefix.
@@ -174,6 +176,16 @@ pub fn parse(line: &str) -> Option<Event> {
         let (name, class) = split_level(&text[..i]);
         if let (Some(name), Some(class)) = (name, class) {
             return Some(Event::Level { name: Some(name), class: Some(class), level });
+        }
+    }
+
+    // 3b. Death of the tracked character.
+    if let Some(msg) = msg {
+        for marker in [" has been slain", " was slain by ", " был повержен", " была повержена", " погиб", " пал от "] {
+            if let Some(i) = find_ci(msg, marker) {
+                let name = msg[..i].trim().trim_start_matches(':').trim();
+                return Some(Event::Death { name: clean_name(name) });
+            }
         }
     }
 
