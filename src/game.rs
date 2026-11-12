@@ -1,7 +1,10 @@
 //! Keeps the overlay window on the game: the window is exactly the panel,
 //! placed at the saved offset inside the game's client area, and visible only
-//! while the game is in front. No click-through needed: everything around the
-//! panel is the game itself.
+//! while the game is in front.
+//!
+//! Adapted from poe2overlay (MIT, © 2026 Michael Malura); see NOTICE.
+//! The overlay never takes focus (`focusable: false` in tauri.conf.json), so
+//! clicks next to the panel reach the game.
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -17,7 +20,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
 };
 
 /// Panel offset from the game's client area and its size, physical pixels.
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct Panel {
     pub x: i32,
     pub y: i32,
@@ -28,10 +31,10 @@ pub struct Panel {
 #[derive(Default)]
 pub struct Shared {
     pub panel: Panel,
-    /// Set by the user hotkey: stays hidden even while the game has focus.
+    /// Show / hide the overlay from the UI or a hotkey.
     pub user_hidden: bool,
     /// Client.txt to follow. The tracker points it at the running game's log
-    /// unless the user pinned a path in state.json.
+    /// unless the user pinned a path.
     pub log: Option<PathBuf>,
     pub log_pinned: bool,
     /// Game client area on screen, None while there is no game window.
@@ -40,26 +43,52 @@ pub struct Shared {
     pub(crate) placed: RECT,
     /// While dragging: cursor and panel offset at the start.
     pub(crate) drag: Option<(POINT, i32, i32)>,
-    /// Raw HWNDs (HWND itself is not Send): the game, and the settings/regex
-    /// window, which counts as "game in front" while it has focus.
+    /// Raw HWNDs (HWND itself is not Send): the game window.
     pub(crate) game_hwnd: isize,
-    pub menu_hwnd: isize,
+    /// The main window counts as "in front" while it has focus, so the overlay
+    /// does not vanish when the user opens the companion window.
+    pub main_hwnd: isize,
+    /// Whether the overlay is currently shown (tracked by the placement thread).
+    pub visible: bool,
+    /// Only show the overlay while the game is the foreground window.
+    pub only_in_game: bool,
+    /// The game window is minimized: hide the overlay.
+    pub minimized: bool,
+    /// A screenshot is being taken: keep the overlay off the image.
+    pub capturing: bool,
 }
 
-/// Hands the keyboard back to the game after the menu closes.
+/// Hands the keyboard back to the game after the main window closes.
 pub fn focus_game(game_hwnd: isize) {
     if game_hwnd != 0 {
         let _ = unsafe { SetForegroundWindow(HWND(game_hwnd as _)) };
     }
 }
 
+pub fn foreground_is(handles: &[isize]) -> bool {
+    let fg = unsafe { GetForegroundWindow() };
+    handles.iter().any(|h| *h != 0 && fg.0 as isize == *h)
+}
+
+/// The overlay is allowed on screen when the game window exists and (if
+/// `only_in_game`) is in the foreground or the companion window is.
+pub fn should_show(shared: &Shared) -> bool {
+    if shared.user_hidden || shared.game.is_none() || shared.minimized || shared.capturing {
+        return false;
+    }
+    if !shared.only_in_game {
+        return true;
+    }
+    foreground_is(&[shared.game_hwnd, shared.main_hwnd])
+}
+
 /// Sizes a window (logical px) and puts it in the middle of the game.
+#[allow(dead_code)]
 pub fn center_on_game(win: &WebviewWindow, game: Option<RECT>, w: f64, h: f64) {
     let k = win.scale_factor().unwrap_or(1.0);
-    // Never larger than the game window (small windowed games).
     let fit = |v: f64, room: Option<i32>| ((v * k) as i32).min(room.map_or(i32::MAX, |r| r - 20));
     let (pw, ph) = (fit(w, game.map(|g| g.right - g.left)), fit(h, game.map(|g| g.bottom - g.top)));
-    let _ = win.set_size(PhysicalSize::new(pw as u32, ph as u32));
+    let _ = win.set_size(PhysicalSize::new(pw.max(80) as u32, ph.max(40) as u32));
     if let Some(g) = game {
         let _ = win.set_position(PhysicalPosition::new(g.left + (g.right - g.left - pw) / 2, g.top + (g.bottom - g.top - ph) / 2));
     }
@@ -68,7 +97,7 @@ pub fn center_on_game(win: &WebviewWindow, game: Option<RECT>, w: f64, h: f64) {
 /// Moves and sizes the overlay window to the panel, keeping it inside the game.
 pub fn place(win: &WebviewWindow, s: &mut Shared) {
     let (Some(g), p) = (s.game, s.panel) else { return };
-    if p.w == 0 || p.h == 0 {
+    if p.w <= 0 || p.h <= 0 {
         return;
     }
     s.panel.x = p.x.clamp(0, (g.right - g.left - p.w).max(0));
@@ -81,8 +110,8 @@ pub fn place(win: &WebviewWindow, s: &mut Shared) {
     }
 }
 
-/// Drag by the real cursor position (the window moves under the mouse, so
-/// page coordinates would chase themselves). Returns the final offset on "end".
+/// Drag by the real cursor position (the window moves under the mouse, so page
+/// coordinates would chase themselves). Returns the final offset on "end".
 pub fn drag(win: &WebviewWindow, s: &mut Shared, phase: &str) -> Option<(i32, i32)> {
     let mut cur = POINT::default();
     unsafe { GetCursorPos(&mut cur) }.ok()?;
@@ -115,7 +144,7 @@ fn game_log(hwnd: HWND) -> Option<PathBuf> {
         ok.ok()?;
     }
     let exe = PathBuf::from(String::from_utf16_lossy(&buf[..len as usize]));
-    Some(exe.parent()?.join("logs").join("Client.txt")).filter(|p| p.is_file())
+    crate::discover::for_game_exe(&exe)
 }
 
 fn client_rect(hwnd: HWND) -> Option<RECT> {
@@ -128,36 +157,52 @@ fn client_rect(hwnd: HWND) -> Option<RECT> {
     Some(RECT { left: origin.x, top: origin.y, right: origin.x + r.right, bottom: origin.y + r.bottom })
 }
 
-/// `regex`: the regex list, hidden together with the overlay when the game leaves the front.
-pub fn spawn_tracker(win: WebviewWindow, regex: WebviewWindow, shared: Arc<Mutex<Shared>>) {
-    // Test knob: point the overlay at another window while the real game runs.
-    let title = HSTRING::from(std::env::var("POE2OVERLAY_GAME_TITLE").unwrap_or_else(|_| "Path of Exile 2".into()));
+/// Finds the game window by title. `ENI_COMPANION_GAME_TITLE` allows pointing
+/// the app at another window while testing without a running game.
+pub fn game_title() -> String {
+    std::env::var("ENI_COMPANION_GAME_TITLE").unwrap_or_else(|_| "Path of Exile 2".into())
+}
+
+pub fn find_game() -> Option<HWND> {
+    let title = game_title();
+    let title = HSTRING::from(title);
+    unsafe { FindWindowW(None, &title) }.ok()
+}
+
+/// Keeps the overlay placed, sized and shown while the game is in front.
+///
+/// Window methods that block (show/hide) are called outside the shared lock:
+/// the main thread may be waiting for that lock, and a blocking window call
+/// from this thread would then deadlock the app.
+pub fn spawn_tracker(win: WebviewWindow, shared: Arc<Mutex<Shared>>) {
     thread::spawn(move || {
-        let (mut visible, mut last_game) = (false, None);
+        let mut last_game: Option<HWND> = None;
+        let mut visible = false;
         loop {
-            // ponytail: 100 ms polling, switch to SetWinEventHook if the lag ever shows
             thread::sleep(Duration::from_millis(100));
-            let game = unsafe { FindWindowW(None, &title) }.ok();
+            let game = find_game();
             let rect = game.and_then(client_rect).filter(|r| r.right > r.left);
-            let mut s = shared.lock().unwrap();
-            let fg = unsafe { GetForegroundWindow() };
-            let in_front = game.is_some_and(|g| (fg == g || (s.menu_hwnd != 0 && fg.0 as isize == s.menu_hwnd)) && !unsafe { IsIconic(g) }.as_bool());
-            s.game_hwnd = game.map_or(0, |g| g.0 as isize);
-            if game.is_some() && game != last_game && !s.log_pinned {
-                if let Some(log) = game.and_then(game_log) {
-                    s.log = Some(log);
+            let minimized = game.is_some_and(|g| unsafe { IsIconic(g) }.as_bool());
+            let want = {
+                let mut s = shared.lock().unwrap();
+                s.game = rect;
+                s.minimized = minimized;
+                if game != last_game {
+                    s.game_hwnd = game.map_or(0, |g| g.0 as isize);
+                    if let (Some(g), false) = (game, s.log_pinned) {
+                        if let Some(log) = game_log(g) {
+                            s.log = Some(log);
+                        }
+                    }
+                    last_game = game;
                 }
-            }
-            last_game = game;
-            s.game = rect;
-            place(&win, &mut s);
-            let want_visible = in_front && rect.is_some() && !s.user_hidden;
-            if want_visible != visible {
-                let _ = if want_visible { win.show() } else { win.hide() };
-                if !want_visible {
-                    let _ = regex.hide();
-                }
-                visible = want_visible;
+                place(&win, &mut s);
+                should_show(&s)
+            };
+            if want != visible {
+                let _ = if want { win.show() } else { win.hide() };
+                visible = want;
+                shared.lock().unwrap().visible = want;
             }
         }
     });
@@ -166,12 +211,21 @@ pub fn spawn_tracker(win: WebviewWindow, regex: WebviewWindow, shared: Arc<Mutex
 #[cfg(test)]
 mod tests {
     use super::*;
-    use windows::core::w;
+
+    #[test]
+    fn hidden_flag_overrides_everything() {
+        let mut s = Shared::default();
+        assert!(!should_show(&s), "no game window, nothing to show");
+        s.game = Some(RECT { left: 0, top: 0, right: 100, bottom: 100 });
+        assert!(should_show(&s) || !should_show(&s), "depends on the foreground window");
+        s.user_hidden = true;
+        assert!(!should_show(&s));
+    }
 
     #[test]
     #[ignore = "needs a running game: cargo test -- --ignored"]
     fn finds_log_of_running_game() {
-        let game = unsafe { FindWindowW(None, w!("Path of Exile 2")) }.expect("game not running");
+        let game = find_game().expect("game not running");
         let log = game_log(game).expect("no Client.txt next to the game exe");
         println!("{}", log.display());
     }

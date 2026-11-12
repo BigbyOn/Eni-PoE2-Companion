@@ -1,0 +1,3641 @@
+{
+  "schema": 1,
+  "version": "2026.11.1",
+  "patch": "0.5.5",
+  "title": {
+    "ru": "Кампания Path of Exile 2",
+    "en": "Path of Exile 2 campaign"
+  },
+  "source": "Порядок зон и цели кампании — сводка сообщества poe2speedrun (MIT), русские формулировки — Eni-PoE2-Companion.",
+  "acts": [
+    {
+      "id": 1,
+      "title": {
+        "ru": "Акт I — Огам",
+        "en": "Act I — Ogham"
+      },
+      "levels": [
+        1,
+        14
+      ]
+    },
+    {
+      "id": 2,
+      "title": {
+        "ru": "Акт II — Вастири",
+        "en": "Act II — Vastiri"
+      },
+      "levels": [
+        14,
+        29
+      ]
+    },
+    {
+      "id": 3,
+      "title": {
+        "ru": "Акт III — Джунгли и Ваал",
+        "en": "Act III — Jungle and Vaal"
+      },
+      "levels": [
+        29,
+        41
+      ]
+    },
+    {
+      "id": 4,
+      "title": {
+        "ru": "Акт IV — Острова",
+        "en": "Act IV — The Islands"
+      },
+      "levels": [
+        41,
+        50
+      ]
+    },
+    {
+      "id": 5,
+      "title": {
+        "ru": "Интерлюдии",
+        "en": "Interludes"
+      },
+      "levels": [
+        50,
+        60
+      ]
+    },
+    {
+      "id": 6,
+      "title": {
+        "ru": "Атлас",
+        "en": "Atlas"
+      },
+      "levels": [
+        60,
+        100
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zthe-riverbank",
+      "names": [
+        "The Riverbank"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zclearfell-encampment",
+      "names": [
+        "Clearfell Encampment"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zclearfell",
+      "names": [
+        "Clearfell"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zthe-grelwood",
+      "names": [
+        "The Grelwood"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zthe-red-vale",
+      "names": [
+        "The Red Vale"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zthe-grim-tangle",
+      "names": [
+        "The Grim Tangle"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zcemetery-of-the-eternals",
+      "names": [
+        "Cemetery of the Eternals"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zhunting-grounds",
+      "names": [
+        "Hunting Grounds"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zfreythorn",
+      "names": [
+        "Freythorn"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zogham-farmlands",
+      "names": [
+        "Ogham Farmlands"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zogham-village",
+      "names": [
+        "Ogham Village"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zthe-manor-ramparts",
+      "names": [
+        "The Manor Ramparts"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zogham-manor",
+      "names": [
+        "Ogham Manor"
+      ],
+      "act": 1
+    },
+    {
+      "id": "zvastiri-outskirts",
+      "names": [
+        "Vastiri Outskirts"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zthe-ardura-caravan",
+      "names": [
+        "The Ardura Caravan"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zmawdun-quarry",
+      "names": [
+        "Mawdun Quarry"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zmawdun-mine",
+      "names": [
+        "Mawdun Mine"
+      ],
+      "act": 2
+    },
+    {
+      "id": "ztraitor-s-passage",
+      "names": [
+        "Traitor's Passage"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zthe-halani-gates",
+      "names": [
+        "The Halani Gates"
+      ],
+      "act": 2
+    },
+    {
+      "id": "ztrial-of-the-sekhemas",
+      "names": [
+        "Trial of the Sekhemas"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zmastodon-badlands",
+      "names": [
+        "Mastodon Badlands"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zthe-bone-pits",
+      "names": [
+        "The Bone Pits"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zketh",
+      "names": [
+        "Keth"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zthe-lost-city",
+      "names": [
+        "The Lost City"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zburied-shrines",
+      "names": [
+        "Buried Shrines"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zvalley-of-the-titans",
+      "names": [
+        "Valley of the Titans"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zthe-titan-grotto",
+      "names": [
+        "The Titan Grotto"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zdeshar",
+      "names": [
+        "Deshar"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zpath-of-mourning",
+      "names": [
+        "Path of Mourning"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zthe-spires-of-deshar",
+      "names": [
+        "The Spires of Deshar"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zthe-dreadnought",
+      "names": [
+        "The Dreadnought"
+      ],
+      "act": 2
+    },
+    {
+      "id": "zsandswept-marsh",
+      "names": [
+        "Sandswept Marsh"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zziggurat-encampment",
+      "names": [
+        "Ziggurat Encampment"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zjungle-ruins",
+      "names": [
+        "Jungle Ruins"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zvenom-crypts",
+      "names": [
+        "Venom Crypts"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zinfested-barrens",
+      "names": [
+        "Infested Barrens"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zchimeral-wetlands",
+      "names": [
+        "Chimeral Wetlands"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zjiquani-s-machinarium",
+      "names": [
+        "Jiquani's Machinarium"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zjiquani-s-sanctum",
+      "names": [
+        "Jiquani's Sanctum"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zmatlan-waterways",
+      "names": [
+        "Matlan Waterways"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zazak-bog",
+      "names": [
+        "Azak Bog"
+      ],
+      "act": 3
+    },
+    {
+      "id": "ztrial-of-chaos",
+      "names": [
+        "Trial of Chaos"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zdrowned-city",
+      "names": [
+        "Drowned City"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zapex-of-filth",
+      "names": [
+        "Apex of Filth"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zmolten-vault",
+      "names": [
+        "Molten Vault"
+      ],
+      "act": 3
+    },
+    {
+      "id": "ztemple-of-kopec",
+      "names": [
+        "Temple of Kopec"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zutzaal",
+      "names": [
+        "Utzaal"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zaggorat",
+      "names": [
+        "Aggorat"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zblack-chambers",
+      "names": [
+        "Black Chambers"
+      ],
+      "act": 3
+    },
+    {
+      "id": "zkingsmarch",
+      "names": [
+        "Kingsmarch"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zisle-of-kin",
+      "names": [
+        "Isle of Kin"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zvolcanic-warrens",
+      "names": [
+        "Volcanic Warrens"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zkedge-bay",
+      "names": [
+        "Kedge Bay"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zjourney-s-end",
+      "names": [
+        "Journey's End"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zabandoned-prison",
+      "names": [
+        "Abandoned Prison"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zsolitary-confinement",
+      "names": [
+        "Solitary Confinement"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zshrike-island",
+      "names": [
+        "Shrike Island"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zwhakapanu-island",
+      "names": [
+        "Whakapanu Island"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zsinging-caverns",
+      "names": [
+        "Singing Caverns"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zeye-of-hinekora",
+      "names": [
+        "Eye of Hinekora"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zhalls-of-the-dead",
+      "names": [
+        "Halls of the Dead"
+      ],
+      "act": 4
+    },
+    {
+      "id": "ztrial-of-the-ancestors",
+      "names": [
+        "Trial of the Ancestors"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zarastas",
+      "names": [
+        "Arastas"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zthe-excavation",
+      "names": [
+        "The Excavation"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zngakanu",
+      "names": [
+        "Ngakanu",
+        "Heart of the Tribe"
+      ],
+      "act": 4
+    },
+    {
+      "id": "zthe-khari-bazaar",
+      "names": [
+        "The Khari Bazaar"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zskullmaw-stairway",
+      "names": [
+        "Skullmaw Stairway"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zthe-galai-gates",
+      "names": [
+        "The Galai Gates"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zthe-khari-crossing",
+      "names": [
+        "The Khari Crossing"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zpools-of-khatal",
+      "names": [
+        "Pools of Khatal"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zthe-glade",
+      "names": [
+        "The Glade",
+        "Ashen Forest"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zkriar-village",
+      "names": [
+        "Kriar Village"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zglacial-tarn",
+      "names": [
+        "Glacial Tarn",
+        "Howling Caves"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zglacial-tarn",
+      "names": [
+        "Glacial Tarn"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zkriar-peaks",
+      "names": [
+        "Kriar Peaks"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zetched-ravine",
+      "names": [
+        "Etched Ravine"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zthe-cuachic-vault",
+      "names": [
+        "The Cuachic Vault"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zsel-khari-sanctuary",
+      "names": [
+        "Sel Khari Sanctuary"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zqimah",
+      "names": [
+        "Qimah"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zqimah-reservoir",
+      "names": [
+        "Qimah Reservoir"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zthe-refuge",
+      "names": [
+        "The Refuge",
+        "Scorched Farmlands"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zstones-of-serle",
+      "names": [
+        "Stones of Serle"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zthe-blackwood",
+      "names": [
+        "The Blackwood",
+        "Holten"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zholten",
+      "names": [
+        "Holten"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zwolvenhold",
+      "names": [
+        "Wolvenhold"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zholten-estate",
+      "names": [
+        "Holten Estate"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zthe-refuge",
+      "names": [
+        "The Refuge"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zthe-ziggurat-refuge",
+      "names": [
+        "The Ziggurat Refuge"
+      ],
+      "act": 5
+    },
+    {
+      "id": "zatlas",
+      "names": [
+        "Atlas"
+      ],
+      "act": 6
+    },
+    {
+      "id": "ztrial-of-the-sekhemas",
+      "names": [
+        "Trial of the Sekhemas",
+        "Trial of Chaos"
+      ],
+      "act": 6
+    }
+  ],
+  "steps": [
+    {
+      "id": "a1-01",
+      "act": 1,
+      "zone": "zthe-riverbank",
+      "zones": [
+        "The Riverbank"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill The Bloated Miller",
+        "ru": "Убить The Bloated Miller"
+      },
+      "quest": {
+        "en": "Reaching Clearfell",
+        "ru": "Дойти до Clearfell"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a1-02",
+      "act": 1,
+      "zone": "zclearfell-encampment",
+      "zones": [
+        "Clearfell Encampment"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to Renly -> first Uncut Skill Gem",
+        "ru": "Поговорить с Renly и взять первое Uncut Skill Gem"
+      },
+      "quest": {
+        "en": "Reaching Clearfell",
+        "ru": "Дойти до Clearfell"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town",
+        "gem"
+      ]
+    },
+    {
+      "id": "a1-03",
+      "act": 1,
+      "zone": "zclearfell",
+      "zones": [
+        "Clearfell"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill Beira of the Rotten Pack -> +10% cold resistance",
+        "ru": "Убить Beira of the Rotten Pack → +10% к сопротивлению холоду"
+      },
+      "quest": {
+        "en": "Secrets in the Dark",
+        "ru": "Тайны во тьме"
+      },
+      "rewards": [
+        {
+          "kind": "cold_resistance",
+          "match": [
+            "Cold Resistance",
+            "сопротивление холоду",
+            "холоду"
+          ]
+        }
+      ],
+      "tags": [
+        "must",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a1-04",
+      "act": 1,
+      "zone": "zthe-grelwood",
+      "zones": [
+        "The Grelwood"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "3-4",
+      "goal": {
+        "en": "Grab the Waypoint at the Tree of Souls, then into The Red Vale",
+        "ru": "Взять точку возврата у Tree of Souls и идти в The Red Vale"
+      },
+      "quest": {
+        "en": "Secrets in the Dark",
+        "ru": "Тайны во тьме"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a1-05",
+      "act": 1,
+      "zone": "zthe-red-vale",
+      "zones": [
+        "The Red Vale"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "5",
+      "goal": {
+        "en": "Activate 3 Obelisks of Rust, kill the Rust King",
+        "ru": "Активировать 3 Obelisks of Rust и убить Rust King"
+      },
+      "quest": {
+        "en": "Secrets in the Dark",
+        "ru": "Тайны во тьме"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "gear",
+        "boss"
+      ]
+    },
+    {
+      "id": "a1-06",
+      "act": 1,
+      "zone": "zclearfell-encampment",
+      "zones": [
+        "Clearfell Encampment"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Renly: hand in the runes, take the Runed Spikes",
+        "ru": "Renly: сдать руны и взять Runed Spikes"
+      },
+      "quest": {
+        "en": "Secrets in the Dark",
+        "ru": "Тайны во тьме"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town",
+        "gear"
+      ]
+    },
+    {
+      "id": "a1-07",
+      "act": 1,
+      "zone": "zthe-grelwood",
+      "zones": [
+        "The Grelwood"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Break the 3 Runic Seals at the Tree of Souls with the Runed Spikes",
+        "ru": "Сломать 3 Runic Seals у Tree of Souls"
+      },
+      "quest": {
+        "en": "Secrets in the Dark",
+        "ru": "Тайны во тьме"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "skip"
+      ]
+    },
+    {
+      "id": "a1-08",
+      "act": 1,
+      "zone": "zthe-grim-tangle",
+      "zones": [
+        "The Grim Tangle"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "5-6",
+      "goal": {
+        "en": "Summon Una at the roots, then on to the Cemetery of the Eternals",
+        "ru": "Призвать Una у корней и идти в Cemetery of the Eternals"
+      },
+      "quest": {
+        "en": "The Mysterious Shade",
+        "ru": "Таинственная тень"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "skip",
+        "gem"
+      ]
+    },
+    {
+      "id": "a1-09",
+      "act": 1,
+      "zone": "zcemetery-of-the-eternals",
+      "zones": [
+        "Cemetery of the Eternals"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "7",
+      "goal": {
+        "en": "Kill Asinia and Draven -> 2 Memorial Key Pieces",
+        "ru": "Убить Asinia и Draven → 2 фрагмента мемориального ключа"
+      },
+      "quest": {
+        "en": "Sorrow Among Stones",
+        "ru": "Печаль среди камней"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a1-10",
+      "act": 1,
+      "zone": "zcemetery-of-the-eternals",
+      "zones": [
+        "Cemetery of the Eternals"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill Lachlann of Endless Lament at the Memorial Gate by the Waypoint",
+        "ru": "Убить Lachlann of Endless Lament у Memorial Gate"
+      },
+      "quest": {
+        "en": "Sorrow Among Stones",
+        "ru": "Печаль среди камней"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss",
+        "skip"
+      ]
+    },
+    {
+      "id": "a1-11",
+      "act": 1,
+      "zone": "zhunting-grounds",
+      "zones": [
+        "Hunting Grounds"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "7-8",
+      "goal": {
+        "en": "Kill The Crowbell -> +2 passive points",
+        "ru": "Убить The Crowbell → +2 очка пассивных умений"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "must",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a1-12",
+      "act": 1,
+      "zone": "zfreythorn",
+      "zones": [
+        "Freythorn"
+      ],
+      "kind": "boss",
+      "optional": true,
+      "level": "8-9",
+      "goal": {
+        "en": "Cleanse 3 Ritual Altars, kill The King in the Mists -> +30 Spirit",
+        "ru": "Очистить 3 ритуальных алтаря и убить The King in the Mists → +30 Spirit"
+      },
+      "quest": {
+        "en": "Ominous Altars",
+        "ru": "Зловещие алтари"
+      },
+      "rewards": [
+        {
+          "kind": "spirit",
+          "match": [
+            "[Spirit|Spirit]",
+            "Spirit]",
+            "Spirit"
+          ]
+        }
+      ],
+      "tags": [
+        "optional",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a1-13",
+      "act": 1,
+      "zone": "zclearfell-encampment",
+      "zones": [
+        "Clearfell Encampment"
+      ],
+      "kind": "town",
+      "optional": true,
+      "level": "10",
+      "goal": {
+        "en": "Finn: pick a Charm, Una: buy a Greater Life/Mana Flask",
+        "ru": "Finn: взять амулет; Una: купить Greater Life/Mana флакон"
+      },
+      "quest": {
+        "en": "Ominous Altars",
+        "ru": "Зловещие алтари"
+      },
+      "rewards": [],
+      "tags": [
+        "town",
+        "optional"
+      ]
+    },
+    {
+      "id": "a1-14",
+      "act": 1,
+      "zone": "zogham-farmlands",
+      "zones": [
+        "Ogham Farmlands"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "10",
+      "goal": {
+        "en": "Pick up Una's Lute -> +2 passive points from Una",
+        "ru": "Подобрать Una's Lute → +2 очка пассивных умений"
+      },
+      "quest": {
+        "en": "The Lost Lute",
+        "ru": "Потерянная лютня"
+      },
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "must",
+        "buff"
+      ]
+    },
+    {
+      "id": "a1-15",
+      "act": 1,
+      "zone": "zogham-village",
+      "zones": [
+        "Ogham Village"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "11",
+      "goal": {
+        "en": "Kill The Executioner, pull the lever, talk to Leitis",
+        "ru": "Убить The Executioner, дёрнуть рычаг и поговорить с Leitis"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a1-16",
+      "act": 1,
+      "zone": "zclearfell-encampment",
+      "zones": [
+        "Clearfell Encampment"
+      ],
+      "kind": "town",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Una: hand in the lute -> +2 passive points",
+        "ru": "Una: сдать лютню → +2 очка пассивных умений"
+      },
+      "quest": {
+        "en": "The Lost Lute",
+        "ru": "Потерянная лютня"
+      },
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "town",
+        "gem",
+        "optional"
+      ]
+    },
+    {
+      "id": "a1-17",
+      "act": 1,
+      "zone": "zthe-manor-ramparts",
+      "zones": [
+        "The Manor Ramparts"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "12",
+      "goal": {
+        "en": "To Ogham Manor, reaching level 13 on the way",
+        "ru": "Дойти до Ogham Manor, по пути взять 13-й уровень"
+      },
+      "quest": {
+        "en": "The Mad Wolf of Ogham",
+        "ru": "Безумный волк Огама"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a1-18",
+      "act": 1,
+      "zone": "zogham-manor",
+      "zones": [
+        "Ogham Manor"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "14",
+      "goal": {
+        "en": "Kill Count Geonor at level 14",
+        "ru": "Убить Count Geonor на 14-м уровне"
+      },
+      "quest": {
+        "en": "The Mad Wolf of Ogham",
+        "ru": "Безумный волк Огама"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a1-19",
+      "act": 1,
+      "zone": "zclearfell-encampment",
+      "zones": [
+        "Clearfell Encampment"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to the Hooded One -> Follow the Beast's trail",
+        "ru": "Поговорить с Hooded One → идти по следу Зверя"
+      },
+      "quest": {
+        "en": "The Mad Wolf of Ogham",
+        "ru": "Безумный волк Огама"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town"
+      ]
+    },
+    {
+      "id": "a2-01",
+      "act": 2,
+      "zone": "zvastiri-outskirts",
+      "zones": [
+        "Vastiri Outskirts"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "14",
+      "goal": {
+        "en": "Kill Rathbreaker",
+        "ru": "Убить Rathbreaker"
+      },
+      "quest": {
+        "en": "Earning Passage",
+        "ru": "Право на проход"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss",
+        "gem"
+      ]
+    },
+    {
+      "id": "a2-02",
+      "act": 2,
+      "zone": "zthe-ardura-caravan",
+      "zones": [
+        "The Ardura Caravan"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to the Hooded One, then Asala -> Desert Map Mawdun Quarry",
+        "ru": "Поговорить с Hooded One и Asala → Desert Map: Mawdun Quarry"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town",
+        "gear"
+      ]
+    },
+    {
+      "id": "a2-03",
+      "act": 2,
+      "zone": "zmawdun-quarry",
+      "zones": [
+        "Mawdun Quarry"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "16",
+      "goal": {
+        "en": "Find the entrance to Mawdun Mine",
+        "ru": "Найти вход в Mawdun Mine"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "gear"
+      ]
+    },
+    {
+      "id": "a2-04",
+      "act": 2,
+      "zone": "zmawdun-mine",
+      "zones": [
+        "Mawdun Mine"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "16-17",
+      "goal": {
+        "en": "Kill Rudja, the Dread Engineer, free Risu",
+        "ru": "Убить Rudja, the Dread Engineer и освободить Risu"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a2-05",
+      "act": 2,
+      "zone": "zthe-ardura-caravan",
+      "zones": [
+        "The Ardura Caravan"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to Risu, then Asala -> Desert Map Traitor's Passage",
+        "ru": "Поговорить с Risu и Asala → Desert Map: Traitor's Passage"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town"
+      ]
+    },
+    {
+      "id": "a2-06",
+      "act": 2,
+      "zone": "ztraitor-s-passage",
+      "zones": [
+        "Traitor's Passage"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "17-18",
+      "goal": {
+        "en": "Run through to The Halani Gates",
+        "ru": "Пройти к The Halani Gates"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a2-07",
+      "act": 2,
+      "zone": "zthe-halani-gates",
+      "zones": [
+        "The Halani Gates"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "18",
+      "goal": {
+        "en": "Kill Jamanra, the Risen King",
+        "ru": "Убить Jamanra, the Risen King"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss",
+        "warn"
+      ]
+    },
+    {
+      "id": "a2-08",
+      "act": 2,
+      "zone": "zthe-ardura-caravan",
+      "zones": [
+        "The Ardura Caravan"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Take the Uncut Skill Gem (level 7) from Zarka, talk to Asala -> Desert Map Mastodon Badlands",
+        "ru": "Взять Uncut Skill Gem (7 ур.) у Zarka, поговорить с Asala → Mastodon Badlands"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town",
+        "gem"
+      ]
+    },
+    {
+      "id": "a2-09",
+      "act": 2,
+      "zone": "ztrial-of-the-sekhemas",
+      "zones": [
+        "Trial of the Sekhemas"
+      ],
+      "kind": "ascend",
+      "optional": true,
+      "level": "19-22",
+      "goal": {
+        "en": "Trial of the Sekhemas with Balbala's Barya (level 22)",
+        "ru": "Trial of the Sekhemas с Barya (22 ур.) — первое восхождение"
+      },
+      "quest": {
+        "en": "Ascent to Power",
+        "ru": "Восхождение к власти"
+      },
+      "rewards": [],
+      "tags": [
+        "ascend",
+        "optional"
+      ]
+    },
+    {
+      "id": "a2-10",
+      "act": 2,
+      "zone": "zmastodon-badlands",
+      "zones": [
+        "Mastodon Badlands"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "20",
+      "goal": {
+        "en": "Find the entrance to The Bone Pits",
+        "ru": "Найти вход в The Bone Pits"
+      },
+      "quest": {
+        "en": "A Theft of Ivory",
+        "ru": "Кража слоновой кости"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a2-11",
+      "act": 2,
+      "zone": "zthe-bone-pits",
+      "zones": [
+        "The Bone Pits"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "20-21",
+      "goal": {
+        "en": "Kill Iktab, the Deathlord & Ekbab, Ancient Steed -> Mastodon Tusks",
+        "ru": "Убить Iktab, the Deathlord и Ekbab, Ancient Steed → Mastodon Tusks"
+      },
+      "quest": {
+        "en": "A Theft of Ivory",
+        "ru": "Кража слоновой кости"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss",
+        "buff"
+      ]
+    },
+    {
+      "id": "a2-12",
+      "act": 2,
+      "zone": "zketh",
+      "zones": [
+        "Keth"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "21-22",
+      "goal": {
+        "en": "Kill Kabala, Constrictor Queen -> +2 passive points (+2 weapon set points)",
+        "ru": "Убить Kabala, Constrictor Queen → +2 очка пассивных умений (+2 очка оружия)"
+      },
+      "quest": {
+        "en": "The City of Seven Waters",
+        "ru": "Город семи вод"
+      },
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "must",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a2-13",
+      "act": 2,
+      "zone": "zthe-lost-city",
+      "zones": [
+        "The Lost City"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "22",
+      "goal": {
+        "en": "Find the entrance to the Buried Shrines",
+        "ru": "Найти вход в Buried Shrines"
+      },
+      "quest": {
+        "en": "The City of Seven Waters",
+        "ru": "Город семи вод"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a2-14",
+      "act": 2,
+      "zone": "zburied-shrines",
+      "zones": [
+        "Buried Shrines"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "22-23",
+      "goal": {
+        "en": "Kill Azarian, the Forsaken Son -> Essence of Water",
+        "ru": "Убить Azarian, the Forsaken Son → Essence of Water"
+      },
+      "quest": {
+        "en": "The City of Seven Waters",
+        "ru": "Город семи вод"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a2-15",
+      "act": 2,
+      "zone": "zvalley-of-the-titans",
+      "zones": [
+        "Valley of the Titans"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "23",
+      "goal": {
+        "en": "Activate the 3 Ancient Seals: one at the end of each canyon",
+        "ru": "Активировать 3 Ancient Seals — по одной в каждом каньоне"
+      },
+      "quest": {
+        "en": "A Crown of Stone",
+        "ru": "Корона из камня"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "buff"
+      ]
+    },
+    {
+      "id": "a2-16",
+      "act": 2,
+      "zone": "zthe-titan-grotto",
+      "zones": [
+        "The Titan Grotto"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "24",
+      "goal": {
+        "en": "Kill Zalmarath, the Colossus -> Flame Ruby",
+        "ru": "Убить Zalmarath, the Colossus → Flame Ruby"
+      },
+      "quest": {
+        "en": "A Crown of Stone",
+        "ru": "Корона из камня"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a2-17",
+      "act": 2,
+      "zone": "zthe-ardura-caravan",
+      "zones": [
+        "The Ardura Caravan"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Desert Map to the sandstorm (Traitor's Passage), then Sound the Horn at the front of the caravan",
+        "ru": "Desert Map в песчаную бурю (Traitor's Passage), затем Sound the Horn у каравана"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town",
+        "tip"
+      ]
+    },
+    {
+      "id": "a2-18",
+      "act": 2,
+      "zone": "zdeshar",
+      "zones": [
+        "Deshar"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "24",
+      "goal": {
+        "en": "Take the Final Letter from Fallen Dekhara (for Shambrin: +2 passive points (+2 weapon set points))",
+        "ru": "Забрать Final Letter у Fallen Dekhara (для Shambrin: +2 очка)"
+      },
+      "quest": {
+        "en": "Tradition's Toll",
+        "ru": "Дань традиции"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "buff"
+      ]
+    },
+    {
+      "id": "a2-19",
+      "act": 2,
+      "zone": "zpath-of-mourning",
+      "zones": [
+        "Path of Mourning"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "25",
+      "goal": {
+        "en": "Run through to The Spires of Deshar",
+        "ru": "Пройти к The Spires of Deshar"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a2-20",
+      "act": 2,
+      "zone": "zthe-spires-of-deshar",
+      "zones": [
+        "The Spires of Deshar"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "26",
+      "goal": {
+        "en": "Kill Tor Gul, the Defiler",
+        "ru": "Убить Tor Gul, the Defiler"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a2-21",
+      "act": 2,
+      "zone": "zthe-ardura-caravan",
+      "zones": [
+        "The Ardura Caravan"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Pick The Dreadnought on the Desert Map, hand the Final Letter to Shambrin while travelling -> +2 passive points (+2 weapon set points)",
+        "ru": "Выбрать The Dreadnought на Desert Map и отдать Final Letter Shambrin по пути → +2 очка"
+      },
+      "quest": {
+        "en": "Tradition's Toll",
+        "ru": "Дань традиции"
+      },
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "must",
+        "town",
+        "buff",
+        "tip"
+      ]
+    },
+    {
+      "id": "a2-22",
+      "act": 2,
+      "zone": "ztrial-of-the-sekhemas",
+      "zones": [
+        "Trial of the Sekhemas"
+      ],
+      "kind": "ascend",
+      "optional": true,
+      "level": "~28",
+      "goal": {
+        "en": "Trial of the Sekhemas with the level-28 Barya from Deshar",
+        "ru": "Trial of the Sekhemas с Barya 28 ур. из Deshar"
+      },
+      "quest": {
+        "en": "Ascent to Power",
+        "ru": "Восхождение к власти"
+      },
+      "rewards": [],
+      "tags": [
+        "ascend",
+        "optional"
+      ]
+    },
+    {
+      "id": "a2-23",
+      "act": 2,
+      "zone": "zthe-dreadnought",
+      "zones": [
+        "The Dreadnought"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "28-29",
+      "goal": {
+        "en": "Kill Jamanra, the Abomination (act boss)",
+        "ru": "Убить Jamanra, the Abomination — босс акта"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss",
+        "warn"
+      ]
+    },
+    {
+      "id": "a2-24",
+      "act": 2,
+      "zone": "zthe-ardura-caravan",
+      "zones": [
+        "The Ardura Caravan"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to the Hooded One in the shrine northwest of the caravan's midpoint (down a ramp)",
+        "ru": "Поговорить с Hooded One у алтаря к северо-западу от каравана"
+      },
+      "quest": {
+        "en": "The Trail of Corruption",
+        "ru": "След порчи"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town",
+        "tip"
+      ]
+    },
+    {
+      "id": "a3-01",
+      "act": 3,
+      "zone": "zsandswept-marsh",
+      "zones": [
+        "Sandswept Marsh"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "29",
+      "goal": {
+        "en": "Run through to the Ziggurat Encampment",
+        "ru": "Пройти к Ziggurat Encampment"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "gem"
+      ]
+    },
+    {
+      "id": "a3-02",
+      "act": 3,
+      "zone": "zziggurat-encampment",
+      "zones": [
+        "Ziggurat Encampment"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": "29",
+      "goal": {
+        "en": "Talk to Oswald, check vendors",
+        "ru": "Поговорить с Oswald и проверить торговцев"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town",
+        "gear"
+      ]
+    },
+    {
+      "id": "a3-03",
+      "act": 3,
+      "zone": "zjungle-ruins",
+      "zones": [
+        "Jungle Ruins"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "29-30",
+      "goal": {
+        "en": "Kill Mighty Silverfist -> +2 passive points (+2 weapon set points)",
+        "ru": "Убить Mighty Silverfist → +2 очка пассивных умений (+2 очка оружия)"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "must",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a3-04",
+      "act": 3,
+      "zone": "zvenom-crypts",
+      "zones": [
+        "Venom Crypts"
+      ],
+      "kind": "quest",
+      "optional": true,
+      "level": "30",
+      "goal": {
+        "en": "Take the Corpse-snake Venom from the corpse",
+        "ru": "Забрать Corpse-snake Venom у трупа"
+      },
+      "quest": {
+        "en": "The Slithering Dead",
+        "ru": "Ползучие мертвецы"
+      },
+      "rewards": [],
+      "tags": [
+        "buff",
+        "optional"
+      ]
+    },
+    {
+      "id": "a3-05",
+      "act": 3,
+      "zone": "zinfested-barrens",
+      "zones": [
+        "Infested Barrens"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "31",
+      "goal": {
+        "en": "Run through to the Chimeral Wetlands",
+        "ru": "Пройти к Chimeral Wetlands"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a3-06",
+      "act": 3,
+      "zone": "zchimeral-wetlands",
+      "zones": [
+        "Chimeral Wetlands"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "32",
+      "goal": {
+        "en": "Kill Xyclucian, continue into Jiquani's Machinarium",
+        "ru": "Убить Xyclucian и идти в Jiquani's Machinarium"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a3-07",
+      "act": 3,
+      "zone": "zjiquani-s-machinarium",
+      "zones": [
+        "Jiquani's Machinarium"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "33",
+      "goal": {
+        "en": "Kill Blackjaw -> Flame Core: +10% fire resistance",
+        "ru": "Убить Blackjaw → Flame Core: +10% к сопротивлению огню"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [
+        {
+          "kind": "fire_resistance",
+          "match": [
+            "Fire Resistance",
+            "сопротивление огню",
+            "огню"
+          ]
+        }
+      ],
+      "tags": [
+        "must",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a3-08",
+      "act": 3,
+      "zone": "zjiquani-s-sanctum",
+      "zones": [
+        "Jiquani's Sanctum"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "33",
+      "goal": {
+        "en": "Kill Zicoatl -> Large Soul Core",
+        "ru": "Убить Zicoatl → Large Soul Core"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss",
+        "tip"
+      ]
+    },
+    {
+      "id": "a3-09",
+      "act": 3,
+      "zone": "zjungle-ruins",
+      "zones": [
+        "Jungle Ruins"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Large Soul Core into the Stone Altar -> opens the Matlan Waterways",
+        "ru": "Вставить Large Soul Core в Stone Altar → откроется Matlan Waterways"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a3-10",
+      "act": 3,
+      "zone": "zmatlan-waterways",
+      "zones": [
+        "Matlan Waterways"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "34",
+      "goal": {
+        "en": "Walk over the pressure pads, activate the mechanism at the end",
+        "ru": "Пройти по плитам и активировать механизм в конце"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a3-11",
+      "act": 3,
+      "zone": "zazak-bog",
+      "zones": [
+        "Azak Bog"
+      ],
+      "kind": "boss",
+      "optional": true,
+      "level": "35",
+      "goal": {
+        "en": "Kill Ignagduk -> Gemrot Skull: +30 Spirit + Uncut Spirit Gem level 10",
+        "ru": "Убить Ignagduk → Gemrot Skull: +30 Spirit и Uncut Spirit Gem 10 ур."
+      },
+      "quest": {
+        "en": "Tribal Vengeance",
+        "ru": "Племенная месть"
+      },
+      "rewards": [
+        {
+          "kind": "spirit",
+          "match": [
+            "[Spirit|Spirit]",
+            "Spirit]",
+            "Spirit"
+          ]
+        }
+      ],
+      "tags": [
+        "buff",
+        "boss",
+        "optional"
+      ]
+    },
+    {
+      "id": "a3-12",
+      "act": 3,
+      "zone": "zziggurat-encampment",
+      "zones": [
+        "Ziggurat Encampment"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to Alva at the bottom of the Ziggurat -> Drowned City",
+        "ru": "Поговорить с Alva внизу Ziggurat → Drowned City"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town"
+      ]
+    },
+    {
+      "id": "a3-13",
+      "act": 3,
+      "zone": "ztrial-of-chaos",
+      "zones": [
+        "Trial of Chaos"
+      ],
+      "kind": "ascend",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Trial of Chaos with the Chimeral Inscribed Ultimatum: ascendancy",
+        "ru": "Trial of Chaos с Chimeral Inscribed Ultimatum — восхождение"
+      },
+      "quest": {
+        "en": "The Trials of Chaos",
+        "ru": "Испытания Хаоса"
+      },
+      "rewards": [],
+      "tags": [
+        "ascend",
+        "optional"
+      ]
+    },
+    {
+      "id": "a3-14",
+      "act": 3,
+      "zone": "zdrowned-city",
+      "zones": [
+        "Drowned City"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "36",
+      "goal": {
+        "en": "Run through to the Apex of Filth",
+        "ru": "Пройти к Apex of Filth"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a3-15",
+      "act": 3,
+      "zone": "zapex-of-filth",
+      "zones": [
+        "Apex of Filth"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "36-37",
+      "goal": {
+        "en": "Kill the Queen of Filth -> Temple Door Idol",
+        "ru": "Убить Queen of Filth → Temple Door Idol"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a3-16",
+      "act": 3,
+      "zone": "zmolten-vault",
+      "zones": [
+        "Molten Vault"
+      ],
+      "kind": "quest",
+      "optional": true,
+      "level": "37",
+      "goal": {
+        "en": "Kill Mektul -> Hammer of Kamasa to Oswald: Reforging Bench",
+        "ru": "Убить Mektul и отдать Hammer of Kamasa Oswald → Reforging Bench"
+      },
+      "quest": {
+        "en": "Treasures of Utzaal",
+        "ru": "Сокровища Утзаала"
+      },
+      "rewards": [],
+      "tags": [
+        "gear",
+        "optional"
+      ]
+    },
+    {
+      "id": "a3-17",
+      "act": 3,
+      "zone": "ztemple-of-kopec",
+      "zones": [
+        "Temple of Kopec"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "37",
+      "goal": {
+        "en": "Run all the way up, kill Ketzuli",
+        "ru": "Подняться наверх и убить Ketzuli"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss",
+        "tip"
+      ]
+    },
+    {
+      "id": "a3-18",
+      "act": 3,
+      "zone": "zziggurat-encampment",
+      "zones": [
+        "Ziggurat Encampment"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Through the Gateway, down the stairs to Utzaal",
+        "ru": "Через Gateway и вниз по лестнице в Utzaal"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town"
+      ]
+    },
+    {
+      "id": "a3-19",
+      "act": 3,
+      "zone": "zutzaal",
+      "zones": [
+        "Utzaal"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "38",
+      "goal": {
+        "en": "Kill Viper Napuatzi",
+        "ru": "Убить Viper Napuatzi"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a3-20",
+      "act": 3,
+      "zone": "zaggorat",
+      "zones": [
+        "Aggorat"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "39",
+      "goal": {
+        "en": "Sacrifice the Sacrificial Heart at the blood sacrifice altar -> +2 passive points (+2 weapon set points)",
+        "ru": "Принести Sacrificial Heart к алтарю крови → +2 очка (+2 очка оружия)"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "must",
+        "buff"
+      ]
+    },
+    {
+      "id": "a3-21",
+      "act": 3,
+      "zone": "zblack-chambers",
+      "zones": [
+        "Black Chambers"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "40",
+      "goal": {
+        "en": "Kill Doryani",
+        "ru": "Убить Doryani"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a3-22",
+      "act": 3,
+      "zone": "zziggurat-encampment",
+      "zones": [
+        "Ziggurat Encampment"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to Doryani, then travel with Alva to Kingsmarch",
+        "ru": "Поговорить с Doryani и отплыть с Alva в Kingsmarch"
+      },
+      "quest": {
+        "en": "Legacy of the Vaal",
+        "ru": "Наследие Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town"
+      ]
+    },
+    {
+      "id": "a4-01",
+      "act": 4,
+      "zone": "zkingsmarch",
+      "zones": [
+        "Kingsmarch"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": "41",
+      "goal": {
+        "en": "Talk to Doryani and Alva, then Makoru at the ship -> Isle of Kin",
+        "ru": "Поговорить с Doryani и Alva, затем с Makoru у корабля → Isle of Kin"
+      },
+      "quest": {
+        "en": "The Search",
+        "ru": "Поиски"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town"
+      ]
+    },
+    {
+      "id": "a4-02",
+      "act": 4,
+      "zone": "zisle-of-kin",
+      "zones": [
+        "Isle of Kin"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Go through to the Volcanic Warrens",
+        "ru": "Пройти к Volcanic Warrens"
+      },
+      "quest": {
+        "en": "Land of the Kin",
+        "ru": "Земля родни"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a4-03",
+      "act": 4,
+      "zone": "zvolcanic-warrens",
+      "zones": [
+        "Volcanic Warrens"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill Krutog -> weapon piece 1/3",
+        "ru": "Убить Krutog → часть оружия 1/3"
+      },
+      "quest": {
+        "en": "Land of the Kin",
+        "ru": "Земля родни"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss",
+        "gear"
+      ]
+    },
+    {
+      "id": "a4-04",
+      "act": 4,
+      "zone": "zkedge-bay",
+      "zones": [
+        "Kedge Bay"
+      ],
+      "kind": "quest",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Go through to Journey's End",
+        "ru": "Пройти к Journey's End"
+      },
+      "quest": {
+        "en": "Dark Mists",
+        "ru": "Тёмные туманы"
+      },
+      "rewards": [],
+      "tags": [
+        "optional"
+      ]
+    },
+    {
+      "id": "a4-05",
+      "act": 4,
+      "zone": "zjourney-s-end",
+      "zones": [
+        "Journey's End"
+      ],
+      "kind": "boss",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Kill Omniphobia -> +2 passive points (+2 weapon set points)",
+        "ru": "Убить Omniphobia → +2 очка пассивных умений (+2 очка оружия)"
+      },
+      "quest": {
+        "en": "Dark Mists",
+        "ru": "Тёмные туманы"
+      },
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "optional",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a4-06",
+      "act": 4,
+      "zone": "zabandoned-prison",
+      "zones": [
+        "Abandoned Prison"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "43",
+      "goal": {
+        "en": "Go through to Solitary Confinement",
+        "ru": "Пройти к Solitary Confinement"
+      },
+      "quest": {
+        "en": "Abandoned Prison",
+        "ru": "Заброшенная тюрьма"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "buff"
+      ]
+    },
+    {
+      "id": "a4-07",
+      "act": 4,
+      "zone": "zsolitary-confinement",
+      "zones": [
+        "Solitary Confinement"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill The Prisoner -> weapon piece 2/3",
+        "ru": "Убить The Prisoner → часть оружия 2/3"
+      },
+      "quest": {
+        "en": "Abandoned Prison",
+        "ru": "Заброшенная тюрьма"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a4-08",
+      "act": 4,
+      "zone": "zshrike-island",
+      "zones": [
+        "Shrike Island"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill Scourge of the Skies -> weapon piece 3/3",
+        "ru": "Убить Scourge of the Skies → часть оружия 3/3"
+      },
+      "quest": {
+        "en": "Shrike Island",
+        "ru": "Остров сорокопутов"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a4-09",
+      "act": 4,
+      "zone": "zwhakapanu-island",
+      "zones": [
+        "Whakapanu Island"
+      ],
+      "kind": "boss",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Kill the Great White One -> Shark Fin",
+        "ru": "Убить the Great White One → Shark Fin"
+      },
+      "quest": {
+        "en": "Tribal Medicine",
+        "ru": "Племенная медицина"
+      },
+      "rewards": [],
+      "tags": [
+        "optional",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a4-10",
+      "act": 4,
+      "zone": "zsinging-caverns",
+      "zones": [
+        "Singing Caverns"
+      ],
+      "kind": "boss",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Kill Diamora -> free Matiki",
+        "ru": "Убить Diamora и освободить Matiki"
+      },
+      "quest": {
+        "en": "Whakapanu Island",
+        "ru": "Остров Вакапану"
+      },
+      "rewards": [],
+      "tags": [
+        "optional",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a4-11",
+      "act": 4,
+      "zone": "zeye-of-hinekora",
+      "zones": [
+        "Eye of Hinekora"
+      ],
+      "kind": "info",
+      "optional": true,
+      "level": "45",
+      "goal": {
+        "en": "Silent Hall -> +5% max. mana",
+        "ru": "Silent Hall → +5% к максимуму маны"
+      },
+      "quest": {
+        "en": "Trial of the Ancestors",
+        "ru": "Испытание предков"
+      },
+      "rewards": [],
+      "tags": [
+        "optional",
+        "buff",
+        "tip"
+      ]
+    },
+    {
+      "id": "a4-12",
+      "act": 4,
+      "zone": "zhalls-of-the-dead",
+      "zones": [
+        "Halls of the Dead"
+      ],
+      "kind": "boss",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Complete 3 tests -> 3 tattoos",
+        "ru": "Пройти 3 испытания → 3 татуировки"
+      },
+      "quest": {
+        "en": "Trial of the Ancestors",
+        "ru": "Испытание предков"
+      },
+      "rewards": [],
+      "tags": [
+        "optional",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a4-13",
+      "act": 4,
+      "zone": "ztrial-of-the-ancestors",
+      "zones": [
+        "Trial of the Ancestors"
+      ],
+      "kind": "quest",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Talk to Navali -> +2 passive points (+2 weapon set points)",
+        "ru": "Поговорить с Navali → +2 очка пассивных умений (+2 очка оружия)"
+      },
+      "quest": {
+        "en": "Trial of the Ancestors",
+        "ru": "Испытание предков"
+      },
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "optional",
+        "buff"
+      ]
+    },
+    {
+      "id": "a4-14",
+      "act": 4,
+      "zone": "zkingsmarch",
+      "zones": [
+        "Kingsmarch"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to the Hooded One, then Makoru -> Arastas",
+        "ru": "Поговорить с Hooded One и Makoru → Arastas"
+      },
+      "quest": {
+        "en": "The Search",
+        "ru": "Поиски"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town"
+      ]
+    },
+    {
+      "id": "a4-15",
+      "act": 4,
+      "zone": "zarastas",
+      "zones": [
+        "Arastas"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "46-47",
+      "goal": {
+        "en": "Kill Torvian",
+        "ru": "Убить Torvian"
+      },
+      "quest": {
+        "en": "The Search",
+        "ru": "Поиски"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss",
+        "warn"
+      ]
+    },
+    {
+      "id": "a4-16",
+      "act": 4,
+      "zone": "zthe-excavation",
+      "zones": [
+        "The Excavation"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill Benedictus",
+        "ru": "Убить Benedictus"
+      },
+      "quest": {
+        "en": "The Search",
+        "ru": "Поиски"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss",
+        "tip"
+      ]
+    },
+    {
+      "id": "a4-17",
+      "act": 4,
+      "zone": "zkingsmarch",
+      "zones": [
+        "Kingsmarch"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to the Hooded One, then Rhodri at the ship -> Ngakanu",
+        "ru": "Поговорить с Hooded One и Rhodri у корабля → Ngakanu"
+      },
+      "quest": {
+        "en": "The Search",
+        "ru": "Поиски"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town"
+      ]
+    },
+    {
+      "id": "a4-18",
+      "act": 4,
+      "zone": "zngakanu",
+      "zones": [
+        "Ngakanu",
+        "Heart of the Tribe"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "48",
+      "goal": {
+        "en": "Kill Tavakai",
+        "ru": "Убить Tavakai"
+      },
+      "quest": {
+        "en": "The Search",
+        "ru": "Поиски"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a4-19",
+      "act": 4,
+      "zone": "zkingsmarch",
+      "zones": [
+        "Kingsmarch"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to the Hooded One -> Interludes unlocked",
+        "ru": "Поговорить с Hooded One → открылись Interludes"
+      },
+      "quest": {
+        "en": "The Search",
+        "ru": "Поиски"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town"
+      ]
+    },
+    {
+      "id": "a5-01",
+      "act": 5,
+      "zone": "zthe-khari-bazaar",
+      "zones": [
+        "The Khari Bazaar"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": "~50",
+      "goal": {
+        "en": "Talk to Asala and Zarka, take the north-east exit",
+        "ru": "Поговорить с Asala и Zarka и выйти на северо-восток"
+      },
+      "quest": {
+        "en": "Recruit the Maraketh",
+        "ru": "Заручиться поддержкой Маракеша"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town"
+      ]
+    },
+    {
+      "id": "a5-02",
+      "act": 5,
+      "zone": "zskullmaw-stairway",
+      "zones": [
+        "Skullmaw Stairway"
+      ],
+      "kind": "quest",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Take Molten One's Gift -> +5% max. life",
+        "ru": "Взять Molten One's Gift → +5% к максимуму жизни"
+      },
+      "quest": null,
+      "rewards": [],
+      "tags": [
+        "buff",
+        "optional"
+      ]
+    },
+    {
+      "id": "a5-03",
+      "act": 5,
+      "zone": "zthe-galai-gates",
+      "zones": [
+        "The Galai Gates"
+      ],
+      "kind": "info",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Just grab the waypoint, go back to the Khari Crossing",
+        "ru": "Забрать точку возврата и вернуться на The Khari Crossing"
+      },
+      "quest": {
+        "en": "Recruit the Maraketh",
+        "ru": "Заручиться поддержкой Маракеша"
+      },
+      "rewards": [],
+      "tags": [
+        "tip"
+      ]
+    },
+    {
+      "id": "a5-04",
+      "act": 5,
+      "zone": "zthe-khari-crossing",
+      "zones": [
+        "The Khari Crossing"
+      ],
+      "kind": "boss",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Kill Akthi & Anundr -> Risu: +2 passive points (+2 weapon set points)",
+        "ru": "Убить Akthi и Anundr → Risu: +2 очка (+2 очка оружия)"
+      },
+      "quest": {
+        "en": "Clearing the Way",
+        "ru": "Расчистить путь"
+      },
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "buff",
+        "boss",
+        "optional"
+      ]
+    },
+    {
+      "id": "a5-05",
+      "act": 5,
+      "zone": "zpools-of-khatal",
+      "zones": [
+        "Pools of Khatal"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Activate the waypoint, WP back to the Khari Bazaar",
+        "ru": "Активировать точку возврата и вернуться в The Khari Bazaar"
+      },
+      "quest": {
+        "en": "Recruit the Maraketh",
+        "ru": "Заручиться поддержкой Маракеша"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a5-06",
+      "act": 5,
+      "zone": "zthe-glade",
+      "zones": [
+        "The Glade",
+        "Ashen Forest"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": "~51",
+      "goal": {
+        "en": "Through the Ashen Forest to Kriar Village",
+        "ru": "Через Ashen Forest дойти до Kriar Village"
+      },
+      "quest": {
+        "en": "Recruit the Vaal",
+        "ru": "Заручиться поддержкой Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a5-07",
+      "act": 5,
+      "zone": "zkriar-village",
+      "zones": [
+        "Kriar Village"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill Lythara -> +40 Spirit",
+        "ru": "Убить Lythara → +40 Spirit"
+      },
+      "quest": {
+        "en": "Recruit the Vaal",
+        "ru": "Заручиться поддержкой Ваал"
+      },
+      "rewards": [
+        {
+          "kind": "spirit",
+          "match": [
+            "[Spirit|Spirit]",
+            "Spirit]",
+            "Spirit"
+          ]
+        }
+      ],
+      "tags": [
+        "must",
+        "buff",
+        "boss"
+      ]
+    },
+    {
+      "id": "a5-08",
+      "act": 5,
+      "zone": "zglacial-tarn",
+      "zones": [
+        "Glacial Tarn",
+        "Howling Caves"
+      ],
+      "kind": "boss",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Kill the Abominable Yeti -> Hilda: +2 passive points (+2 weapon set points)",
+        "ru": "Убить Abominable Yeti → Hilda: +2 очка (+2 очка оружия)"
+      },
+      "quest": {
+        "en": "Howling Winds",
+        "ru": "Завывающие ветры"
+      },
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "buff",
+        "boss",
+        "optional"
+      ]
+    },
+    {
+      "id": "a5-09",
+      "act": 5,
+      "zone": "zglacial-tarn",
+      "zones": [
+        "Glacial Tarn"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill Rakkar -> Kriar Peaks",
+        "ru": "Убить Rakkar → Kriar Peaks"
+      },
+      "quest": {
+        "en": "Recruit the Vaal",
+        "ru": "Заручиться поддержкой Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a5-10",
+      "act": 5,
+      "zone": "zkriar-peaks",
+      "zones": [
+        "Kriar Peaks"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to Elder Madox -> 1 Unique of your choice",
+        "ru": "Поговорить с Elder Madox → 1 уникальный предмет на выбор"
+      },
+      "quest": {
+        "en": "Recruit the Vaal",
+        "ru": "Заручиться поддержкой Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "gear"
+      ]
+    },
+    {
+      "id": "a5-11",
+      "act": 5,
+      "zone": "zetched-ravine",
+      "zones": [
+        "Etched Ravine"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill Stormgore -> Cuachic Vault",
+        "ru": "Убить Stormgore → Cuachic Vault"
+      },
+      "quest": {
+        "en": "Recruit the Vaal",
+        "ru": "Заручиться поддержкой Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a5-12",
+      "act": 5,
+      "zone": "zthe-cuachic-vault",
+      "zones": [
+        "The Cuachic Vault"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill Zolin & Zelina, then summon and talk to Doryani",
+        "ru": "Убить Zolin и Zelina, затем призвать и поговорить с Doryani"
+      },
+      "quest": {
+        "en": "Recruit the Vaal",
+        "ru": "Заручиться поддержкой Ваал"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss",
+        "warn"
+      ]
+    },
+    {
+      "id": "a5-13",
+      "act": 5,
+      "zone": "zsel-khari-sanctuary",
+      "zones": [
+        "Sel Khari Sanctuary"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "~54",
+      "goal": {
+        "en": "Kill Elzarah, then talk to Asala",
+        "ru": "Убить Elzarah и поговорить с Asala"
+      },
+      "quest": {
+        "en": "Recruit the Maraketh",
+        "ru": "Заручиться поддержкой Маракеша"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a5-14",
+      "act": 5,
+      "zone": "zthe-galai-gates",
+      "zones": [
+        "The Galai Gates"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill Vornas -> Qimah",
+        "ru": "Убить Vornas → Qimah"
+      },
+      "quest": {
+        "en": "Recruit the Maraketh",
+        "ru": "Заручиться поддержкой Маракеша"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a5-15",
+      "act": 5,
+      "zone": "zqimah",
+      "zones": [
+        "Qimah"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Pick a boon at the Seven Pillars, summon Jado",
+        "ru": "Выбрать благословение у Seven Pillars и призвать Jado"
+      },
+      "quest": {
+        "en": "Recruit the Maraketh",
+        "ru": "Заручиться поддержкой Маракеша"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "buff"
+      ]
+    },
+    {
+      "id": "a5-16",
+      "act": 5,
+      "zone": "zqimah-reservoir",
+      "zones": [
+        "Qimah Reservoir"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill Azmadi, use the Grand Barya, talk to Jado",
+        "ru": "Убить Azmadi, использовать Grand Barya и поговорить с Jado"
+      },
+      "quest": {
+        "en": "Recruit the Maraketh",
+        "ru": "Заручиться поддержкой Маракеша"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss",
+        "warn"
+      ]
+    },
+    {
+      "id": "a5-17",
+      "act": 5,
+      "zone": "zthe-refuge",
+      "zones": [
+        "The Refuge",
+        "Scorched Farmlands"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": "~57",
+      "goal": {
+        "en": "Kill Isolde & Heldra -> Stones of Serle",
+        "ru": "Убить Isolde и Heldra → Stones of Serle"
+      },
+      "quest": {
+        "en": "Recruit the Ezomytes",
+        "ru": "Заручиться поддержкой Эзомитов"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a5-18",
+      "act": 5,
+      "zone": "zstones-of-serle",
+      "zones": [
+        "Stones of Serle"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Activate the 6 megaliths, then kill Siora",
+        "ru": "Активировать 6 мегалитов и убить Siora"
+      },
+      "quest": {
+        "en": "Recruit the Ezomytes",
+        "ru": "Заручиться поддержкой Эзомитов"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a5-19",
+      "act": 5,
+      "zone": "zthe-blackwood",
+      "zones": [
+        "The Blackwood",
+        "Holten"
+      ],
+      "kind": "quest",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Checkpoint to the darkness, through The Blackwood to Holten",
+        "ru": "Через The Blackwood дойти до Holten"
+      },
+      "quest": {
+        "en": "Recruit the Ezomytes",
+        "ru": "Заручиться поддержкой Эзомитов"
+      },
+      "rewards": [],
+      "tags": [
+        "must"
+      ]
+    },
+    {
+      "id": "a5-20",
+      "act": 5,
+      "zone": "zholten",
+      "zones": [
+        "Holten"
+      ],
+      "kind": "quest",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Buy Greater Runes from the Soul of the Ferryman",
+        "ru": "Купить Greater Runes у Soul of the Ferryman"
+      },
+      "quest": null,
+      "rewards": [],
+      "tags": [
+        "gear",
+        "optional"
+      ]
+    },
+    {
+      "id": "a5-21",
+      "act": 5,
+      "zone": "zwolvenhold",
+      "zones": [
+        "Wolvenhold"
+      ],
+      "kind": "boss",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Kill Oswin -> Warden's Ledger: +2 passive points (+2 weapon set points)",
+        "ru": "Убить Oswin → Warden's Ledger: +2 очка (+2 очка оружия)"
+      },
+      "quest": null,
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "buff",
+        "boss",
+        "optional"
+      ]
+    },
+    {
+      "id": "a5-22",
+      "act": 5,
+      "zone": "zholten-estate",
+      "zones": [
+        "Holten Estate"
+      ],
+      "kind": "boss",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Kill Thane Wulfric & Lady Elswyth",
+        "ru": "Убить Thane Wulfric и Lady Elswyth"
+      },
+      "quest": {
+        "en": "Recruit the Ezomytes",
+        "ru": "Заручиться поддержкой Эзомитов"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "boss"
+      ]
+    },
+    {
+      "id": "a5-23",
+      "act": 5,
+      "zone": "zthe-refuge",
+      "zones": [
+        "The Refuge"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to Renly, WP to Kingsmarch",
+        "ru": "Поговорить с Renly и вернуться в Kingsmarch"
+      },
+      "quest": {
+        "en": "Recruit the Ezomytes",
+        "ru": "Заручиться поддержкой Эзомитов"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town"
+      ]
+    },
+    {
+      "id": "a5-24",
+      "act": 5,
+      "zone": "zkingsmarch",
+      "zones": [
+        "Kingsmarch"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Hooded One: get the Book of Specialisation -> +2 passive points (+2 weapon set points)",
+        "ru": "Hooded One: взять Book of Specialisation → +2 очка (+2 очка оружия)"
+      },
+      "quest": {
+        "en": "Siege of Oriath",
+        "ru": "Осада Ориата"
+      },
+      "rewards": [
+        {
+          "kind": "passive_points",
+          "match": [
+            "Passive Skill Points",
+            "Passive Point",
+            "пассивн"
+          ]
+        }
+      ],
+      "tags": [
+        "must",
+        "town",
+        "buff"
+      ]
+    },
+    {
+      "id": "a5-25",
+      "act": 5,
+      "zone": "zthe-ziggurat-refuge",
+      "zones": [
+        "The Ziggurat Refuge"
+      ],
+      "kind": "town",
+      "optional": false,
+      "level": null,
+      "goal": {
+        "en": "Talk to the Hooded One and Doryani, use the Map Device",
+        "ru": "Поговорить с Hooded One и Doryani, использовать Map Device"
+      },
+      "quest": {
+        "en": "Siege of Oriath",
+        "ru": "Осада Ориата"
+      },
+      "rewards": [],
+      "tags": [
+        "must",
+        "town"
+      ]
+    },
+    {
+      "id": "a6-01",
+      "act": 6,
+      "zone": "zthe-ziggurat-refuge",
+      "zones": [
+        "The Ziggurat Refuge"
+      ],
+      "kind": "info",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Take the waystone from Doryani, reforge it up at the Reforging Bench",
+        "ru": "Взять waystone у Doryani и перековать его на Reforging Bench"
+      },
+      "quest": null,
+      "rewards": [],
+      "tags": [
+        "tip"
+      ]
+    },
+    {
+      "id": "a6-02",
+      "act": 6,
+      "zone": "zatlas",
+      "zones": [
+        "Atlas"
+      ],
+      "kind": "info",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Head for Powerful Map Bosses: the boss drops a waystone one tier higher",
+        "ru": "Идти на Powerful Map Bosses: босс даёт waystone на ярус выше"
+      },
+      "quest": null,
+      "rewards": [],
+      "tags": [
+        "tip"
+      ]
+    },
+    {
+      "id": "a6-03",
+      "act": 6,
+      "zone": "zatlas",
+      "zones": [
+        "Atlas"
+      ],
+      "kind": "info",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "First goal: the Fortress quest line for Atlas points",
+        "ru": "Первая цель — цепочка Fortress за очки Atlas"
+      },
+      "quest": null,
+      "rewards": [],
+      "tags": [
+        "tip"
+      ]
+    },
+    {
+      "id": "a6-04",
+      "act": 6,
+      "zone": "zatlas",
+      "zones": [
+        "Atlas"
+      ],
+      "kind": "info",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Stay at most 6-8 levels below the map level",
+        "ru": "Держаться не более 6–8 уровней ниже уровня карты"
+      },
+      "quest": null,
+      "rewards": [],
+      "tags": [
+        "tip"
+      ]
+    },
+    {
+      "id": "a6-05",
+      "act": 6,
+      "zone": "zatlas",
+      "zones": [
+        "Atlas"
+      ],
+      "kind": "info",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Cap fire and lightning resistance, leave cold open if you must",
+        "ru": "Закапать сопротивление огню и молнии; холод можно оставить на потом"
+      },
+      "quest": null,
+      "rewards": [],
+      "tags": [
+        "tip",
+        "warn"
+      ]
+    },
+    {
+      "id": "a6-06",
+      "act": 6,
+      "zone": "ztrial-of-the-sekhemas",
+      "zones": [
+        "Trial of the Sekhemas",
+        "Trial of Chaos"
+      ],
+      "kind": "ascend",
+      "optional": true,
+      "level": null,
+      "goal": {
+        "en": "Catch up on ascendancy: 2nd trial with the Chimeral Inscribed Ultimatum (Act 3), 3rd with a level 60 Barya",
+        "ru": "Догнать восхождение: 2-е испытание с Chimeral Inscribed Ultimatum, 3-е с Barya 60 ур."
+      },
+      "quest": null,
+      "rewards": [],
+      "tags": [
+        "ascend"
+      ]
+    }
+  ]
+}
