@@ -296,6 +296,14 @@ const tradeDisabled = await main.eval(`(async () => {
 const tradeState = JSON.parse(tradeDisabled);
 check("trade: hidden button and clear refusal while disabled", tradeState.priceBtn === false && /выключена/.test(tradeState.err), tradeDisabled);
 
+const itemLinks = JSON.parse(await main.eval(`(async () => {
+  go('build');
+  await new Promise(r => setTimeout(r, 300));
+  const card = document.querySelector('#item-list .item');
+  return JSON.stringify({ links: card ? card.querySelectorAll('[data-act="link"]').length : 0 });
+})()`));
+check("items: wiki/poedb/craft links present", itemLinks.links >= 3, JSON.stringify(itemLinks));
+
 // 7e. PoB code import (the code is built in-page with CompressionStream)
 const pob = JSON.parse(await main.eval(`(async () => {
   const xml = '<?xml version="1.0" encoding="UTF-8"?><PathOfBuilding><Build level="42" className="Ranger" ascendClassName="Deadeye"/><Skills><Skill enabled="true" label="LA"><Gem nameSpec="Lightning Arrow" enabled="true"/><Gem nameSpec="Rapid Attacks" enabled="true"/></Skill></Skills><Tree><Spec nodes="1,2,3"/></Tree><Items><Item>' + 'Rarity: Unique' + String.fromCharCode(10) + 'Doom Loop' + String.fromCharCode(10) + 'Prismatic Ring' + String.fromCharCode(10) + '</Item></Items></PathOfBuilding>';

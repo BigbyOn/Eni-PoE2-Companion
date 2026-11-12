@@ -272,6 +272,9 @@ pub struct ItemRecord {
     pub raw: String,
     pub parsed: ParsedItem,
     pub analysis: Analysis,
+    /// Dangerous map/waystone modifiers found in the text.
+    #[serde(default)]
+    pub dangers: Vec<crate::item::Danger>,
     /// Last AI answer for this item, if the user asked one.
     #[serde(default)]
     pub ai: Option<String>,
@@ -310,11 +313,18 @@ pub struct TradeCfg {
     pub enabled: bool,
     /// Empty means "detect the current challenge league".
     pub league: String,
+    /// How many modifiers to use as filters (0-3); 2 is a good default.
+    #[serde(default = "default_trade_filters")]
+    pub filters: u8,
+}
+
+pub fn default_trade_filters() -> u8 {
+    2
 }
 
 impl Default for TradeCfg {
     fn default() -> Self {
-        TradeCfg { enabled: false, league: String::new() }
+        TradeCfg { enabled: false, league: String::new(), filters: 2 }
     }
 }
 

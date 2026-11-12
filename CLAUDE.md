@@ -45,7 +45,7 @@
 ## Проверка
 
 ```powershell
-cargo test                    # 73 юнит-теста (журналы, локации, предметы, trade API, PoB, ИИ-запросы, DPAPI)
+cargo test                    # 78 юнит-тестов (журналы, локации, предметы, trade API со статами, PoB, ИИ-запросы, DPAPI)
 cargo build                   # debug
 npx --yes @tauri-apps/cli@2.12.1 build   # NSIS + MSI
 ```

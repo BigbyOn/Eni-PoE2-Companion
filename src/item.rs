@@ -79,6 +79,7 @@ fn slot_of(class: &str) -> String {
         (&["axe", "топор"], "axe"),
         (&["sword", "меч"], "sword"),
         (&["spear", "копь"], "spear"),
+        (&["waystone", "вайстоун", "вайстон"], "waystone"),
         (&["flask", "флакон"], "flask"),
         (&["jewel", "самоцвет"], "jewel"),
     ];
@@ -91,8 +92,11 @@ fn slot_of(class: &str) -> String {
 }
 
 fn is_property(line: &str) -> bool {
-    let l = line.to_lowercase();
-    let keys = [
+    // Properties are "Key: value" lines ("Physical Damage: 45-88"), while a
+    // modifier may merely contain the same words ("... 15% of Physical Damage").
+    let Some((key, _)) = line.split_once(':') else { return false };
+    let key = key.trim().to_lowercase();
+    const KEYS: &[&str] = &[
         "quality",
         "physical damage",
         "elemental damage",
@@ -105,14 +109,14 @@ fn is_property(line: &str) -> bool {
         "ward",
         "chance to block",
         "spirit",
-        "level:",
-        "str:",
-        "dex:",
-        "int:",
+        "stack size",
+        "item level",
+        "level",
+        "str",
+        "dex",
+        "int",
         "requires",
         "sockets",
-        "item level",
-        "stack size",
         "качество",
         "физический урон",
         "урон от стихий",
@@ -124,16 +128,17 @@ fn is_property(line: &str) -> bool {
         "энергетический щит",
         "шанс блокировки",
         "дух",
-        "уровень:",
-        "сила:",
-        "ловкость:",
-        "интеллект:",
-        "требуется",
-        "гнёзда",
-        "уровень предмета",
         "размер стопки",
+        "уровень предмета",
+        "уровень",
+        "сила",
+        "ловкость",
+        "интеллект",
+        "требуется",
+        "требования",
+        "гнёзда",
     ];
-    keys.iter().any(|k| l.contains(k))
+    KEYS.iter().any(|k| key == *k || key.starts_with(k))
 }
 
 /// Parses the clipboard text. `None` means "this does not look like an item".
@@ -290,6 +295,43 @@ fn keywords(kind: &str) -> &'static [&'static str] {
 fn line_matches(line: &str, kind: &str) -> bool {
     let l = line.to_lowercase();
     keywords(kind).iter().any(|k| l.contains(k))
+}
+
+/// A dangerous map/waystone modifier.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct Danger {
+    pub label: String,
+    /// 2 = high, 1 = medium; the UI colours them differently.
+    pub severity: u8,
+}
+
+/// Rules for map/waystone modifiers that kill characters (English and Russian).
+const DANGER_RULES: &[(u8, &str, &[&str])] = &[
+    (2, "рефлект урона", &["reflect", "отраж"]),
+    (2, "нет регенерации", &["cannot regenerate", "не может восстанавливать", "не могут восстанавливать"]),
+    (1, "снижено восстановление", &["less recovery", "сниженн", "меньше восстановления"]),
+    (2, "дополнительный урон монстров", &["extra damage as", "дополнительного урона", "доп. урона", "дополнительным уроном"]),
+    (2, "монстры невосприимчивы", &["monsters are immune", "монстры невосприимчивы", "иммунитет"]),
+    (1, "крит монстров", &["increased critical strike chance", "повышенный шанс критического", "критического удара монстров"]),
+    (1, "проклятие игроков", &["players are cursed", "игроки прокляты", "проклят"]),
+    (2, "снижение максимума сопротивлений", &["maximum elemental resistances", "максимальных сопротивлений", "максимума сопротивлений"]),
+    (1, "скорость монстров", &["attack and cast speed", "скорости атаки и сотворения", "скорости атаки"]),
+    (1, "снижение зарядов флаконов", &["flask charges", "зарядов флаконов"]),
+];
+
+/// Dangerous modifiers of this item (meant for waystones/maps, safe for others).
+pub fn dangers(item: &ParsedItem) -> Vec<Danger> {
+    let mut out: Vec<Danger> = Vec::new();
+    for line in &item.mods {
+        let lower = line.to_lowercase();
+        for (severity, label, patterns) in DANGER_RULES {
+            if patterns.iter().any(|p| lower.contains(p)) && !out.iter().any(|d| d.label == *label) {
+                out.push(Danger { label: (*label).to_string(), severity: *severity });
+            }
+        }
+    }
+    out.sort_by(|a, b| b.severity.cmp(&a.severity));
+    out
 }
 
 /// Scores the item against the character's build priorities. Heuristic only.
@@ -453,6 +495,50 @@ Corrupted
         let a = analyze(&i, 40);
         assert!(a.warnings.iter().any(|w| w.contains("жизн")), "{:?}", a.warnings);
         assert!(a.warnings.iter().any(|w| w.contains("сопротивл")), "{:?}", a.warnings);
+    }
+
+    #[test]
+    fn waystone_dangers_are_recognised() {
+        let map = "Item Class: Waystones
+Rarity: Rare
+Grim Path
+Waystone
+--------
+Item Level: 79
+--------
+Monsters reflect 15% of Physical Damage
+Players cannot Regenerate Life, Mana or Energy Shield
+Monsters deal 30% extra damage as Fire
+--------
+";
+        let i = parse(map).unwrap();
+        let d = dangers(&i);
+        assert!(d.iter().any(|x| x.label.contains("рефлект")), "{d:?}");
+        assert!(d.iter().any(|x| x.label.contains("регенерации")), "{d:?}");
+        assert!(d.iter().any(|x| x.label.contains("дополнительный")), "{d:?}");
+        assert_eq!(d[0].severity, 2, "high severity first");
+        // A normal ring has no map dangers.
+        let ring = parse(EN_RING).unwrap();
+        assert!(dangers(&ring).is_empty());
+    }
+
+    #[test]
+    fn russian_waystone_dangers() {
+        let map = "Класс предмета: Вайстоуны
+Редкость: Редкий
+Мрачный путь
+Вайстоун
+--------
+Уровень предмета: 79
+--------
+Монстры отражают 15% физического урона
+Игроки не могут восстанавливать здоровье
+--------
+";
+        let i = parse(map).unwrap();
+        let d = dangers(&i);
+        assert!(d.iter().any(|x| x.label.contains("рефлект")), "{d:?}");
+        assert!(d.iter().any(|x| x.label.contains("регенерации")), "{d:?}");
     }
 
     #[test]

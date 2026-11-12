@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 pub const BUNDLED: &str = include_str!("../assets/builds/lightning-arrow-deadeye.json");
 
 /// Only these hosts may appear as a build source, and only over HTTPS.
-pub const ALLOWED_SOURCE_HOSTS: &[&str] = &["mobalytics.gg", "www.mobalytics.gg", "pathofexile.com", "www.pathofexile.com", "poe2speedrun.malura.de", "github.com", "raw.githubusercontent.com", "maxroll.gg"];
+pub const ALLOWED_SOURCE_HOSTS: &[&str] = &["mobalytics.gg", "www.mobalytics.gg", "pathofexile.com", "www.pathofexile.com", "poe2speedrun.malura.de", "github.com", "raw.githubusercontent.com", "maxroll.gg", "poe2wiki.net", "www.poe2wiki.net", "poedb.tw", "craftofexile.com", "www.craftofexile.com"];
 
 #[derive(Deserialize, Clone, Debug)]
 struct RawBuild {

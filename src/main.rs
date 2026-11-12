@@ -121,6 +121,8 @@ struct App {
     regex_open: Mutex<bool>,
     /// Last trade request, to keep at least a few seconds between them.
     last_trade: Mutex<Option<std::time::Instant>>,
+    /// Trade stat dataset, loaded once per session (and cached on disk).
+    stats: Mutex<Option<Vec<trade::StatDef>>>,
 }
 
 fn action_label(action: &str) -> &'static str {
@@ -322,6 +324,7 @@ impl App {
             (s.saved.active.clone(), s.saved.profile().map(|p| p.level).unwrap_or(1))
         };
         let analysis = item::analyze(&parsed, level);
+        let dangers = item::dangers(&parsed);
         let record = ItemRecord {
             id: new_id("item"),
             ts: now_iso(),
@@ -329,6 +332,7 @@ impl App {
             raw: text.chars().take(8000).collect(),
             parsed: parsed.clone(),
             analysis: analysis.clone(),
+            dangers,
             ai: None,
         };
         let toast = ItemToast { name: parsed.name.clone(), score: analysis.score, slot: parsed.slot.clone(), ts: now_iso() };
@@ -630,6 +634,8 @@ struct SettingsIn {
     trade_enabled: bool,
     #[serde(default)]
     trade_league: String,
+    #[serde(default = "crate::model::default_trade_filters")]
+    trade_filters: u8,
     /// New key in plain text; only ever stored DPAPI-encrypted.
     ai_key: Option<String>,
     ai_clear_key: bool,
@@ -682,6 +688,7 @@ fn save_settings(app: AppHandle, state: State<App>, settings: SettingsIn) -> Res
         s.saved.trade = TradeCfg {
             enabled: settings.trade_enabled,
             league: settings.trade_league.trim().chars().take(60).collect(),
+            filters: settings.trade_filters.min(3),
         };
         s.saved.ai = AiCfg {
             enabled: settings.ai_enabled,
@@ -1295,13 +1302,37 @@ fn item_import(app: AppHandle, state: State<App>) -> Result<ItemRecord, String> 
     state.import_item(&app)
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+struct StatsCache {
+    fetched: String,
+    stats: Vec<trade::StatDef>,
+}
+
+fn read_stats_cache(dir: &std::path::Path) -> Option<Vec<trade::StatDef>> {
+    let path = dir.join("trade_stats.json");
+    let age = std::fs::metadata(&path).ok()?.modified().ok()?.elapsed().ok()?;
+    if age > std::time::Duration::from_secs(3 * 24 * 3600) {
+        return None;
+    }
+    let text = std::fs::read_to_string(path).ok()?;
+    let cache: StatsCache = serde_json::from_str(&text).ok()?;
+    (!cache.stats.is_empty()).then_some(cache.stats)
+}
+
+fn write_stats_cache(dir: &std::path::Path, stats: &[trade::StatDef]) {
+    let cache = StatsCache { fetched: now_iso(), stats: stats.to_vec() };
+    if let Ok(text) = serde_json::to_string(&cache) {
+        let _ = std::fs::write(dir.join("trade_stats.json"), text);
+    }
+}
+
 /// Price check for an imported item through the official trade API.
 #[tauri::command]
 async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceResult, String> {
-    let (parsed, enabled, league) = {
+    let (parsed, enabled, league, filters) = {
         let s = state.snap.lock().unwrap();
         let rec = s.saved.items.iter().find(|x| x.id == id).ok_or("Предмет не найден")?;
-        (rec.parsed.clone(), s.saved.trade.enabled, s.saved.trade.league.clone())
+        (rec.parsed.clone(), s.saved.trade.enabled, s.saved.trade.league.clone(), s.saved.trade.filters as usize)
     };
     if !enabled {
         return Err("Проверка цен выключена: включи её в настройках (официальный trade API).".into());
@@ -1316,7 +1347,34 @@ async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceRe
         }
         *last = Some(std::time::Instant::now());
     }
-    tauri::async_runtime::spawn_blocking(move || trade::check(&parsed, &league))
+    // Stat filters need the dataset: memory, then the disk cache, then one request.
+    let stats = {
+        let cached = state.stats.lock().unwrap().clone();
+        if cached.is_some() {
+            cached
+        } else {
+            let disk = read_stats_cache(&state.dir);
+            if disk.is_some() {
+                *state.stats.lock().unwrap() = disk.clone();
+            }
+            disk
+        }
+    };
+    let stats = match stats {
+        Some(s) => Some(s),
+        None => {
+            let fetched = tauri::async_runtime::spawn_blocking(trade::fetch_stats)
+                .await
+                .ok()
+                .and_then(|r| r.ok());
+            if let Some(s) = &fetched {
+                write_stats_cache(&state.dir, s);
+                *state.stats.lock().unwrap() = Some(s.clone());
+            }
+            fetched
+        }
+    };
+    tauri::async_runtime::spawn_blocking(move || trade::check(&parsed, &league, stats.as_deref(), filters))
         .await
         .map_err(|e| format!("Запрос прерван: {e}"))?
 }
@@ -1457,7 +1515,7 @@ fn diagnostics(state: State<App>) -> String {
     out.push_str(&format!("history: {} events\n", s.saved.history.len()));
     out.push_str(&format!("screenshots: {} entries\n", s.saved.shots.len()));
     out.push_str(&format!("items: {} imported, {} regexes\n", s.saved.items.len(), s.saved.regexes.len()));
-    out.push_str(&format!("trade: enabled={} league={}\n", s.saved.trade.enabled, if s.saved.trade.league.is_empty() { "auto" } else { s.saved.trade.league.as_str() }));
+    out.push_str(&format!("trade: enabled={} league={} stats_cached={}\n", s.saved.trade.enabled, if s.saved.trade.league.is_empty() { "auto" } else { s.saved.trade.league.as_str() }, s.data_dir.join("trade_stats.json").is_file()));
     out.push_str(&format!("hotkey error: {}\n", s.hotkey_error.clone().unwrap_or_else(|| "нет".into())));
     out.push_str(&format!("zone unknown: {}\n", s.zone_unknown));
     out.push_str(&format!("area id: {}\n", s.area_id));
@@ -1678,6 +1736,7 @@ fn main() {    tauri::Builder::default()
                 last_area: Mutex::new(String::new()),
                 regex_open: Mutex::new(false),
                 last_trade: Mutex::new(None),
+                stats: Mutex::new(None),
             });
             // Windows are created only now ("create": false in tauri.conf.json):
             // their pages call commands right away, and those need the state above.

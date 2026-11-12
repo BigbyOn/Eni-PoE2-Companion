@@ -448,6 +448,8 @@ function renderBuild() {
       <ul class="list">${(b.sources || []).map((s) => `<li><button class="link" data-act="link" data-url="${esc(s.url)}">${esc(s.label)}</button></li>`).join("")}</ul>
       ${b.disclaimer ? `<div class="hr"></div><p class="small">${esc(l10n(b.disclaimer))}</p>` : ""}
     </div>`;
+
+  loadItems();
 }
 
 // ---------------------------------------------------------------- campaign
@@ -906,6 +908,10 @@ function renderSettings() {
         <label class="check"><input type="checkbox" id="st-trade-enabled" ${S.saved.trade?.enabled ? "checked" : ""}> ${esc(t("set.trade_enable"))}</label>
         <div class="field"><label>${esc(t("set.trade_league"))}</label>
           <input type="text" id="st-trade-league" value="${esc(S.saved.trade?.league || "")}" placeholder="Standard"></div>
+        <div class="field"><label>${esc(t("set.trade_filters"))}</label>
+          <select id="st-trade-filters">${[0, 1, 2, 3].map((n) => `<option value="${n}" ${n === (S.saved.trade?.filters ?? 2) ? "selected" : ""}>${n}</option>`).join("")}</select>
+          <div class="small">${esc(t("set.trade_filters_hint"))}</div>
+        </div>
       </div>
     </div>
 
@@ -967,8 +973,6 @@ function renderSettings() {
       <button class="btn danger ghost" data-act="quit">${esc(t("set.quit"))}</button>
     </div>
   </div>`;
-
-  loadItems();
 
   const bind = (id, out, suffix = "%") => {
     const el = $(id);
@@ -1036,6 +1040,15 @@ function itemCard(rec) {
   const a = rec.analysis || {};
   const matches = (a.matches || []).map((m) => `<span class="tag must">${esc(m)}</span>`).join(" ");
   const warnings = (a.warnings || []).map((w) => `<span class="tag boss">${esc(w)}</span>`).join(" ");
+  const dangers = (rec.dangers || []).map((d) => `<span class="tag boss">⚠ ${esc(d.label)}</span>`).join(" ");
+  const searchName = (p.base || p.name || "").trim();
+  const links = searchName
+    ? `<div class="row small" style="margin-top:6px;gap:8px">
+        <button class="link" data-act="link" data-url="${esc(`https://www.poe2wiki.net/index.php?search=${encodeURIComponent(searchName)}`)}">Wiki</button>
+        <button class="link" data-act="link" data-url="${esc(`https://poedb.tw/us/search?q=${encodeURIComponent(searchName)}`)}">PoEDB</button>
+        <button class="link" data-act="link" data-url="https://www.craftofexile.com/?game=poe2">Craft of Exile</button>
+      </div>`
+    : "";
   const score = a.score || 0;
   const cls = score >= 3 ? "good-text" : score > 0 ? "warn-text" : "bad-text";
   return `<div class="item">
@@ -1050,10 +1063,12 @@ function itemCard(rec) {
     </div>
     <div class="small">${esc(p.rarity || "")}${p.slot ? " · " + esc(p.slot) : ""}${p.item_level ? ` · ${esc(t("items.ilvl"))} ${p.item_level}` : ""} · ${fmtTime(rec.ts)}</div>
     <div class="chips" style="margin-top:5px">${matches}${warnings}</div>
+    ${dangers ? `<div class="chips" style="margin-top:4px">${dangers}</div>` : ""}
     <div class="price-slot" style="margin-top:6px" hidden></div>
     <div class="ai-slot" style="margin-top:6px" ${rec.ai ? "" : "hidden"}>
       ${rec.ai ? `<div class="ai-answer"><div class="small">${esc(t("ai.answer"))}</div><div class="ai-text">${esc(rec.ai).replaceAll("\n", "<br>")}</div></div>` : ""}
     </div>
+    ${links}
     <details style="margin-top:6px"><summary class="small">${esc(t("items.raw"))}</summary><pre class="diag" style="max-height:180px;margin-top:4px">${esc(rec.raw)}</pre></details>
   </div>`;
 }
@@ -1151,6 +1166,7 @@ function baseSettings() {
     ai_clear_key: false,
     trade_enabled: Boolean(S.saved.trade?.enabled),
     trade_league: S.saved.trade?.league || "",
+    trade_filters: S.saved.trade?.filters ?? 2,
   };
 }
 
@@ -1186,6 +1202,7 @@ function collectSettings({ keepKey = false } = {}) {
     ai_clear_key: false,
     trade_enabled: $("#st-trade-enabled")?.checked ?? false,
     trade_league: $("#st-trade-league")?.value.trim() || "",
+    trade_filters: Number($("#st-trade-filters")?.value ?? 2),
   };
 }
 

@@ -17,6 +17,152 @@ use crate::item::ParsedItem;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
+/// One searchable stat from `/api/trade2/data/stats`, reduced to a shape:
+/// numbers are replaced by `#` so an item line can be matched against it.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct StatDef {
+    pub id: String,
+    /// e.g. `# to maximum life`
+    pub shape: String,
+    /// explicit / implicit / crafted / fractured / rune / …
+    pub kind: String,
+}
+
+/// A filter for one modifier of the item.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+pub struct StatFilter {
+    pub id: String,
+    pub min: f64,
+    pub max: Option<f64>,
+    pub text: String,
+}
+
+#[derive(Deserialize)]
+struct StatsResponse {
+    #[serde(default)]
+    result: Vec<StatGroup>,
+}
+
+#[derive(Deserialize)]
+struct StatGroup {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    entries: Vec<StatEntry>,
+}
+
+#[derive(Deserialize)]
+struct StatEntry {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    text: String,
+    #[serde(default)]
+    r#type: String,
+}
+
+/// Canonical shape of a modifier line: lowercase, numbers and signs -> `#`.
+pub fn shape(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut in_number = false;
+    for ch in text.chars() {
+        let numeric = ch.is_ascii_digit() || ch == '.' || ch == '-' || ch == '+';
+        if numeric {
+            if !in_number {
+                // Keep a leading sign out of the placeholder itself.
+                if ch == '-' || ch == '+' {
+                    continue;
+                }
+                out.push('#');
+                in_number = true;
+            }
+        } else {
+            in_number = false;
+            for low in ch.to_lowercase() {
+                out.push(low);
+            }
+        }
+    }
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn numbers(text: &str) -> Vec<f64> {
+    let mut out = Vec::new();
+    let mut current = String::new();
+    for ch in text.chars() {
+        if ch.is_ascii_digit() || ch == '.' || ((ch == '-' || ch == '+') && current.is_empty()) {
+            current.push(ch);
+        } else if !current.is_empty() {
+            if let Ok(v) = current.parse::<f64>() {
+                out.push(v);
+            }
+            current.clear();
+        }
+    }
+    if !current.is_empty() {
+        if let Ok(v) = current.parse::<f64>() {
+            out.push(v);
+        }
+    }
+    out
+}
+
+/// Parses the stats dataset into shapes.
+pub fn parse_stats(json: &str) -> Result<Vec<StatDef>, String> {
+    let resp: StatsResponse = serde_json::from_str(json).map_err(|e| format!("Статы не разобраны: {e}"))?;
+    let mut out = Vec::new();
+    for group in resp.result {
+        for entry in group.entries {
+            let kind = if entry.r#type.is_empty() { group.id.clone() } else { entry.r#type };
+            let shape = shape(&entry.text);
+            if shape.is_empty() || entry.id.is_empty() {
+                continue;
+            }
+            out.push(StatDef { id: entry.id, shape, kind });
+        }
+    }
+    if out.is_empty() {
+        return Err("Статы пусты".into());
+    }
+    Ok(out)
+}
+
+fn is_defensive(shape: &str) -> bool {
+    shape.contains("maximum life")
+        || shape.contains("resistance")
+        || shape.contains("spirit")
+        || shape.contains("maximum mana")
+}
+
+/// Picks up to `limit` item modifiers that exist in the stats dataset.
+///
+/// Defensive lines (life/resistances) come first, because they define the price
+/// of a rare item much more than a small damage roll.
+pub fn match_stats(item: &ParsedItem, stats: &[StatDef], limit: usize) -> Vec<StatFilter> {
+    let mut found: Vec<(bool, usize, StatFilter)> = Vec::new();
+    for (index, line) in item.mods.iter().enumerate() {
+        let values: Vec<f64> = numbers(line);
+        let Some(first) = values.first().copied() else { continue };
+        // Negative modifiers (uniques, curses) do not make a useful "min" filter.
+        if first <= 0.0 {
+            continue;
+        }
+        let target = shape(line);
+        let Some(def) = stats.iter().find(|s| s.shape == target && s.kind == "explicit").or_else(|| stats.iter().find(|s| s.shape == target)) else {
+            continue;
+        };
+        let max = if def.shape.matches('#').count() >= 2 && values.len() >= 2 { Some(values[1]) } else { None };
+        found.push((
+            is_defensive(&def.shape),
+            index,
+            StatFilter { id: def.id.clone(), min: first, max, text: line.clone() },
+        ));
+    }
+    found.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+    found.into_iter().take(limit).map(|(_, _, f)| f).collect()
+}
+
+
 const BASE: &str = "https://www.pathofexile.com";
 /// GGG asks tools to identify themselves; keep the repository in the string.
 const CONTACT: &str = "github.com/BigbyOn/Eni-PoE2-Companion";
@@ -115,6 +261,11 @@ fn rarity_option(item: &ParsedItem) -> Option<&'static str> {
 
 /// Trade query for an item. Pure, so it is unit tested.
 pub fn build_query(item: &ParsedItem) -> serde_json::Value {
+    build_query_with(item, &[])
+}
+
+/// Same query, plus `and`-combined stat filters for the item's modifiers.
+pub fn build_query_with(item: &ParsedItem, stat_filters: &[StatFilter]) -> serde_json::Value {
     let mut query = serde_json::json!({ "status": { "option": "online" } });
     if is_unique(item) && !item.name.trim().is_empty() {
         query["name"] = serde_json::json!(item.name.trim());
@@ -129,6 +280,19 @@ pub fn build_query(item: &ParsedItem) -> serde_json::Value {
     }
     if !filters.is_empty() {
         query["filters"] = serde_json::json!({ "type_filters": { "filters": filters } });
+    }
+    if !stat_filters.is_empty() {
+        let list: Vec<serde_json::Value> = stat_filters
+            .iter()
+            .map(|f| {
+                let mut value = serde_json::json!({ "min": f.min });
+                if let Some(max) = f.max {
+                    value["max"] = serde_json::json!(max);
+                }
+                serde_json::json!({ "id": f.id, "value": value, "disabled": false })
+            })
+            .collect();
+        query["stats"] = serde_json::json!([{ "type": "and", "filters": list }]);
     }
     query
 }
@@ -225,6 +389,12 @@ fn get_json(url: &str) -> Result<String, String> {
     Ok(body)
 }
 
+/// Downloads the stat dataset (one request, cached by the caller).
+pub fn fetch_stats() -> Result<Vec<StatDef>, String> {
+    let text = get_json(&format!("{BASE}/api/trade2/data/stats"))?;
+    parse_stats(&text)
+}
+
 /// Picks the current PoE2 challenge league, falling back to Standard.
 pub fn resolve_league(preferred: &str) -> Result<String, String> {
     let text = get_json(&format!("{BASE}/api/trade2/data/leagues"))?;
@@ -240,11 +410,24 @@ pub fn resolve_league(preferred: &str) -> Result<String, String> {
 }
 
 /// Full price check: league, search, first page of listings, summary.
-pub fn check(item: &ParsedItem, league_pref: &str) -> Result<PriceResult, String> {
+///
+/// With `stats` the item's modifiers become filters; if that leaves no results,
+/// the search is repeated without them and the note says so.
+pub fn check(item: &ParsedItem, league_pref: &str, stats: Option<&[StatDef]>, limit: usize) -> Result<PriceResult, String> {
     let league = resolve_league(league_pref)?;
-    let query = build_query(item);
+    let filters = stats.map(|s| match_stats(item, s, limit.min(3))).unwrap_or_default();
+    let mut result = search(item, &league, &filters, stats.is_some())?;
+    if result.total == 0 && !filters.is_empty() {
+        result = search(item, &league, &[], false)?;
+        result.note = "По модификаторам ничего не найдено — показаны цены по базе и редкости.".into();
+    }
+    Ok(result)
+}
+
+fn search(item: &ParsedItem, league: &str, stat_filters: &[StatFilter], used_stats: bool) -> Result<PriceResult, String> {
+    let query = build_query_with(item, stat_filters);
     let body = serde_json::json!({ "query": query, "sort": { "price": "asc" } });
-    let url = format!("{BASE}/api/trade2/search/poe2/{}", encode(&league));
+    let url = format!("{BASE}/api/trade2/search/poe2/{}", encode(league));
     let mut res = agent()
         .post(&url)
         .header("User-Agent", &ua())
@@ -263,9 +446,9 @@ pub fn check(item: &ParsedItem, league_pref: &str) -> Result<PriceResult, String
     }
     let (id, total, hashes) = parse_search(&text)?;
     let mut result = PriceResult {
-        league: league.clone(),
+        league: league.to_string(),
         total,
-        trade_url: build_trade_url(&league, &query),
+        trade_url: build_trade_url(league, &query),
         note: String::new(),
         ..Default::default()
     };
@@ -285,7 +468,9 @@ pub fn check(item: &ParsedItem, league_pref: &str) -> Result<PriceResult, String
     result.min = min;
     result.median = median;
     result.samples = samples;
-    if !is_unique(item) {
+    if used_stats {
+        result.note = format!("Учтено модификаторов: {}.", stat_filters.len());
+    } else if !is_unique(item) {
         result.note = "Ориентир по типу предмета и редкости, без учёта модификаторов — точную цену смотри на trade.".into();
     }
     Ok(result)
@@ -368,6 +553,57 @@ mod tests {
         let (currency, min, median, _) = summarize_listings(&prices);
         assert_eq!(currency, "chaos");
         assert_eq!((min, median), (10.0, 12.0));
+    }
+
+    #[test]
+    fn shapes_ignore_numbers_and_signs() {
+        assert_eq!(shape("+18 to maximum Life"), "# to maximum life");
+        assert_eq!(shape("+22% to Fire Resistance"), "#% to fire resistance");
+        assert_eq!(shape("Adds 5 to 10 Physical Damage"), "adds # to # physical damage");
+        assert_eq!(shape("-15% to Cold Resistance"), "#% to cold resistance");
+    }
+
+    #[test]
+    fn stats_dataset_is_parsed_and_matched() {
+        let json = r##"{"result":[
+            {"id":"explicit","entries":[
+                {"id":"explicit.stat_1","text":"# to maximum Life","type":"explicit"},
+                {"id":"explicit.stat_2","text":"#% to Fire Resistance","type":"explicit"},
+                {"id":"explicit.stat_3","text":"Adds # to # Physical Damage","type":"explicit"},
+                {"id":"explicit.stat_4","text":"# to Strength","type":"explicit"}
+            ]}
+        ]}"##;
+        let stats = parse_stats(json).unwrap();
+        assert_eq!(stats.len(), 4);
+        let item = ParsedItem {
+            rarity: "Rare".into(),
+            mods: vec![
+                "+18 to maximum Life".into(),
+                "+22% to Fire Resistance".into(),
+                "+5 to Strength".into(),
+                "+1 to a stat nobody knows".into(),
+            ],
+            ..Default::default()
+        };
+        let filters = match_stats(&item, &stats, 3);
+        assert_eq!(filters.len(), 3);
+        assert_eq!(filters[0].id, "explicit.stat_1", "life is defensive first");
+        assert_eq!(filters[0].min, 18.0);
+        assert!(filters.iter().any(|f| f.id == "explicit.stat_2" && f.min == 22.0));
+        let q = build_query_with(&item, &filters);
+        assert_eq!(q["stats"][0]["type"], "and");
+        assert_eq!(q["stats"][0]["filters"].as_array().unwrap().len(), 3);
+        assert_eq!(q["stats"][0]["filters"][0]["value"]["min"], 18.0);
+    }
+
+    #[test]
+    fn two_number_stats_use_min_and_max() {
+        let json = r##"{"result":[{"id":"explicit","entries":[{"id":"explicit.stat_3","text":"Adds # to # Physical Damage","type":"explicit"}]}]}"##;
+        let stats = parse_stats(json).unwrap();
+        let item = ParsedItem { mods: vec!["Adds 5 to 10 Physical Damage".into()], ..Default::default() };
+        let filters = match_stats(&item, &stats, 3);
+        assert_eq!(filters.len(), 1);
+        assert_eq!((filters[0].min, filters[0].max), (5.0, Some(10.0)));
     }
 
     #[test]
