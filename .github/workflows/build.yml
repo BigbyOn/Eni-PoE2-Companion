@@ -22,11 +22,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       # The version in tauri.conf.json must match the tag (v0.1.0 -> 0.1.0).
+      # The config contains Cyrillic text, so Python must read it as UTF-8.
       - name: Check version against tag
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
-          version=$(python -c "import json; print(json.load(open('tauri.conf.json'))['version'])")
+          version=$(python -c "import json; print(json.load(open('tauri.conf.json', encoding='utf-8'))['version'])")
           [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "tauri.conf.json has $version, tag is $GITHUB_REF_NAME"; exit 1; }
 
       - name: Unit tests
