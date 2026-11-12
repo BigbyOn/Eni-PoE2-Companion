@@ -935,6 +935,30 @@ fn shots_reveal(state: State<App>) -> Result<(), String> {
     store.reveal()
 }
 
+/// Native file picker for the game log. Runs off the main thread.
+#[tauri::command]
+async fn pick_log_file(app: AppHandle) -> Result<Option<String>, String> {
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        use tauri_plugin_dialog::DialogExt;
+        app.dialog().file().add_filter("Client.txt / LatestClient.txt", &["txt"]).blocking_pick_file()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(picked.and_then(|p| p.into_path().ok()).map(|p| p.display().to_string()))
+}
+
+/// Native folder picker for the screenshot directory.
+#[tauri::command]
+async fn pick_folder(app: AppHandle) -> Result<Option<String>, String> {
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        use tauri_plugin_dialog::DialogExt;
+        app.dialog().file().blocking_pick_folder()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(picked.and_then(|p| p.into_path().ok()).map(|p| p.display().to_string()))
+}
+
 /// The log file the app currently follows, or where it looked.
 #[derive(Serialize)]
 struct LogInfo {
@@ -1272,6 +1296,7 @@ fn drag(window: WebviewWindow, app: AppHandle, state: State<App>, phase: String)
 // ---------------------------------------------------------------------------
 
 fn main() {    tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|handle, shortcut, event| {
@@ -1317,6 +1342,8 @@ fn main() {    tauri::Builder::default()
             log_info,
             log_auto,
             log_check,
+            pick_log_file,
+            pick_folder,
             copy_text,
             link_open,
             ai_prepare,

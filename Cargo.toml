@@ -1,6 +1,6 @@
 [package]
 name = "eni-poe2-companion"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Eni-PoE2-Companion — помощник и оверлей для Path of Exile 2 (RU/EN)"
 license = "MIT"
@@ -10,6 +10,7 @@ repository = "https://github.com/BigbyOn/Eni-PoE2-Companion"
 [dependencies]
 tauri = { version = "=2.12.1", features = ["tray-icon"] }
 tauri-plugin-global-shortcut = "=2.3.2"
+tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 png = "0.17"

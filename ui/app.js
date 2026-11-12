@@ -92,6 +92,15 @@ function stepZoneName(step) {
   return l10n(step.zone_label) || step?.zones?.[0] || "";
 }
 
+// Russian label plus the client's English spelling, so the zone is unambiguous.
+function stepZoneFull(step) {
+  if (!step) return "";
+  const label = step.zone_label;
+  const ru = l10n(label);
+  const en = label?.en || "";
+  return LANG === "ru" && en && ru !== en ? `${ru} (${en})` : ru;
+}
+
 function sameZone(step, zone) {
   return (step?.zones || []).some((z) => norm(z) === norm(zone));
 }
@@ -200,8 +209,8 @@ function renderHome() {
                  <div style="font:20px/1.35 var(--serif);color:var(--gold2);margin:6px 0 4px">${esc(l10n(step.goal))}</div>
                  ${step.quest ? `<div class="small">${esc(t("home.quest"))}: ${esc(l10n(step.quest))}</div>` : ""}
                  ${step.level ? `<div class="small">${esc(t("char.level"))}: ${esc(step.level)}</div>` : ""}
-                 ${!here && dest ? `<div class="small" style="margin-top:6px">${esc(t("home.go"))}: <b style="color:var(--gold)">${esc(stepZoneName(step))}</b></div>` : ""}
-                 ${here && dest ? `<div class="small" style="margin-top:6px">${esc(t("overlay.next_dest"))}: <b style="color:var(--gold)">${esc(stepZoneName(dest))}</b></div>` : ""}
+                 ${!here && dest ? `<div class="small" style="margin-top:6px">${esc(t("home.go"))}: <b style="color:var(--gold)">${esc(stepZoneFull(step))}</b></div>` : ""}
+                 ${here && dest ? `<div class="small" style="margin-top:6px">${esc(t("overlay.next_dest"))}: <b style="color:var(--gold)">${esc(stepZoneFull(dest))}</b></div>` : ""}
                </div>
              </div>
              <div class="row" style="margin-top:12px">
@@ -444,7 +453,7 @@ function renderCampaign() {
         </div>
       </div>
       <div class="bar" style="margin:10px 0 12px"><i style="width:${total ? Math.round((pos / total) * 100) : 0}%"></i></div>
-      ${step ? `<div class="small">${esc(t("camp.next"))}: <b style="color:var(--gold)">${esc(dest ? stepZoneName(dest) : "—")}</b></div>` : ""}
+      ${step ? `<div class="small">${esc(t("camp.next"))}: <b style="color:var(--gold)">${esc(dest ? stepZoneFull(dest) : "—")}</b></div>` : ""}
     </div>
     <div class="card">
       <h3>${esc(t("camp.manual_zone"))}</h3>
@@ -483,7 +492,7 @@ function renderCampaign() {
         <div>
           <div class="goal">${esc(l10n(s.goal))}</div>
           <div class="meta">
-            <span class="zone">${esc(stepZoneName(s))}</span>
+            <span class="zone">${esc(stepZoneFull(s))}</span>
             ${s.optional ? `<span class="tag">${esc(t("camp.optional"))}</span>` : ""}
             ${(s.tags || []).filter((x) => ["boss", "town", "ascend", "gem"].includes(x)).map((x) => `<span class="tag ${esc(x)}">${esc(x)}</span>`).join("")}
             ${rewards}
@@ -761,7 +770,8 @@ function renderSettings() {
           <span class="small">${esc(t("set.log_enc"))}: ${esc(S.log_encoding || "—")}</span></div>
       </div>
       <div class="field" style="margin-top:10px"><label>${esc(t("set.log_path"))}</label>
-        <input type="text" id="st-log-path" value="${esc(log.path || "")}" placeholder="C:\\Program Files (x86)\\Grinding Gear Games\\Path of Exile 2\\logs\\Client.txt"></div>
+        <div class="row"><input type="text" id="st-log-path" style="flex:1;min-width:180px" value="${esc(log.path || "")}" placeholder="C:\\Program Files (x86)\\Grinding Gear Games\\Path of Exile 2\\logs\\Client.txt">
+          <button class="btn sm" data-act="pick-log">${esc(t("set.browse"))}</button></div></div>
       <div class="row" style="margin-top:8px">
         <button class="btn" data-act="log-check">${esc(t("set.log_check"))}</button>
         <button class="btn ghost" data-act="log-auto">${esc(t("set.log_auto_btn"))}</button>
@@ -809,7 +819,8 @@ function renderSettings() {
     <div class="card">
       <h2>${esc(t("set.shots"))}</h2>
       <div class="field"><label>${esc(t("set.shots_dir"))}</label>
-        <input type="text" id="st-shots-dir" value="${esc(S.saved.shots_dir || "")}" placeholder="${esc(S.shots_dir)}">
+        <div class="row"><input type="text" id="st-shots-dir" style="flex:1;min-width:180px" value="${esc(S.saved.shots_dir || "")}" placeholder="${esc(S.shots_dir)}">
+          <button class="btn sm" data-act="pick-shots-dir">${esc(t("set.browse"))}</button></div>
         <span class="small">${esc(t("set.shots_dir_hint"))} ${esc(t("set.log_current"))}: ${esc(S.shots_dir)}</span></div>
       <div class="row" style="margin-top:8px"><button class="btn ghost" data-act="shots-reveal">${esc(t("shot.open_dir"))}</button></div>
     </div>
@@ -1158,6 +1169,26 @@ async function act(name, el) {
         toast(String(err), true);
       }
       break;
+    case "pick-log": {
+      const path = await invoke("pick_log_file");
+      const field = $("#st-log-path");
+      if (path && field) {
+        field.value = path;
+        const mode = $("#st-log-mode");
+        if (mode) mode.value = "manual";
+        toast(path);
+      }
+      break;
+    }
+    case "pick-shots-dir": {
+      const dir = await invoke("pick_folder");
+      const field = $("#st-shots-dir");
+      if (dir && field) {
+        field.value = dir;
+        toast(dir);
+      }
+      break;
+    }
     case "log-check": {
       const path = $("#st-log-path")?.value.trim();
       if (!path) {

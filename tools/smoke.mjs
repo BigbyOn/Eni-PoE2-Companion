@@ -231,6 +231,22 @@ const aiUi = JSON.parse(await main.eval(`(async () => {
     visionHint: document.querySelector('#ai-vision-hint')?.textContent || '',
   });
 })()`));
+const browseUi = JSON.parse(await main.eval(`(async () => {
+  go('settings');
+  await new Promise(r => setTimeout(r, 250));
+  return JSON.stringify({
+    log: Boolean(document.querySelector('[data-act="pick-log"]')),
+    shots: Boolean(document.querySelector('[data-act="pick-shots-dir"]')),
+  });
+})()`));
+check("native dialogs: browse buttons in settings", browseUi.log && browseUi.shots, JSON.stringify(browseUi));
+const zoneUi = await main.eval(`(async () => {
+  go('campaign');
+  await new Promise(r => setTimeout(r, 250));
+  const first = document.querySelector('.step .zone');
+  return first ? first.textContent : '';
+})()`);
+check("campaign: zone shown in Russian with the English name", /\(.+\)/.test(zoneUi), zoneUi);
 check("ai ui: provider/model/reasoning/key/test present", aiUi.provider && aiUi.model && aiUi.reasoning && aiUi.key && aiUi.test, JSON.stringify(aiUi));
 check("ai ui: reasoning levels", aiUi.reasoningOptions.join(",") === "auto,low,medium,high", aiUi.reasoningOptions.join(","));
 const disabledAnswer = await main.eval(`(async () => {
