@@ -1,0 +1,494 @@
+{
+  "schema": 1,
+  "id": "lightning-arrow-deadeye",
+  "version": "2026.11.1",
+  "patch": "0.5.5",
+  "name": {
+    "ru": "Lightning Arrow — Deadeye",
+    "en": "Lightning Arrow — Deadeye"
+  },
+  "class": "Ranger",
+  "ascendancy": "Deadeye",
+  "summary": {
+    "ru": "Мобильный лучник: Lightning Arrow чистит пачки, Lightning Rod и Frost Bomb помогают на боссах. Билд играется с первого уровня и не требует обязательных уникальных предметов.",
+    "en": "Mobile bow build: Lightning Arrow clears packs, Lightning Rod and Frost Bomb help on bosses. Playable from level one and needs no mandatory uniques."
+  },
+  "disclaimer": {
+    "ru": "Это краткая сводка Eni-PoE2-Companion по открытым материалам, а не текст автора гайда и не полный гайд. Сверяйтесь с первоисточником: ссылки ниже.",
+    "en": "This is a short Eni-PoE2-Companion summary of public material — not the guide author's text and not a complete guide. Check the sources below."
+  },
+  "sources": [
+    {
+      "label": "Mobalytics — Fubgun Lightning Arrow Deadeye (endgame, 0.5)",
+      "url": "https://mobalytics.gg/poe-2/builds/lightning-arrow-farmer-fubgun"
+    },
+    {
+      "label": "Mobalytics — Fubgun Deadeye leveling (0.5)",
+      "url": "https://mobalytics.gg/poe-2/builds/fubgun-deadeye-leveling"
+    }
+  ],
+  "stages": [
+    {
+      "id": "lvl-1-5",
+      "levels": [
+        1,
+        5
+      ],
+      "title": {
+        "ru": "1–5 уровень",
+        "en": "Level 1–5"
+      },
+      "focus": {
+        "ru": "Дойти до Clearfell, собрать базу: Lightning Arrow и первый Uncut Skill Gem у Renly.",
+        "en": "Reach Clearfell and set up the base: Lightning Arrow and the first Uncut Skill Gem from Renly."
+      },
+      "skills": [
+        {
+          "name": "Lightning Arrow",
+          "supports": [
+            "Rapid Attacks",
+            "Added Lightning Damage"
+          ],
+          "note": {
+            "ru": "Основной навык зачистки на весь билд.",
+            "en": "Main clear skill for the whole build."
+          }
+        },
+        {
+          "name": "Lightning Rod",
+          "supports": [],
+          "note": {
+            "ru": "Ставится под боссов и плотные пачки.",
+            "en": "Drop it on bosses and dense packs."
+          }
+        },
+        {
+          "name": "Frost Bomb",
+          "supports": [],
+          "note": {
+            "ru": "Снижает сопротивление холоду — полезно перед боссом.",
+            "en": "Lowers cold resistance — useful before a boss."
+          }
+        }
+      ],
+      "passives": [
+        {
+          "ru": "Берите узлы на урон луком и молнией рядом со стартом дерева.",
+          "en": "Take bow and lightning damage nodes near the tree start."
+        }
+      ],
+      "gear": [
+        {
+          "ru": "Любой лук с плоским уроном; на 11 уровне ищите Warden Bow с 1–2 гнёздами.",
+          "en": "Any bow with flat damage; at level 11 look for a Warden Bow with 1–2 sockets."
+        }
+      ],
+      "checklist": [
+        {
+          "id": "la-1",
+          "label": {
+            "ru": "Lightning Arrow в слоте навыка",
+            "en": "Lightning Arrow equipped"
+          }
+        },
+        {
+          "id": "la-2",
+          "label": {
+            "ru": "Взят первый Uncut Skill Gem у Renly",
+            "en": "First Uncut Skill Gem from Renly"
+          }
+        },
+        {
+          "id": "la-3",
+          "label": {
+            "ru": "Lightning Rod получен",
+            "en": "Lightning Rod acquired"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lvl-6-14",
+      "levels": [
+        6,
+        14
+      ],
+      "title": {
+        "ru": "6–14 уровень",
+        "en": "Level 6–14"
+      },
+      "focus": {
+        "ru": "Акт I до Count Geonor. Главное — плоский урон к атакам на луке, перчатках и кольцах.",
+        "en": "Act I up to Count Geonor. The priority is flat added damage on bow, gloves and rings."
+      },
+      "skills": [
+        {
+          "name": "Lightning Arrow",
+          "supports": [
+            "Rapid Attacks",
+            "Added Lightning Damage"
+          ],
+          "note": null
+        },
+        {
+          "name": "Lightning Rod",
+          "supports": [],
+          "note": {
+            "ru": "Для боссов: ставьте рядом и бейте Lightning Arrow.",
+            "en": "For bosses: place it and hit with Lightning Arrow."
+          }
+        },
+        {
+          "name": "Frost Bomb",
+          "supports": [],
+          "note": null
+        }
+      ],
+      "passives": [
+        {
+          "ru": "Заберите +2 очка за The Crowbell в Hunting Grounds и +2 за Una's Lute.",
+          "en": "Pick up +2 points from The Crowbell in Hunting Grounds and +2 from Una's Lute."
+        }
+      ],
+      "gear": [
+        {
+          "ru": "Перчатки и кольца с плоским уроном — самый большой прирост урона на этом этапе.",
+          "en": "Gloves and rings with flat damage — the biggest damage jump at this stage."
+        },
+        {
+          "ru": "Сапоги со скоростью передвижения не меняйте на другие без неё.",
+          "en": "Never swap movement speed boots for boots without it."
+        }
+      ],
+      "checklist": [
+        {
+          "id": "la-4",
+          "label": {
+            "ru": "Кольца с плоским уроном",
+            "en": "Rings with flat damage"
+          }
+        },
+        {
+          "id": "la-5",
+          "label": {
+            "ru": "Сапоги со скоростью передвижения",
+            "en": "Movement speed boots"
+          }
+        },
+        {
+          "id": "la-6",
+          "label": {
+            "ru": "Убит Count Geonor",
+            "en": "Count Geonor killed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lvl-15-27",
+      "levels": [
+        15,
+        27
+      ],
+      "title": {
+        "ru": "15–27 уровень",
+        "en": "Level 15–27"
+      },
+      "focus": {
+        "ru": "Акт II, первое восхождение Deadeye и первые вложенные руны в лук.",
+        "en": "Act II, the first Deadeye ascendancy and the first runes in the bow."
+      },
+      "skills": [
+        {
+          "name": "Lightning Arrow",
+          "supports": [
+            "Rapid Attacks",
+            "Added Lightning Damage"
+          ],
+          "note": null
+        },
+        {
+          "name": "Lightning Rod",
+          "supports": [],
+          "note": null
+        },
+        {
+          "name": "Frost Bomb",
+          "supports": [],
+          "note": null
+        }
+      ],
+      "passives": [
+        {
+          "ru": "Держите восхождение по графику: Trial of the Sekhemas с Barya 22 уровня.",
+          "en": "Keep the ascendancy on schedule: Trial of the Sekhemas with the level 22 Barya."
+        },
+        {
+          "ru": "Собирайте +2 очка за Kabala, Mastodon Tusks и Final Letter.",
+          "en": "Collect +2 points from Kabala, Mastodon Tusks and the Final Letter."
+        }
+      ],
+      "gear": [
+        {
+          "ru": "Лук с 1–2 гнёздами и руной: Storm Rune — лучший вариант, подойдёт Desert, Glacier или Storm.",
+          "en": "Bow with 1–2 sockets and a rune: Storm Rune is best, Desert, Glacier or Storm all work."
+        },
+        {
+          "ru": "Сдавайте оружие с качеством за камни заточки, предметы с гнёздами — за Artificer's Orb.",
+          "en": "Salvage quality weapons for whetstones and socketed items for Artificer's Orbs."
+        }
+      ],
+      "checklist": [
+        {
+          "id": "la-7",
+          "label": {
+            "ru": "Первое восхождение Deadeye",
+            "en": "First Deadeye ascendancy"
+          }
+        },
+        {
+          "id": "la-8",
+          "label": {
+            "ru": "Руна в луке",
+            "en": "Rune in the bow"
+          }
+        },
+        {
+          "id": "la-9",
+          "label": {
+            "ru": "Убит Jamanra, the Abomination",
+            "en": "Jamanra, the Abomination killed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lvl-28-40",
+      "levels": [
+        28,
+        40
+      ],
+      "title": {
+        "ru": "28–40 уровень",
+        "en": "Level 28–40"
+      },
+      "focus": {
+        "ru": "Акт III, второе восхождение и сопротивление огню с Blackjaw.",
+        "en": "Act III, the second ascendancy and fire resistance from Blackjaw."
+      },
+      "skills": [
+        {
+          "name": "Lightning Arrow",
+          "supports": [
+            "Rapid Attacks",
+            "Added Lightning Damage"
+          ],
+          "note": null
+        },
+        {
+          "name": "Lightning Rod",
+          "supports": [],
+          "note": null
+        },
+        {
+          "name": "Frost Bomb",
+          "supports": [],
+          "note": null
+        }
+      ],
+      "passives": [
+        {
+          "ru": "Добивайте очки за Mighty Silverfist, Sacrificial Heart и Book of Specialisation.",
+          "en": "Collect points from Mighty Silverfist, the Sacrificial Heart and the Book of Specialisation."
+        }
+      ],
+      "gear": [
+        {
+          "ru": "Держите все сопротивления выше 40% и максимум жизни на уровне.",
+          "en": "Keep all resistances above 40% and life in line with the level."
+        },
+        {
+          "ru": "Второе восхождение: Trial of Chaos с Chimeral Inscribed Ultimatum.",
+          "en": "Second ascendancy: Trial of Chaos with the Chimeral Inscribed Ultimatum."
+        }
+      ],
+      "checklist": [
+        {
+          "id": "la-10",
+          "label": {
+            "ru": "Второе восхождение",
+            "en": "Second ascendancy"
+          }
+        },
+        {
+          "id": "la-11",
+          "label": {
+            "ru": "+10% к сопротивлению огню (Blackjaw)",
+            "en": "+10% fire resistance (Blackjaw)"
+          }
+        },
+        {
+          "id": "la-12",
+          "label": {
+            "ru": "Все сопротивления выше 40%",
+            "en": "All resistances above 40%"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lvl-40-plus",
+      "levels": [
+        40,
+        60
+      ],
+      "title": {
+        "ru": "40–60+ уровень",
+        "en": "Level 40–60+"
+      },
+      "focus": {
+        "ru": "Острова и интерлюдии, третье восхождение, выход в Атлас.",
+        "en": "The islands and interludes, the third ascendancy and the way into the Atlas."
+      },
+      "skills": [
+        {
+          "name": "Lightning Arrow",
+          "supports": [
+            "Rapid Attacks",
+            "Added Lightning Damage"
+          ],
+          "note": null
+        },
+        {
+          "name": "Lightning Rod",
+          "supports": [],
+          "note": null
+        },
+        {
+          "name": "Frost Bomb",
+          "supports": [],
+          "note": null
+        }
+      ],
+      "passives": [
+        {
+          "ru": "Третье восхождение: Barya 60 уровня или Trial of Chaos.",
+          "en": "Third ascendancy: level 60 Barya or the Trial of Chaos."
+        },
+        {
+          "ru": "Перед Атласом выровняйте дерево под крит и проникновение молнии.",
+          "en": "Before the Atlas, align the tree towards crit and lightning penetration."
+        }
+      ],
+      "gear": [
+        {
+          "ru": "Цель — 75% всех сопротивлений и лук с плоским уроном и скоростью атаки.",
+          "en": "Goal: 75% in all resistances and a bow with flat damage and attack speed."
+        },
+        {
+          "ru": "Флаконы и амулеты обновляйте с каждым актом; Greater Runes покупайте у Soul of the Ferryman.",
+          "en": "Refresh flasks and charms every act; buy Greater Runes from the Soul of the Ferryman."
+        }
+      ],
+      "checklist": [
+        {
+          "id": "la-13",
+          "label": {
+            "ru": "Третье восхождение",
+            "en": "Third ascendancy"
+          }
+        },
+        {
+          "id": "la-14",
+          "label": {
+            "ru": "75% всех сопротивлений",
+            "en": "75% all resistances"
+          }
+        },
+        {
+          "id": "la-15",
+          "label": {
+            "ru": "Первый waystone в Атласе",
+            "en": "First Atlas waystone"
+          }
+        }
+      ]
+    }
+  ],
+  "priorities": {
+    "stats": [
+      {
+        "ru": "Ловкость — под требования камней, с запасом.",
+        "en": "Dexterity — meet gem requirements with some headroom."
+      },
+      {
+        "ru": "Сила и интеллект — только под камни поддержки.",
+        "en": "Strength and intelligence — only for support gem requirements."
+      },
+      {
+        "ru": "Сопротивления важнее урона в кампании.",
+        "en": "Resistances matter more than damage during the campaign."
+      }
+    ],
+    "weapon": [
+      {
+        "ru": "Плоский урон к атакам (любой элемент или физический).",
+        "en": "Flat added damage to attacks (any element or physical)."
+      },
+      {
+        "ru": "Скорость атаки.",
+        "en": "Attack speed."
+      },
+      {
+        "ru": "Гнёзда под руны: Storm Rune в приоритете.",
+        "en": "Sockets for runes: Storm Rune first."
+      }
+    ],
+    "armour": [
+      {
+        "ru": "Сопротивления на всех частях брони.",
+        "en": "Resistances on every armour slot."
+      },
+      {
+        "ru": "Максимум жизни.",
+        "en": "Maximum life."
+      },
+      {
+        "ru": "Скорость передвижения на сапогах — не меняйте её ни на что.",
+        "en": "Movement speed on boots — never trade it away."
+      }
+    ],
+    "accessories": [
+      {
+        "ru": "Кольца и перчатки с плоским уроном к атакам.",
+        "en": "Rings and gloves with flat damage to attacks."
+      },
+      {
+        "ru": "Сопротивления и максимум жизни на амулете и поясе.",
+        "en": "Resistances and life on amulet and belt."
+      },
+      {
+        "ru": "Флакон жизни с восстановлением и амулеты на заморозку/яд.",
+        "en": "Life flask with recovery, charm against freeze/poison."
+      }
+    ]
+  },
+  "tips": [
+    {
+      "ru": "Сдавайте в магазин оружие с качеством — получаете камни заточки.",
+      "en": "Vendor quality weapons for whetstones."
+    },
+    {
+      "ru": "Сдавайте предметы с гнёздами — получаете Artificer's Orb.",
+      "en": "Vendor socketed items for Artificer's Orbs."
+    },
+    {
+      "ru": "Проверяйте торговцев каждые 1–2 уровня: плоский урон и скорость передвижения.",
+      "en": "Check vendors every 1–2 levels for flat damage and movement speed."
+    },
+    {
+      "ru": "Редкие ненужные вещи продавайте за золото и вкладывайте в азартную игру во втором и третьем акте.",
+      "en": "Vendor spare rares for gold and gamble it in acts two and three."
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "PoE2 Overlay",
-  "version": "0.1.0",
-  "identifier": "de.malura.poe2overlay",
+  "productName": "Eni-PoE2-Companion",
+  "version": "0.2.0",
+  "identifier": "io.github.bigbyon.enipoe2companion",
   "build": {
     "frontendDist": "ui"
   },
@@ -10,42 +10,25 @@
     "withGlobalTauri": true,
     "windows": [
       {
+        "label": "main",
+        "title": "Eni-PoE2-Companion",
+        "url": "index.html",
+        "width": 1240,
+        "height": 820,
+        "minWidth": 920,
+        "minHeight": 640,
+        "resizable": true,
+        "center": true,
+        "visible": false,
+        "create": false,
+        "backgroundColor": "#0b0a08"
+      },
+      {
         "label": "overlay",
-        "title": "PoE2 Overlay",
-        "width": 380,
-        "height": 200,
-        "transparent": true,
-        "decorations": false,
-        "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "shadow": false,
-        "resizable": false,
-        "focus": false,
-        "focusable": false,
-        "visible": false,
-        "create": false
-      },
-      {
-        "label": "menu",
-        "title": "PoE2 Overlay Menü",
-        "url": "menu.html",
-        "width": 560,
-        "height": 640,
-        "transparent": true,
-        "decorations": false,
-        "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "shadow": false,
-        "resizable": false,
-        "visible": false,
-        "create": false
-      },
-      {
-        "label": "regex",
-        "title": "PoE2 Overlay Regex",
-        "url": "menu.html",
-        "width": 460,
-        "height": 340,
+        "title": "Eni-PoE2-Companion Overlay",
+        "url": "overlay.html",
+        "width": 420,
+        "height": 240,
         "transparent": true,
         "decorations": false,
         "alwaysOnTop": true,
@@ -59,22 +42,26 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src ipc: http://ipc.localhost; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
     }
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "nsis",
-      "msi"
-    ],
-    "icon": [
-      "icons/icon.ico"
-    ],
-    "publisher": "Michael Malura",
-    "shortDescription": "PoE2 campaign guide overlay",
-    "longDescription": "Open-source in-game overlay for Path of Exile 2 with a campaign guide that follows your zone.",
-    "copyright": "MIT License",
-    "category": "Game"
+    "targets": ["nsis", "msi"],
+    "icon": ["icons/icon.ico"],
+    "publisher": "BigbyOn",
+    "shortDescription": "PoE2 companion: progression tracker, builds, screenshots",
+    "longDescription": "Eni-PoE2-Companion — офлайн-помощник для Path of Exile 2: отслеживание прогресса по Client.txt, профили персонажей, локальные билды, скриншоты и оверлей поверх игры. Без телеметрии и сетевых запросов по умолчанию.",
+    "copyright": "MIT License. Based on poe2overlay © 2026 Michael Malura.",
+    "category": "Game",
+    "windows": {
+      "nsis": {
+        "languages": ["Russian", "English"],
+        "displayLanguageSelector": true
+      },
+      "wix": {
+        "language": ["en-US"]
+      }
+    }
   }
 }

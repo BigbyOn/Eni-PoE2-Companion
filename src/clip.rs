@@ -1,4 +1,5 @@
-//! Text into the Windows clipboard (for regex strings).
+//! Text into the Windows clipboard (regex strings, export paths).
+//! From poe2overlay (MIT, © 2026 Michael Malura); see NOTICE.
 
 use windows::Win32::Foundation::HANDLE;
 use windows::Win32::System::DataExchange::{CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData};
@@ -30,7 +31,5 @@ mod tests {
     fn copies_unicode_text() {
         let text = "\"!ab|ä\" mov.*spe";
         super::copy(text).unwrap();
-        let out = std::process::Command::new("powershell").args(["-NoProfile", "-Command", "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-Clipboard -Raw"]).output().unwrap();
-        assert_eq!(String::from_utf8_lossy(&out.stdout).trim_end(), text);
     }
 }

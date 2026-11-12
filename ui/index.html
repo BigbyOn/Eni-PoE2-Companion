@@ -1,25 +1,43 @@
 <!doctype html>
-<html lang="de">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
-<title>PoE2 Overlay</title>
-<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eni-PoE2-Companion</title>
+<link rel="stylesheet" href="app.css">
 </head>
 <body>
-<section id="panel" hidden>
-  <header id="bar">
-    <span id="act"></span>
-    <span id="levels"></span>
-    <button id="prev" title="Zurück (Strg+Alt+Links)">&#9664;</button>
-    <button id="next" title="Weiter (Strg+Alt+Rechts)">&#9654;</button>
-    <button id="mini" title="Mini-Modus (Strg+Alt+C)">&#8211;</button>
-    <button id="off" title="Guide ausschalten (Strg+Alt+G). Wieder an: Strg+Alt+G oder Einstellungen">&#10005;</button>
-  </header>
-  <div id="current"></div>
-  <ol id="upcoming"></ol>
-  <p id="hkerr" hidden></p>
-  <p id="nolog" hidden>Client.txt nicht gefunden: Zonen werden nicht erkannt. Weiter mit Strg+Alt+Rechts.</p>
-</section>
+<div id="shell">
+  <aside id="nav">
+    <div id="brand">
+      <span class="sigil" aria-hidden="true"></span>
+      <div class="brand-text">
+        <b>Eni</b>
+        <span>PoE2 Companion</span>
+      </div>
+    </div>
+    <nav id="nav-items" aria-label="Разделы"></nav>
+    <div class="nav-foot">
+      <span id="ver" class="mono"></span>
+      <small data-i18n="nav.hint"></small>
+    </div>
+  </aside>
+  <main id="main">
+    <header id="topbar">
+      <h1 id="page-title"></h1>
+      <div id="chips"></div>
+    </header>
+    <section id="content" tabindex="-1"></section>
+  </main>
+</div>
+<div id="modal" hidden>
+  <div id="modal-box" role="dialog" aria-modal="true">
+    <header><h2 id="modal-title"></h2><button class="icon" data-act="modal-close" title="Esc">✕</button></header>
+    <div id="modal-body"></div>
+  </div>
+</div>
+<div id="toast" hidden></div>
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

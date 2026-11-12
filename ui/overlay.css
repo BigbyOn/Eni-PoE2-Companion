@@ -1,0 +1,61 @@
+/* The overlay is exactly the panel: no window chrome, no focus stealing. */
+:root{
+  --panel:rgba(12,11,9,.88); --band:rgba(26,23,18,.92); --line:#2b261e; --rule-2:#3a3226;
+  --ink:#e2dbcc; --ink-2:#a79e8c; --ink-3:#7a7162;
+  --sand:#a38d6d; --gold:#dfcf99; --white:#f4efe4; --mod:#9696f7; --dest:#d9b77a; --bad:#e8685a;
+  --serif:"Palatino Linotype","Book Antiqua",Georgia,serif;
+  --num:"Segoe UI",system-ui,sans-serif;
+}
+html,body{margin:0;height:100%;background:transparent;overflow:hidden;user-select:none}
+body{color:var(--ink);font:14px/1.4 var(--serif);-webkit-font-smoothing:antialiased}
+#panel{
+  position:absolute;left:0;top:0;box-sizing:border-box;width:420px;
+  background:var(--panel);border:1px solid var(--rule-2);border-radius:3px;
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+}
+#panel.glass{text-shadow:0 0 3px #000,0 0 2px #000,0 1px 1px #000}
+#bar{display:flex;align-items:center;gap:6px;padding:4px 5px 4px 10px;border-bottom:1px solid var(--line);cursor:move}
+#act{flex:1;font-variant:small-caps;letter-spacing:.04em;color:var(--sand);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#lvls{font:11.5px/1 var(--num);font-variant-numeric:tabular-nums;color:var(--ink-3);white-space:nowrap}
+#lvls.warn{color:var(--bad)}
+#bar button{
+  width:21px;height:19px;padding:0;border:1px solid var(--rule-2);border-radius:2px;background:transparent;
+  color:var(--ink-2);font-size:9px;cursor:pointer;flex:none;
+}
+#bar button:hover{color:var(--gold);border-color:var(--sand)}
+#body{padding:8px 11px 9px}
+
+.zone{font-variant:small-caps;letter-spacing:.04em;font-size:12.5px;color:var(--sand)}
+.go{margin:-8px -11px 7px;padding:4px 11px;background:rgba(223,207,153,.1);border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-2)}
+.dest{color:var(--dest);font-variant:small-caps;letter-spacing:.03em;font-weight:600}
+.goal{font-size:16px;color:var(--white);margin-top:1px}
+.goal .name{color:var(--gold);font-weight:600}
+.quest{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+.then{font-size:12.5px;color:var(--ink-3);margin-top:3px}
+.then b{color:var(--dest);font-weight:600}
+.meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px}
+.bar{flex:1;height:4px;background:#0d0b09;border:1px solid var(--line);border-radius:2px;overflow:hidden;min-width:60px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,#8f7442,var(--gold))}
+.pct{font:11px var(--num);color:var(--ink-3)}
+.char{display:flex;gap:8px;align-items:baseline;font-size:12.5px;color:var(--ink-2);margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
+.char b{color:var(--ink);font-weight:600}
+.build{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+.build b{color:var(--mod);font-weight:600}
+.rewards{margin:6px 0 0;padding:0 0 0 14px;font-size:12px;color:var(--ink-3)}
+.rewards li{margin-top:1px}
+.rewards li::marker{color:var(--ink-3)}
+.checks{margin:5px 0 0;padding:0;list-style:none;font-size:12px;color:var(--ink-2)}
+.checks li{margin-top:1px}
+.checks li::before{content:"□ ";color:var(--ink-3)}
+.warn{color:var(--bad)}
+.hint{font-size:12px;color:var(--ink-3);margin-top:4px}
+
+/* compact: one line, the panel is as wide as the text */
+#panel.mini{width:max-content;max-width:640px;cursor:move}
+.mini #bar{display:none}
+.mini #body{padding:4px 10px}
+.mini .goal{display:inline;font-size:14px}
+.mini .go{display:inline;margin:0;padding:0;background:none;border:0}
+.mini .zone{margin-right:6px}
+.mini .then{display:inline;margin-left:8px}
+.mini .quest,.mini .meta,.mini .char,.mini .build,.mini .rewards,.mini .checks{display:none}

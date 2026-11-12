@@ -1,96 +1,189 @@
-# PoE2 Overlay
+# Eni-PoE2-Companion
 
-An in-game campaign guide for Path of Exile 2. It sits on top of the game, knows which zone you are in and tells you what to do there and where to go next.
+Персональный помощник для **Path of Exile 2**: следит за прогрессом по игровому журналу, держит профили персонажей, локальные билды, историю и скриншоты, и показывает компактный оверлей поверх игры.
 
-No ads, no Overwolf, no account, no telemetry. One small Windows app, open source.
+Windows 10/11 x64 · Rust + Tauri 2 + системный WebView2 · без телеметрии и без чтения памяти игры. Сеть — только по кнопке для ИИ.
 
-<p>
-  <img src="docs/panel.png" alt="Full panel: current step, where to go, notes" width="400">
-  <img src="docs/settings.png" alt="Settings window" width="300">
-</p>
-<p><img src="docs/mini.png" alt="Mini mode: one line" width="640"></p>
+> Проект — производная работа от [poe2overlay](https://github.com/maluramichael/poe2overlay) © 2026 Michael Malura (MIT). Подробности — в [NOTICE](NOTICE).
 
-*(German UI shown, English is one click away.)*
+---
 
-## Features
+## Возможности
 
-- **Follows your zone.** Reads the game's `Client.txt` and jumps to the right step when you enter a zone. A portal to town does not skip ahead, walking back through it undoes the jump.
-- **Knows when a step is done.** Permanent rewards (resistances, spirit, life, mana, books of specialisation) show up in the log, and the guide moves on by itself.
-- **Go to.** In town, in your hideout or in the wrong zone it says where to go for the current step, and after each task where to go next.
-- **Mini mode.** One line: the task, or where to go and the task.
-- **Route modes** like on the website: everything, required + buffs, or required only.
-- **Level check.** Character level against area level, red when you are outside the XP penalty window.
-- **Regex list.** Save vendor and stash regexes (for example from a build guide). One hotkey opens the list, a click puts the regex on the clipboard and the game keeps focus.
-- **Settings in game.** Hotkeys, language (German/English), route mode, regexes, text size for the panel and the mini line, background opacity.
-- **Small.** Rust + the WebView2 that ships with Windows. The installer is under 4 MB, idle CPU is zero.
+**Автоматическое отслеживание игры**
+- Находит журнал сам: рядом с запущенной игрой (Steam/standalone), через реестр Steam и `libraryfolders.vdf`, либо по стандартным путям установки.
+- Поддерживает `Client.txt` и `LatestClient.txt`, выбирает самый свежий.
+- Читает журнал в реальном времени, восстанавливает состояние после перезапуска игры или приложения (последние зона/уровень/награды).
+- Корректно переживает усечение и подмену журнала.
+- Кодировки: UTF‑8, UTF‑8 с BOM, UTF‑16LE.
+- Русский клиент: распознаёт `[SCENE] Set Source [Берег реки]`, `достигает 7 уровня`, `Игрок … получил +10% к сопротивлению [Resistances|холоду]`, а также английские строки.
+- Определяет акт, шаг кампании, следующую цель и «куда идти дальше».
+- Пишет историю событий: зона, уровень, награда, выполненная задача.
 
-## Install
+**Мой персонаж**
+- Несколько локальных профилей персонажей.
+- Имя и класс подставляются из журнала (`… (Класс) достигает N уровня`), иначе вводятся вручную; у свежего профиля имя подхватывается автоматически.
+- Класс, восхождение, уровень, акт, текущая локация, история уровней, постоянные награды, прогресс задач.
+- Ручная правка любого поля и ручное указание локации.
 
-1. Download `PoE2 Overlay_<version>_x64-setup.exe` (or the `.msi`) from [Releases](../../releases).
-2. Run it. The installer is not code-signed, so Windows SmartScreen may warn: *More info* -> *Run anyway*.
-3. Start PoE2 in **Windowed** or **Windowed Fullscreen**. Exclusive fullscreen hides every overlay.
-4. Start PoE2 Overlay. It lives in the tray (yellow diamond) and shows up when the game is in front.
+**Мой билд**
+- Локальный JSON‑формат билдов (схема с валидацией), пользовательские билды в папке данных.
+- Этапы прокачки по уровням: навыки, камни поддержки, пассивные узлы, экипировка, чек‑лист улучшений с отметками.
+- Приоритеты характеристик, оружия, брони, аксессуаров и советы.
+- Встроенный билд: **Lightning Arrow — Deadeye** (Ranger), 5 этапов, 15 пунктов чек‑листа. Это краткая собственная сводка со ссылками на первоисточники (Fubgun, Mobalytics), а не копия гайда.
 
-Windows 10 and 11 already have WebView2. If yours does not, the installer fetches it.
+**Кампания**
+- Маршрут из 115 шагов и 6 актов (патч 0.5.5), русские и английские формулировки.
+- Режимы «все шаги» и «только обязательные».
+- Переход по клику, отметка «выполнено», ручная локация.
+- Если журнал сообщает локацию на другом языке — приложение предлагает **сопоставить** её с локацией маршрута и запоминает соответствие (вместе с внутренним id области).
 
-## Usage
+**История**
+- Дата и время, уровень, зона, задача, постоянные улучшения.
+- Фильтры по типу, профилю и поиску; экспорт в JSON в `Документы\Eni-PoE2-Companion`.
 
-| Keys | Action |
+**ИИ-анализ (по желанию)**
+- DeepSeek и OpenAI: выбор провайдера, модели (список + любой id, включая flash-версии) и уровня рассуждения.
+- Разбор предмета, «что улучшить», сравнение с билдом и свободный вопрос прямо из окна скриншота.
+- Изображение уходит только моделям с vision (OpenAI); текстовым моделям — описание, заметка и контекст.
+- Ключ хранится зашифрованным (Windows DPAPI); запрос уходит только по нажатию кнопки; рядом со снимком пишется `ai-request-*.json`.
+
+**Скриншоты**
+- Снимок клиентской области игры по горячей клавише (GDI `BitBlt`, окно игры на мгновение освобождается от оверлея).
+- Миниатюры, полноразмерный просмотр, тип снимка (предмет, инвентарь, дерево навыков, камни, другое), заметка, привязка к персонажу.
+- SHA‑256 каждого снимка, локальное хранение, кнопка «Подготовить для ИИ» — пишет рядом JSON‑описание запроса, ничего не отправляя.
+
+**Оверлей**
+- Три режима: **компактный** (строка), **стандартный** (зона, цель, задание, «далее», прогресс), **расширенный** (плюс персонаж, билд и его чек‑лист, последние награды).
+- Прозрачность, масштаб, положение, перетаскивание за заголовок, скрытие/показ, сохранение между запусками.
+- Окно не забирает фокус у игры (`WS_EX_NOACTIVATE`), показывается только когда игра (или окно помощника) активно.
+
+**Настройки**
+- Язык интерфейса: русский (по умолчанию) и английский.
+- Путь к журналу (авто/вручную, с проверкой и определением кодировки).
+- Горячие клавиши с записью сочетаний.
+- Папка скриншотов, таблица соответствий локаций, провайдер ИИ (ключ шифруется Windows DPAPI), диагностика, сведения о лицензии.
+
+---
+
+## Установка
+
+1. Скачайте установщик из [Releases](../../releases):
+   - `Eni-PoE2-Companion-Setup.exe` (NSIS, рекомендуется) — или
+   - `Eni-PoE2-Companion.msi` (MSI).
+2. Запустите установщик. Приложение не подписано, поэтому SmartScreen может предупредить: **Подробнее → Выполнить в любом случае**.
+3. Запустите **Eni-PoE2-Companion**. Приложение живёт в трее; окно открывается по иконке в трее или горячей клавишей `Shift+Space`.
+4. Запустите PoE2 в **оконном** или **безрамочном оконном** режиме — эксклюзивный полноэкранный режим скрывает любые оверлеи.
+
+Windows 10/11 уже содержат WebView2 (Edge). Если его нет, установщик предложит установить компонент.
+
+ИИ по умолчанию выключен: Настройки → ИИ → провайдер, модель, ключ, «Проверить подключение». Без этого приложение полностью работает офлайн.
+
+Подробнее — [docs/INSTALL.md](docs/INSTALL.md).
+
+---
+
+## Горячие клавиши (по умолчанию)
+
+| Клавиши | Действие |
 |---|---|
-| `Shift+Space` | Settings |
-| `Ctrl+Alt+R` | Regex list: click one to copy it |
-| `Ctrl+Alt+Right` / `Ctrl+Alt+Left` | Next / previous step |
-| `Ctrl+Alt+C` | Toggle mini mode |
-| `Ctrl+Alt+G` | Campaign guide on / off |
+| `Ctrl+Alt+→` / `Ctrl+Alt+←` | следующий / предыдущий шаг кампании |
+| `Ctrl+Alt+O` | сменить режим оверлея (компактный → стандартный → расширенный) |
+| `Ctrl+Alt+G` | показать / скрыть оверлей |
+| `Ctrl+Alt+S` | скриншот игрового окна |
+| `Shift+Space` | открыть/скрыть окно помощника |
 
-All hotkeys can be changed in the settings. If another app already owns one (Exiled Exchange 2 uses `Shift+Space` by default), the panel says so in red and the overlay keeps trying every few seconds.
+Все сочетания меняются в настройках. Если сочетание занято другой программой, приложение сообщает об этом и продолжает пытаться зарегистрировать его каждые 5 секунд.
 
-- **Move the panel** by dragging its header, or the line in mini mode. In the lower half of the screen it opens upwards.
-- **Mini mode:** a click on the line opens the full panel.
-- **Done with the campaign?** The ✕ in the panel header (or `Ctrl+Alt+G`, or the settings) switches the guide off and it stays off after a restart. The regex list and the settings keep working. To quit the app completely: tray icon -> *Beenden*.
-- **Tray icon:** settings, reset the guide to the start, quit.
+---
 
-### Copying regexes from websites
+## Русский клиент Path of Exile 2
 
-Some "copy" buttons (Mobalytics, for one) put the text on the clipboard only as HTML. Plain text fields, including the search box in PoE2, then paste nothing. The regex field in the settings handles this: paste with `Ctrl+V` and the overlay takes the text out of the HTML. Selecting the text and pressing `Ctrl+C` always works too.
+Проверено на реальном журнале русского клиента (0.5.x):
 
-## How it works
-
-| Part | How |
+| Строка журнала | Что распознаётся |
 |---|---|
-| Window | Tauri 2: a Rust app with the system WebView2. The overlay window is exactly the size of the panel, always on top, and never takes focus, so clicks next to it go to the game. |
-| Game window | Every 100 ms it looks for the window titled `Path of Exile 2`, keeps the panel inside its client area and hides it when the game is not in front. |
-| Zone and level | Tails `logs\Client.txt` next to the running game's exe (any install path, Steam or standalone). It reads `[SCENE] Set Source [<zone>]`, `Generating level N area "<id>"`, `is now level N` and reward lines such as `has received +10% to [Resistances|Cold Resistance]`. |
-| Route | Fetched on every start from [poe2speedrun.malura.de/overlay/guide.json](https://poe2speedrun.malura.de/overlay/guide.json), with the last copy kept for offline starts and one built in. |
-| Settings | `%APPDATA%\de.malura.poe2overlay\state.json` |
+| `[SCENE] Set Source [Берег реки]` | локация |
+| `[SCENE] Set Source [Акт 1]` | служебный экран, игнорируется |
+| `: Имя (Охотница) достигает 7 уровня` | имя, класс, уровень |
+| `: Игрок Имя получил +10% к сопротивлению [Resistances|холоду].` | постоянная награда |
+| `Generating level 6 area "G1_6" with seed …` | внутренний id области (языконезависимый) |
 
-The overlay only reads the log file the game writes for everyone. It does not read game memory, inject anything or send input to the game. As with every third-party tool, using it is your own call.
+Маршрут кампании использует английские названия зон, поэтому локализованные названия сопоставляются:
 
-## Route data
+- для начала акта I уже встроены проверенные соответствия: `Берег реки`, `Лагерь Клирфелл`, `Клирфелл`, `Красная Долина`, а также id `G1_1` и `G1_town`;
+- неизвестная локация не ломает приложение: оверлей показывает её как есть, а в разделе «Кампания» появляется предложение сопоставить её с локацией маршрута. Соответствие сохраняется в `state.json` и используется дальше (в том числе по id области);
+- в настройках есть ручная таблица соответствий.
 
-The steps come from the speedrun guide at [poe2speedrun.malura.de](https://poe2speedrun.malura.de/). A fix there reaches every overlay on its next start; no new release needed. To get it right away: settings -> *Reload now*.
+---
 
-## Build from source
+## Где хранятся данные
 
-Needs Rust (stable) on Windows.
+| Что | Где |
+|---|---|
+| Настройки, профили, история, метаданные снимков, ключ ИИ (DPAPI) | `%APPDATA%\io.github.bigbyon.enipoe2companion\state.json` |
+| Пользовательские билды | `%APPDATA%\io.github.bigbyon.enipoe2companion\builds\*.json` |
+| Скриншоты | `Документы\Pictures\Eni-PoE2-Companion` (меняется в настройках) или `%USERPROFILE%\Pictures\Eni-PoE2-Companion` |
+| Экспорт истории | `Документы\Eni-PoE2-Companion\history-*.json` |
+| Повреждённый `state.json` | рядом как `state.corrupt-<дата>.json` (не удаляется) |
 
+Сетевых запросов нет: обновления маршрута и билдов выходят вместе с новой версией приложения.
+
+---
+
+## Безопасность
+
+- Нет телеметрии, аналитики, автоматических обновлений и загрузки кода. Сеть используется только для явного запроса к ИИ (DeepSeek/OpenAI) по кнопке.
+- Нет чтения памяти игры, внедрения в процесс и автоматизации действий персонажа.
+- Приложение читает только текстовый журнал, который игра пишет сама.
+- В `capabilities` разрешён только `core:default`; всё остальное — явные команды Rust.
+- Внешние ссылки открываются только на доверенные https‑хосты из белого списка.
+- Ключ API хранится зашифрованным через Windows DPAPI, не в открытом JSON и не в исходниках; в запросах он присутствует только в заголовке `Authorization`.
+- Полный аудит исходного проекта и изменений — [docs/SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md).
+
+---
+
+## Ограничения версии 0.1.0
+
+Полный список — [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md). Кратко:
+
+- ИИ требует свой API-ключ и работает только по кнопке; DeepSeek не читает изображения (нужна vision-модель OpenAI).
+- Русские названия всех зон кампании есть в данных; если клиент пишет иначе, неизвестная зона сопоставляется вручную (приложение запоминает).
+- Класс и имя берутся только из строки повышения уровня; иначе — вручную.
+- Эксклюзивный полноэкранный режим игры не поддерживается (как у любого оверлея).
+- Приложение не подписано сертификатом — SmartScreen может предупредить.
+- Установщики собраны и проверены на Windows 11 x64; Windows 10 x64 использует тот же WebView2 и MSVC‑рантайм.
+
+---
+
+## Сборка из исходников
+
+Нужны Rust (stable) и Node.js (для CLI Tauri).
+
+```powershell
+cargo test                                   # юнит-тесты
+cargo run                                    # отладочный запуск
+npx --yes @tauri-apps/cli@2.12.1 build       # установщики в target/release/bundle
 ```
-cargo run              # debug build
-cargo test             # unit tests
-npx @tauri-apps/cli@2.12.1 build   # installers in target/release/bundle/
-```
 
-`ui/` is plain HTML, CSS and JavaScript without a build step. The built-in fallback route is `ui/guide.json`; refresh it with
-`curl -o ui/guide.json https://poe2speedrun.malura.de/overlay/guide.json`.
+Подробности, структура проекта и проверка сборки — [docs/BUILD.md](docs/BUILD.md).
 
-### Releases
+---
 
-GitHub Actions runs the tests and builds both installers on every push (download them from the run's artifacts). A tag `vX.Y.Z` also publishes a release with both files; the tag has to match `version` in `tauri.conf.json`.
+## Тесты
 
-## Thanks
+- `cargo test` — 52 юнит‑теста: разбор журналов (включая русский клиент и UTF‑16LE), локации и их русские названия, маршрут, награды, усечение и подмена файла, повреждённый `state.json`, валидация билдов, PNG/миниатюры/SHA‑256, DPAPI, безопасность ссылок, сборка запросов ИИ и разбор ответов.
+- `tools/smoke.mjs` — 43 сквозные проверки через WebView2 DevTools: все разделы интерфейса, русский/английский, чтение реального журнала, скриншот, оверлей во всех режимах, сохранение состояния.
 
-The approach follows existing open-source tools: [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2) for attaching to the game window, [ExileXP](https://github.com/andreins/ExileXP) and [Exile UI](https://github.com/Lailloken/Exile-UI) for reading zones from `Client.txt`.
+---
 
-## License
+## Благодарности
 
-[MIT](LICENSE)
+- [poe2overlay](https://github.com/maluramichael/poe2overlay) — основа (MIT).
+- Маршрут кампании: открытый маршрут [poe2speedrun](https://poe2speedrun.malura.de/), факты сверены, формулировки собственные.
+- Билд: [Fubgun — Lightning Arrow Deadeye](https://mobalytics.gg/poe-2/builds/lightning-arrow-farmer-fubgun) и [leveling](https://mobalytics.gg/poe-2/builds/fubgun-deadeye-leveling) (Mobalytics); в приложении только краткая сводка и ссылки.
+- [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2), [ExileXP](https://github.com/andreins/ExileXP), [Exile UI](https://github.com/Lailloken/Exile-UI) — подходы к работе с окном игры и журналом.
+
+## Лицензия
+
+[MIT](LICENSE) — Copyright © 2026 Michael Malura, © 2026 BigbyOn.

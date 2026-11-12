@@ -1,3 +1,28 @@
+# build output
 /target
-/gen
 /target-bundle
+/gen
+
+# local test scaffolding (synthetic logs, dumps, probes)
+/_smoke
+/_reallog
+/_upstream
+/_work
+*.log
+app-err.log
+app-out.log
+_probe*.mjs
+
+# editor / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+*.swp
+
+# locally built installers (attached to Releases, not committed)
+/dist
+
+# python
+__pycache__/
+*.pyc
