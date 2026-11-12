@@ -1,0 +1,54 @@
+:root{
+  --panel:rgba(12,11,9,.85);--band:rgba(26,23,18,.9);--line:#2b261e;--rule-2:#3a3226;
+  --ink:#e2dbcc;--ink-2:#a79e8c;--ink-3:#7a7162;
+  --sand:#a38d6d;--gold:#dfcf99;--white:#f4efe4;--mod:#9696f7;--dest:#d9b77a;--town:#8e9ad2;--trial:#cf7f42;--bad:#e8685a;
+  --serif:"Palatino Linotype","Book Antiqua",Georgia,serif;
+  --num:"Segoe UI",system-ui,sans-serif;
+}
+html,body{margin:0;height:100%;background:transparent;overflow:hidden;user-select:none}
+body{color:var(--ink);font:15px/1.4 var(--serif);-webkit-font-smoothing:antialiased}
+
+#panel{position:absolute;left:0;top:0;box-sizing:border-box;width:380px;background:var(--panel);border:1px solid var(--rule-2);border-radius:3px}
+#bar{display:flex;align-items:center;gap:8px;padding:5px 6px 5px 12px;border-bottom:1px solid var(--line);cursor:move}
+#act{flex:1;font-variant:small-caps;letter-spacing:.04em;color:var(--sand)}
+#levels{font:12px/1 var(--num);font-variant-numeric:tabular-nums;color:var(--ink-3)}
+#levels.warn{color:var(--bad)}
+#bar button{width:24px;height:22px;padding:0;border:1px solid var(--rule-2);border-radius:2px;background:transparent;color:var(--ink-2);font-size:10px;cursor:pointer}
+#bar button:hover{color:var(--gold);border-color:var(--sand)}
+
+#current{padding:9px 12px 10px}
+.go{margin:-9px -12px 8px;padding:5px 12px;background:rgba(223,207,153,.1);border-bottom:1px solid var(--line);font-size:14px;color:var(--ink-2)}
+.dest{color:var(--dest);font-variant:small-caps;letter-spacing:.03em;font-weight:600}
+.then{font-size:13px;color:var(--ink-3)}
+.mini .then{margin-left:10px}
+.go .here{float:right;font-size:12px;color:var(--ink-3)}
+.zone{font-variant:small-caps;letter-spacing:.04em;font-size:13px;color:var(--sand)}
+.zone .lvl{font:11px var(--num);color:var(--ink-3);margin-left:6px}
+.town .zone{color:var(--town)}
+.ascend .zone{color:var(--trial)}
+.goal{font-size:17px;margin-top:1px}
+.task{color:var(--white)}
+.reward,.reward b{color:var(--mod)}
+.hint{color:var(--ink-2);margin-top:3px}
+.notes{margin:6px 0 0;padding:0 0 0 16px;color:var(--ink-2);font-size:14px}
+.notes li{margin-top:2px}
+.notes li::marker{color:var(--ink-3)}
+b{color:var(--ink);font-weight:600}
+.task b{color:var(--gold)}
+.optional{font:11px var(--num);color:var(--ink-3);margin-left:6px}
+
+#upcoming{list-style:none;margin:0;padding:6px 12px 8px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3)}
+#upcoming li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#upcoming .z{color:var(--sand);opacity:.7;margin-right:6px;font-variant:small-caps}
+#upcoming b{color:inherit;font-weight:400}
+
+#hkerr,#nolog{margin:0;padding:6px 12px 8px;border-top:1px solid var(--line);font-size:12px;color:var(--bad)}
+
+/* mini mode: one line, task (or where to go + task) */
+#panel.mini{width:max-content;max-width:640px;cursor:move}
+.mini #bar,.mini #upcoming,.mini #nolog,.mini #hkerr{display:none}
+.mini #current{padding:4px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.mini .goal{display:inline;font-size:14px}
+.mini .go{display:inline;margin:0;padding:0;background:none;border:0}
+/* see-through background: keep text readable over the game */
+#panel.glass{text-shadow:0 0 3px #000,0 0 2px #000,0 1px 1px #000}

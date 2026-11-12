@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>PoE2 Overlay Menü</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="menu.css">
+</head>
+<body>
+<div id="box">
+  <header>
+    <h1 id="title"></h1>
+    <button id="x" title="Esc">&#10005;</button>
+  </header>
+
+  <form id="settings" hidden>
+    <fieldset>
+      <legend data-de="Sprache" data-en="Language"></legend>
+      <label><input type="radio" name="lang" value="de"> Deutsch</label>
+      <label><input type="radio" name="lang" value="en"> English</label>
+    </fieldset>
+
+    <fieldset>
+      <legend data-de="Route" data-en="Route"></legend>
+      <label><input type="radio" name="route" value="all"> <span data-de="Alles" data-en="Everything"></span></label>
+      <label><input type="radio" name="route" value="buffs"> <span data-de="Pflicht + Buffs" data-en="Required + buffs"></span></label>
+      <label><input type="radio" name="route" value="must"> <span data-de="Nur Pflicht" data-en="Required only"></span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend data-de="Darstellung" data-en="Display"></legend>
+      <p><label><input type="checkbox" id="guide_on"> <span data-de="Kampagnen-Guide anzeigen" data-en="Show the campaign guide"></span></label></p>
+      <div class="sliders">
+        <span data-de="Schrift normal" data-en="Text size, full"></span><input type="range" id="full_size" min="50" max="200" step="5"><output for="full_size"></output>
+        <span data-de="Schrift Mini" data-en="Text size, mini"></span><input type="range" id="mini_size" min="50" max="200" step="5"><output for="mini_size"></output>
+        <span data-de="Hintergrund-Deckkraft" data-en="Background opacity"></span><input type="range" id="opacity" min="0" max="100" step="5"><output for="opacity"></output>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend data-de="Hotkeys" data-en="Hotkeys"></legend>
+      <p class="help" data-de="Feld anklicken, Tasten drücken. Entf leert, Esc bricht ab." data-en="Click a field, press the keys. Delete clears, Esc cancels."></p>
+      <div class="hotkeys">
+        <span data-de="Nächster Schritt" data-en="Next step"></span><button type="button" class="hk" data-k="next"></button>
+        <span data-de="Vorheriger Schritt" data-en="Previous step"></span><button type="button" class="hk" data-k="prev"></button>
+        <span data-de="Mini-Modus" data-en="Mini mode"></span><button type="button" class="hk" data-k="mini"></button>
+        <span data-de="Guide an/aus" data-en="Guide on/off"></span><button type="button" class="hk" data-k="hide"></button>
+        <span data-de="Einstellungen" data-en="Settings"></span><button type="button" class="hk" data-k="settings"></button>
+        <span data-de="Regex-Liste" data-en="Regex list"></span><button type="button" class="hk" data-k="regex"></button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend data-de="Regexe" data-en="Regexes"></legend>
+      <p class="help" data-de="Per Hotkey öffnen, anklicken: der Regex liegt in der Zwischenablage." data-en="Open with the hotkey, click one: the regex is on the clipboard."></p>
+      <div id="rows"></div>
+      <button type="button" id="add" data-de="+ Regex" data-en="+ Regex"></button>
+    </fieldset>
+
+    <fieldset>
+      <legend data-de="Guide" data-en="Guide"></legend>
+      <p id="guideinfo" class="help"></p>
+      <button type="button" id="reload" data-de="Jetzt neu laden" data-en="Reload now"></button>
+      <p id="logpath" class="help"></p>
+    </fieldset>
+
+    <footer>
+      <span id="error"></span>
+      <button type="button" id="cancel" data-de="Abbrechen" data-en="Cancel"></button>
+      <button type="submit" id="save" data-de="Speichern" data-en="Save"></button>
+    </footer>
+  </form>
+
+  <div id="regex" hidden>
+    <div id="picks"></div>
+    <p id="empty" class="help" hidden></p>
+  </div>
+</div>
+<script src="menu.js"></script>
+</body>
+</html>

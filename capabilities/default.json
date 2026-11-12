@@ -1,0 +1,11 @@
+{
+  "identifier": "default",
+  "windows": [
+    "overlay",
+    "menu",
+    "regex"
+  ],
+  "permissions": [
+    "core:default"
+  ]
+}

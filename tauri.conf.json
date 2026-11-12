@@ -1,0 +1,80 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PoE2 Overlay",
+  "version": "0.1.0",
+  "identifier": "de.malura.poe2overlay",
+  "build": {
+    "frontendDist": "ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "overlay",
+        "title": "PoE2 Overlay",
+        "width": 380,
+        "height": 200,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "resizable": false,
+        "focus": false,
+        "focusable": false,
+        "visible": false,
+        "create": false
+      },
+      {
+        "label": "menu",
+        "title": "PoE2 Overlay Menü",
+        "url": "menu.html",
+        "width": 560,
+        "height": 640,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "resizable": false,
+        "visible": false,
+        "create": false
+      },
+      {
+        "label": "regex",
+        "title": "PoE2 Overlay Regex",
+        "url": "menu.html",
+        "width": 460,
+        "height": 340,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "resizable": false,
+        "focus": false,
+        "focusable": false,
+        "visible": false,
+        "create": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis",
+      "msi"
+    ],
+    "icon": [
+      "icons/icon.ico"
+    ],
+    "publisher": "Michael Malura",
+    "shortDescription": "PoE2 campaign guide overlay",
+    "longDescription": "Open-source in-game overlay for Path of Exile 2 with a campaign guide that follows your zone.",
+    "copyright": "MIT License",
+    "category": "Game"
+  }
+}
