@@ -1,4 +1,4 @@
-﻿//! Finds the game's log file: next to the running game's exe, in a Steam
+//! Finds the game's log file: next to the running game's exe, in a Steam
 //! library, in the standalone install, or wherever the user points us.
 
 use std::path::{Path, PathBuf};

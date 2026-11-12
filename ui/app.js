@@ -26,6 +26,17 @@ const ASCENDANCIES = [
 ];
 const SECTIONS = ["home", "character", "build", "campaign", "history", "shots", "settings"];
 const SHOT_KINDS = ["item", "inventory", "passive", "gems", "other"];
+const REASONING = ["auto", "low", "medium", "high"];
+
+const providerInfo = (id) => (S?.ai_providers || []).find((p) => p.id === id) || null;
+const providerLabel = (id) => providerInfo(id)?.label || id;
+const aiModel = () => S?.saved.ai.model || providerInfo(S?.saved.ai.provider)?.default_model || "";
+const aiReady = () => Boolean(S?.saved.ai.enabled && S?.saved.ai.provider && S.saved.ai.provider !== "disabled" && S.ai_has_key);
+// Same rule as the Rust side: only OpenAI vision ids get the picture.
+function aiVision(provider = S?.saved.ai.provider, model = aiModel()) {
+  const m = String(model || "").toLowerCase();
+  return provider === "openai" && ["gpt-4o", "gpt-4.1", "gpt-5", "o3", "o4", "chatgpt-4o"].some((p) => m.startsWith(p));
+}
 
 // ---------------------------------------------------------------- helpers
 const profile = () => S?.saved.profiles.find((p) => p.id === S.saved.active) || S?.saved.profiles[0] || null;
@@ -77,7 +88,8 @@ function progressInfo() {
 }
 
 function stepZoneName(step) {
-  return step?.zones?.[0] || "";
+  if (!step) return "";
+  return l10n(step.zone_label) || step?.zones?.[0] || "";
 }
 
 function sameZone(step, zone) {
@@ -237,7 +249,12 @@ function renderHome() {
         }
         <div class="hr"></div>
         <h3>${esc(t("home.ai"))}</h3>
-        <div class="small">${esc(t("home.ai_off"))}</div>
+        <div class="small">${
+          aiReady()
+            ? esc(t("ai.enabled_line", { provider: providerLabel(S.saved.ai.provider), model: aiModel() })) +
+              ` · ${esc(aiVision() ? t("ai.vision_yes") : t("ai.vision_no"))}`
+            : esc(t("home.ai_off"))
+        }</div>
       </div>
     </div>`;
   if (!historyLoaded) ensureHistory().then(() => { if (section === "home") renderSection(); });
@@ -488,7 +505,7 @@ function renderCampaign() {
 
 // ---------------------------------------------------------------- history
 function renderHistory() {
-  const kinds = ["zone", "level", "reward", "task", "manual", "shot"];
+  const kinds = ["zone", "level", "reward", "task", "manual", "shot", "ai"];
   const p = profile();
   $("#content").innerHTML = `
     <div class="card tight">
@@ -646,14 +663,49 @@ async function openShot(id) {
       <dt>${esc(t("shot.hash"))}</dt><dd class="mono" style="word-break:break-all;font-size:11px">${esc(s.sha256)}</dd>
       <dt>${esc(t("hist.zone"))}</dt><dd>${esc(s.zone || "—")} ${s.level ? "· " + s.level : ""}</dd>
     </dl>
+    <div class="field" style="margin-top:10px"><label>${esc(t("ai.question"))}</label>
+      <input type="text" id="ms-question" maxlength="1000" placeholder="${esc(t("ai.question"))}"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" data-act="ai-run" data-task="analyse_item">${esc(t("ai.analyze_item"))}</button>
+      <button class="btn" data-act="ai-run" data-task="next_upgrades">${esc(t("ai.next_upgrades"))}</button>
+      <button class="btn" data-act="ai-run" data-task="compare_to_build">${esc(t("ai.compare_build"))}</button>
+      <button class="btn ghost" data-act="shot-ai">${esc(t("shot.ai_prepare"))}</button>
+    </div>
+    <div id="ms-ai-answer" class="ai-answer" hidden></div>
     <div class="row" style="margin-top:12px">
       <button class="btn primary" data-act="shot-save">${esc(t("shot.save"))}</button>
-      <button class="btn" data-act="shot-ai">${esc(t("shot.ai_prepare"))}</button>
       <button class="btn danger" data-act="shot-delete">${esc(t("shot.delete"))}</button>
       <span class="spacer"></span>
       <button class="btn ghost" data-act="modal-close">${esc(t("common.close"))}</button>
     </div>`;
   $("#modal").hidden = false;
+}
+
+async function runAi(task) {
+  if (!activeShot) return;
+  const box = $("#ms-ai-answer");
+  if (!box) return;
+  box.hidden = false;
+  box.innerHTML = `<div class="small">${esc(t("ai.waiting"))}</div>`;
+  try {
+    const res = await invoke("ai_analyze", {
+      ids: [activeShot.id],
+      task,
+      question: ($("#ms-question")?.value || "").trim(),
+    });
+    const meta = [
+      `${esc(t("ai.usage"))}: ${res.prompt_tokens} → ${res.completion_tokens}`,
+      res.image_sent ? t("ai.image_sent") : t("ai.image_not_sent"),
+      `${res.provider} · ${esc(res.model)}`,
+    ].join(" · ");
+    box.innerHTML = `<h3>${esc(t("ai.answer"))}</h3>
+      <div class="ai-text">${esc(res.text).replaceAll("\n", "<br>")}</div>
+      ${res.reasoning ? `<details style="margin-top:8px"><summary class="small">${esc(t("ai.reasoning"))}</summary><div class="small prewrap" style="margin-top:6px">${esc(res.reasoning)}</div></details>` : ""}
+      <div class="small" style="margin-top:8px">${meta}</div>
+      <div class="small">${esc(t("ai.manifest", { path: res.manifest }))}</div>`;
+  } catch (err) {
+    box.innerHTML = `<div class="small bad-text">${esc(t("ai.failed"))}: ${esc(String(err))}</div>`;
+  }
 }
 
 async function prepareAi() {
@@ -778,15 +830,22 @@ function renderSettings() {
         <div class="field"><label>${esc(t("set.ai_provider"))}</label>
           <select id="st-ai-provider">${providerOptions}</select></div>
         <div class="field"><label>${esc(t("set.ai_model"))}</label>
-          <input type="text" id="st-ai-model" value="${esc(S.saved.ai.model || "")}" placeholder="deepseek-chat"></div>
+          <input type="text" id="st-ai-model" list="ai-models" value="${esc(S.saved.ai.model || "")}" placeholder="${esc(providerInfo(S.saved.ai.provider)?.default_model || "deepseek-chat")}">
+          <datalist id="ai-models"></datalist>
+          <span class="small">${esc(t("set.ai_model_hint"))}</span></div>
+        <div class="field"><label>${esc(t("set.ai_reasoning"))}</label>
+          <select id="st-ai-reasoning">${REASONING.map((r) => `<option value="${r}" ${(S.saved.ai.reasoning || "auto") === r ? "selected" : ""}>${esc(t("set.ai_reasoning_" + r))}</option>`).join("")}</select></div>
         <div class="field"><label>${esc(t("set.ai_key"))}</label>
           <input type="password" id="st-ai-key" placeholder="${esc(S.ai_has_key ? t("set.ai_key_saved") : t("set.ai_key_none"))}"></div>
       </div>
       <div class="row" style="margin-top:8px">
         <label class="check"><input type="checkbox" id="st-ai-enabled" ${S.saved.ai.enabled ? "checked" : ""}> ${esc(t("set.ai_enable"))}</label>
+        <button class="btn sm" data-act="ai-test">${esc(t("set.ai_test"))}</button>
         <button class="btn sm danger" data-act="ai-clear-key">${esc(t("set.ai_key_clear"))}</button>
         <span class="small ${S.ai_has_key ? "good-text" : ""}">${esc(S.ai_has_key ? t("set.ai_key_saved") : t("set.ai_key_none"))}</span>
+        <span class="small" id="ai-test-result"></span>
       </div>
+      <div class="small" style="margin-top:6px" id="ai-vision-hint"></div>
       <div class="row" style="margin-top:6px">
         ${(S.ai_providers || []).map((p) => `<button class="link" data-act="link" data-url="${esc(p.key_url)}">${esc(p.label)} API</button>`).join("")}
       </div>
@@ -842,6 +901,27 @@ function renderSettings() {
       btn.textContent = t("set.hotkey_placeholder");
     })
   );
+  const syncAi = () => {
+    const provider = $("#st-ai-provider")?.value || "disabled";
+    const info = providerInfo(provider);
+    const list = $("#ai-models");
+    if (list) list.innerHTML = (info?.models || []).map((m) => `<option value="${esc(m)}">`).join("");
+    const hint = $("#ai-vision-hint");
+    if (hint) {
+      if (!info) hint.textContent = t("set.ai_off");
+      else hint.textContent = aiVision(provider, $("#st-ai-model")?.value || info.default_model) ? t("set.ai_vision") : t("set.ai_no_vision");
+    }
+  };
+  $("#st-ai-provider")?.addEventListener("change", () => {
+    const info = providerInfo($("#st-ai-provider").value);
+    const model = $("#st-ai-model");
+    if (model) model.placeholder = info?.default_model || "";
+    syncAi();
+  });
+  $("#st-ai-model")?.addEventListener("input", syncAi);
+  $("#st-ai-enabled")?.addEventListener("change", syncAi);
+  syncAi();
+
   $$("#alias-rows .arow button").forEach((btn) =>
     btn.addEventListener("click", () => {
       btn.closest(".arow").remove();
@@ -894,7 +974,25 @@ function collectHotkeys() {
   return out;
 }
 
-async function saveSettings() {
+function baseSettings() {
+  return {
+    lang: S.saved.lang,
+    route: S.saved.route,
+    hotkeys: S.saved.hotkeys,
+    log: S.saved.log,
+    overlay: S.saved.overlay,
+    shots_dir: S.saved.shots_dir,
+    zone_aliases: S.saved.zone_aliases,
+    ai_provider: S.saved.ai.provider,
+    ai_model: S.saved.ai.model,
+    ai_reasoning: S.saved.ai.reasoning || "auto",
+    ai_enabled: S.saved.ai.enabled,
+    ai_key: "",
+    ai_clear_key: false,
+  };
+}
+
+function collectSettings({ keepKey = false } = {}) {
   const overlay = {
     mode: $("#st-mode")?.value || S.saved.overlay.mode,
     x: S.saved.overlay.x,
@@ -907,7 +1005,7 @@ async function saveSettings() {
   const aliases = $$("#alias-rows .arow")
     .map((row) => ({ alias: row.querySelector(".alias").value.trim(), zone: row.querySelector(".zone").value.trim() }))
     .filter((a) => a.alias && a.zone);
-  const settings = {
+  return {
     lang: $('input[name="lang"]:checked')?.value || "ru",
     route: $('input[name="route"]:checked')?.value || "all",
     hotkeys: collectHotkeys(),
@@ -917,10 +1015,15 @@ async function saveSettings() {
     zone_aliases: aliases,
     ai_provider: $("#st-ai-provider")?.value || "disabled",
     ai_model: $("#st-ai-model")?.value.trim() || "",
+    ai_reasoning: $("#st-ai-reasoning")?.value || "auto",
     ai_enabled: $("#st-ai-enabled")?.checked ?? false,
-    ai_key: $("#st-ai-key")?.value || "",
+    ai_key: keepKey ? "" : $("#st-ai-key")?.value || "",
     ai_clear_key: false,
   };
+}
+
+async function saveSettings() {
+  const settings = collectSettings();
   try {
     await invoke("save_settings", { settings });
     const key = $("#st-ai-key");
@@ -948,20 +1051,7 @@ async function act(name, el) {
       break;
     case "route-toggle":
       await invoke("save_settings", {
-        settings: {
-          lang: S.saved.lang,
-          route: S.saved.route === "must" ? "all" : "must",
-          hotkeys: S.saved.hotkeys,
-          log: S.saved.log,
-          overlay: S.saved.overlay,
-          shots_dir: S.saved.shots_dir,
-          zone_aliases: S.saved.zone_aliases,
-          ai_provider: S.saved.ai.provider,
-          ai_model: S.saved.ai.model,
-          ai_enabled: S.saved.ai.enabled,
-          ai_key: "",
-          ai_clear_key: false,
-        },
+        settings: { ...baseSettings(), route: S.saved.route === "must" ? "all" : "must" },
       });
       break;
     case "manual-zone": {
@@ -1036,6 +1126,22 @@ async function act(name, el) {
     case "shot-ai":
       await prepareAi();
       break;
+    case "ai-run":
+      await runAi(el.dataset.task || "analyse_item");
+      break;
+    case "ai-test": {
+      const out = $("#ai-test-result");
+      if (out) out.textContent = t("set.ai_testing");
+      try {
+        await invoke("save_settings", { settings: collectSettings({ keepKey: true }) });
+        const text = await invoke("ai_test");
+        if (out) out.textContent = `${t("common.ok")}: ${text}`;
+      } catch (err) {
+        if (out) out.textContent = `${t("ai.failed")}: ${err}`;
+        toast(String(err), true);
+      }
+      break;
+    }
     case "history-export":
       try {
         const path = await invoke("history_export");
@@ -1081,22 +1187,7 @@ async function act(name, el) {
       break;
     case "ai-clear-key":
       try {
-        await invoke("save_settings", {
-          settings: {
-            lang: S.saved.lang,
-            route: S.saved.route,
-            hotkeys: S.saved.hotkeys,
-            log: S.saved.log,
-            overlay: S.saved.overlay,
-            shots_dir: S.saved.shots_dir,
-            zone_aliases: S.saved.zone_aliases,
-            ai_provider: S.saved.ai.provider,
-            ai_model: S.saved.ai.model,
-            ai_enabled: S.saved.ai.enabled,
-            ai_key: "",
-            ai_clear_key: true,
-          },
-        });
+        await invoke("save_settings", { settings: { ...baseSettings(), ai_clear_key: true } });
         toast(t("common.ok"));
       } catch (err) {
         toast(String(err), true);

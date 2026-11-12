@@ -81,12 +81,18 @@
       "names": [
         "The Riverbank"
       ],
+      "ru": [
+        "Берег реки"
+      ],
       "act": 1
     },
     {
       "id": "zclearfell-encampment",
       "names": [
         "Clearfell Encampment"
+      ],
+      "ru": [
+        "Лагерь Клирфелл"
       ],
       "act": 1
     },
@@ -95,12 +101,18 @@
       "names": [
         "Clearfell"
       ],
+      "ru": [
+        "Клирфелл"
+      ],
       "act": 1
     },
     {
       "id": "zthe-grelwood",
       "names": [
         "The Grelwood"
+      ],
+      "ru": [
+        "Грелвуд"
       ],
       "act": 1
     },
@@ -109,12 +121,18 @@
       "names": [
         "The Red Vale"
       ],
+      "ru": [
+        "Красная Долина"
+      ],
       "act": 1
     },
     {
       "id": "zthe-grim-tangle",
       "names": [
         "The Grim Tangle"
+      ],
+      "ru": [
+        "Мрачные заросли"
       ],
       "act": 1
     },
@@ -123,12 +141,18 @@
       "names": [
         "Cemetery of the Eternals"
       ],
+      "ru": [
+        "Кладбище Вечных"
+      ],
       "act": 1
     },
     {
       "id": "zhunting-grounds",
       "names": [
         "Hunting Grounds"
+      ],
+      "ru": [
+        "Охотничьи угодья"
       ],
       "act": 1
     },
@@ -137,12 +161,18 @@
       "names": [
         "Freythorn"
       ],
+      "ru": [
+        "Фрейторн"
+      ],
       "act": 1
     },
     {
       "id": "zogham-farmlands",
       "names": [
         "Ogham Farmlands"
+      ],
+      "ru": [
+        "Фермы Огама"
       ],
       "act": 1
     },
@@ -151,12 +181,18 @@
       "names": [
         "Ogham Village"
       ],
+      "ru": [
+        "Деревня Огама"
+      ],
       "act": 1
     },
     {
       "id": "zthe-manor-ramparts",
       "names": [
         "The Manor Ramparts"
+      ],
+      "ru": [
+        "Стены поместья"
       ],
       "act": 1
     },
@@ -165,12 +201,18 @@
       "names": [
         "Ogham Manor"
       ],
+      "ru": [
+        "Поместье Огама"
+      ],
       "act": 1
     },
     {
       "id": "zvastiri-outskirts",
       "names": [
         "Vastiri Outskirts"
+      ],
+      "ru": [
+        "Окраины Вастири"
       ],
       "act": 2
     },
@@ -179,12 +221,18 @@
       "names": [
         "The Ardura Caravan"
       ],
+      "ru": [
+        "Караван Ардура"
+      ],
       "act": 2
     },
     {
       "id": "zmawdun-quarry",
       "names": [
         "Mawdun Quarry"
+      ],
+      "ru": [
+        "Каменоломня Мавдун"
       ],
       "act": 2
     },
@@ -193,12 +241,18 @@
       "names": [
         "Mawdun Mine"
       ],
+      "ru": [
+        "Шахта Мавдун"
+      ],
       "act": 2
     },
     {
       "id": "ztraitor-s-passage",
       "names": [
         "Traitor's Passage"
+      ],
+      "ru": [
+        "Проход Предателя"
       ],
       "act": 2
     },
@@ -207,12 +261,18 @@
       "names": [
         "The Halani Gates"
       ],
+      "ru": [
+        "Врата Халани"
+      ],
       "act": 2
     },
     {
       "id": "ztrial-of-the-sekhemas",
       "names": [
         "Trial of the Sekhemas"
+      ],
+      "ru": [
+        "Испытание Сехем"
       ],
       "act": 2
     },
@@ -221,12 +281,18 @@
       "names": [
         "Mastodon Badlands"
       ],
+      "ru": [
+        "Мастодонтовые пустоши"
+      ],
       "act": 2
     },
     {
       "id": "zthe-bone-pits",
       "names": [
         "The Bone Pits"
+      ],
+      "ru": [
+        "Костяные ямы"
       ],
       "act": 2
     },
@@ -235,12 +301,18 @@
       "names": [
         "Keth"
       ],
+      "ru": [
+        "Кет"
+      ],
       "act": 2
     },
     {
       "id": "zthe-lost-city",
       "names": [
         "The Lost City"
+      ],
+      "ru": [
+        "Затерянный город"
       ],
       "act": 2
     },
@@ -249,12 +321,18 @@
       "names": [
         "Buried Shrines"
       ],
+      "ru": [
+        "Погребённые святилища"
+      ],
       "act": 2
     },
     {
       "id": "zvalley-of-the-titans",
       "names": [
         "Valley of the Titans"
+      ],
+      "ru": [
+        "Долина Титанов"
       ],
       "act": 2
     },
@@ -263,12 +341,18 @@
       "names": [
         "The Titan Grotto"
       ],
+      "ru": [
+        "Грот Титана"
+      ],
       "act": 2
     },
     {
       "id": "zdeshar",
       "names": [
         "Deshar"
+      ],
+      "ru": [
+        "Дешар"
       ],
       "act": 2
     },
@@ -277,12 +361,18 @@
       "names": [
         "Path of Mourning"
       ],
+      "ru": [
+        "Тропа скорби"
+      ],
       "act": 2
     },
     {
       "id": "zthe-spires-of-deshar",
       "names": [
         "The Spires of Deshar"
+      ],
+      "ru": [
+        "Шпили Дешара"
       ],
       "act": 2
     },
@@ -291,12 +381,18 @@
       "names": [
         "The Dreadnought"
       ],
+      "ru": [
+        "Дредноут"
+      ],
       "act": 2
     },
     {
       "id": "zsandswept-marsh",
       "names": [
         "Sandswept Marsh"
+      ],
+      "ru": [
+        "Болото песков"
       ],
       "act": 3
     },
@@ -305,12 +401,18 @@
       "names": [
         "Ziggurat Encampment"
       ],
+      "ru": [
+        "Лагерь у зиккурата"
+      ],
       "act": 3
     },
     {
       "id": "zjungle-ruins",
       "names": [
         "Jungle Ruins"
+      ],
+      "ru": [
+        "Руины джунглей"
       ],
       "act": 3
     },
@@ -319,12 +421,18 @@
       "names": [
         "Venom Crypts"
       ],
+      "ru": [
+        "Склепы яда"
+      ],
       "act": 3
     },
     {
       "id": "zinfested-barrens",
       "names": [
         "Infested Barrens"
+      ],
+      "ru": [
+        "Заражённые пустоши"
       ],
       "act": 3
     },
@@ -333,12 +441,18 @@
       "names": [
         "Chimeral Wetlands"
       ],
+      "ru": [
+        "Химерные топи"
+      ],
       "act": 3
     },
     {
       "id": "zjiquani-s-machinarium",
       "names": [
         "Jiquani's Machinarium"
+      ],
+      "ru": [
+        "Машинариум Джикуани"
       ],
       "act": 3
     },
@@ -347,12 +461,18 @@
       "names": [
         "Jiquani's Sanctum"
       ],
+      "ru": [
+        "Святилище Джикуани"
+      ],
       "act": 3
     },
     {
       "id": "zmatlan-waterways",
       "names": [
         "Matlan Waterways"
+      ],
+      "ru": [
+        "Водные пути Матлана"
       ],
       "act": 3
     },
@@ -361,12 +481,18 @@
       "names": [
         "Azak Bog"
       ],
+      "ru": [
+        "Болото Азак"
+      ],
       "act": 3
     },
     {
       "id": "ztrial-of-chaos",
       "names": [
         "Trial of Chaos"
+      ],
+      "ru": [
+        "Испытание Хаоса"
       ],
       "act": 3
     },
@@ -375,12 +501,18 @@
       "names": [
         "Drowned City"
       ],
+      "ru": [
+        "Затонувший город"
+      ],
       "act": 3
     },
     {
       "id": "zapex-of-filth",
       "names": [
         "Apex of Filth"
+      ],
+      "ru": [
+        "Обитель скверны"
       ],
       "act": 3
     },
@@ -389,12 +521,18 @@
       "names": [
         "Molten Vault"
       ],
+      "ru": [
+        "Расплавленное хранилище"
+      ],
       "act": 3
     },
     {
       "id": "ztemple-of-kopec",
       "names": [
         "Temple of Kopec"
+      ],
+      "ru": [
+        "Храм Копека"
       ],
       "act": 3
     },
@@ -403,12 +541,18 @@
       "names": [
         "Utzaal"
       ],
+      "ru": [
+        "Утзаал"
+      ],
       "act": 3
     },
     {
       "id": "zaggorat",
       "names": [
         "Aggorat"
+      ],
+      "ru": [
+        "Аггорат"
       ],
       "act": 3
     },
@@ -417,12 +561,18 @@
       "names": [
         "Black Chambers"
       ],
+      "ru": [
+        "Чёрные палаты"
+      ],
       "act": 3
     },
     {
       "id": "zkingsmarch",
       "names": [
         "Kingsmarch"
+      ],
+      "ru": [
+        "Кингсмарш"
       ],
       "act": 4
     },
@@ -431,12 +581,18 @@
       "names": [
         "Isle of Kin"
       ],
+      "ru": [
+        "Остров родни"
+      ],
       "act": 4
     },
     {
       "id": "zvolcanic-warrens",
       "names": [
         "Volcanic Warrens"
+      ],
+      "ru": [
+        "Вулканические норы"
       ],
       "act": 4
     },
@@ -445,12 +601,18 @@
       "names": [
         "Kedge Bay"
       ],
+      "ru": [
+        "Бухта Кедж"
+      ],
       "act": 4
     },
     {
       "id": "zjourney-s-end",
       "names": [
         "Journey's End"
+      ],
+      "ru": [
+        "Конец пути"
       ],
       "act": 4
     },
@@ -459,12 +621,18 @@
       "names": [
         "Abandoned Prison"
       ],
+      "ru": [
+        "Заброшенная тюрьма"
+      ],
       "act": 4
     },
     {
       "id": "zsolitary-confinement",
       "names": [
         "Solitary Confinement"
+      ],
+      "ru": [
+        "Одиночная камера"
       ],
       "act": 4
     },
@@ -473,12 +641,18 @@
       "names": [
         "Shrike Island"
       ],
+      "ru": [
+        "Остров сорокопутов"
+      ],
       "act": 4
     },
     {
       "id": "zwhakapanu-island",
       "names": [
         "Whakapanu Island"
+      ],
+      "ru": [
+        "Остров Вакапану"
       ],
       "act": 4
     },
@@ -487,12 +661,18 @@
       "names": [
         "Singing Caverns"
       ],
+      "ru": [
+        "Поющие пещеры"
+      ],
       "act": 4
     },
     {
       "id": "zeye-of-hinekora",
       "names": [
         "Eye of Hinekora"
+      ],
+      "ru": [
+        "Око Хинекоры"
       ],
       "act": 4
     },
@@ -501,12 +681,18 @@
       "names": [
         "Halls of the Dead"
       ],
+      "ru": [
+        "Залы мёртвых"
+      ],
       "act": 4
     },
     {
       "id": "ztrial-of-the-ancestors",
       "names": [
         "Trial of the Ancestors"
+      ],
+      "ru": [
+        "Испытание предков"
       ],
       "act": 4
     },
@@ -515,12 +701,18 @@
       "names": [
         "Arastas"
       ],
+      "ru": [
+        "Арастас"
+      ],
       "act": 4
     },
     {
       "id": "zthe-excavation",
       "names": [
         "The Excavation"
+      ],
+      "ru": [
+        "Раскопки"
       ],
       "act": 4
     },
@@ -530,12 +722,19 @@
         "Ngakanu",
         "Heart of the Tribe"
       ],
+      "ru": [
+        "Нгакану",
+        "Сердце племени"
+      ],
       "act": 4
     },
     {
       "id": "zthe-khari-bazaar",
       "names": [
         "The Khari Bazaar"
+      ],
+      "ru": [
+        "Базар Кхари"
       ],
       "act": 5
     },
@@ -544,12 +743,18 @@
       "names": [
         "Skullmaw Stairway"
       ],
+      "ru": [
+        "Лестница Черепа"
+      ],
       "act": 5
     },
     {
       "id": "zthe-galai-gates",
       "names": [
         "The Galai Gates"
+      ],
+      "ru": [
+        "Врата Галай"
       ],
       "act": 5
     },
@@ -558,12 +763,18 @@
       "names": [
         "The Khari Crossing"
       ],
+      "ru": [
+        "Переправа Кхари"
+      ],
       "act": 5
     },
     {
       "id": "zpools-of-khatal",
       "names": [
         "Pools of Khatal"
+      ],
+      "ru": [
+        "Пруды Хатала"
       ],
       "act": 5
     },
@@ -573,12 +784,19 @@
         "The Glade",
         "Ashen Forest"
       ],
+      "ru": [
+        "Поляна",
+        "Пепельный лес"
+      ],
       "act": 5
     },
     {
       "id": "zkriar-village",
       "names": [
         "Kriar Village"
+      ],
+      "ru": [
+        "Деревня Криар"
       ],
       "act": 5
     },
@@ -588,12 +806,19 @@
         "Glacial Tarn",
         "Howling Caves"
       ],
+      "ru": [
+        "Ледниковое озеро",
+        "Воющие пещеры"
+      ],
       "act": 5
     },
     {
       "id": "zglacial-tarn",
       "names": [
         "Glacial Tarn"
+      ],
+      "ru": [
+        "Ледниковое озеро"
       ],
       "act": 5
     },
@@ -602,12 +827,18 @@
       "names": [
         "Kriar Peaks"
       ],
+      "ru": [
+        "Пики Криар"
+      ],
       "act": 5
     },
     {
       "id": "zetched-ravine",
       "names": [
         "Etched Ravine"
+      ],
+      "ru": [
+        "Высеченное ущелье"
       ],
       "act": 5
     },
@@ -616,12 +847,18 @@
       "names": [
         "The Cuachic Vault"
       ],
+      "ru": [
+        "Хранилище Куачик"
+      ],
       "act": 5
     },
     {
       "id": "zsel-khari-sanctuary",
       "names": [
         "Sel Khari Sanctuary"
+      ],
+      "ru": [
+        "Святилище Сель-Кхари"
       ],
       "act": 5
     },
@@ -630,12 +867,18 @@
       "names": [
         "Qimah"
       ],
+      "ru": [
+        "Кима"
+      ],
       "act": 5
     },
     {
       "id": "zqimah-reservoir",
       "names": [
         "Qimah Reservoir"
+      ],
+      "ru": [
+        "Водохранилище Кимы"
       ],
       "act": 5
     },
@@ -645,12 +888,19 @@
         "The Refuge",
         "Scorched Farmlands"
       ],
+      "ru": [
+        "Убежище",
+        "Выжженные поля"
+      ],
       "act": 5
     },
     {
       "id": "zstones-of-serle",
       "names": [
         "Stones of Serle"
+      ],
+      "ru": [
+        "Камни Серле"
       ],
       "act": 5
     },
@@ -660,12 +910,19 @@
         "The Blackwood",
         "Holten"
       ],
+      "ru": [
+        "Чёрный лес",
+        "Холтен"
+      ],
       "act": 5
     },
     {
       "id": "zholten",
       "names": [
         "Holten"
+      ],
+      "ru": [
+        "Холтен"
       ],
       "act": 5
     },
@@ -674,12 +931,18 @@
       "names": [
         "Wolvenhold"
       ],
+      "ru": [
+        "Волчья крепость"
+      ],
       "act": 5
     },
     {
       "id": "zholten-estate",
       "names": [
         "Holten Estate"
+      ],
+      "ru": [
+        "Поместье Холтен"
       ],
       "act": 5
     },
@@ -688,12 +951,18 @@
       "names": [
         "The Refuge"
       ],
+      "ru": [
+        "Убежище"
+      ],
       "act": 5
     },
     {
       "id": "zthe-ziggurat-refuge",
       "names": [
         "The Ziggurat Refuge"
+      ],
+      "ru": [
+        "Убежище у зиккурата"
       ],
       "act": 5
     },
@@ -702,6 +971,9 @@
       "names": [
         "Atlas"
       ],
+      "ru": [
+        "Атлас"
+      ],
       "act": 6
     },
     {
@@ -709,6 +981,10 @@
       "names": [
         "Trial of the Sekhemas",
         "Trial of Chaos"
+      ],
+      "ru": [
+        "Испытание Сехем",
+        "Испытание Хаоса"
       ],
       "act": 6
     }
@@ -721,6 +997,13 @@
       "zones": [
         "The Riverbank"
       ],
+      "zones_ru": [
+        "Берег реки"
+      ],
+      "zone_label": {
+        "en": "The Riverbank",
+        "ru": "Берег реки"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -745,6 +1028,13 @@
       "zones": [
         "Clearfell Encampment"
       ],
+      "zones_ru": [
+        "Лагерь Клирфелл"
+      ],
+      "zone_label": {
+        "en": "Clearfell Encampment",
+        "ru": "Лагерь Клирфелл"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -770,6 +1060,13 @@
       "zones": [
         "Clearfell"
       ],
+      "zones_ru": [
+        "Клирфелл"
+      ],
+      "zone_label": {
+        "en": "Clearfell",
+        "ru": "Клирфелл"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -804,6 +1101,13 @@
       "zones": [
         "The Grelwood"
       ],
+      "zones_ru": [
+        "Грелвуд"
+      ],
+      "zone_label": {
+        "en": "The Grelwood",
+        "ru": "Грелвуд"
+      },
       "kind": "quest",
       "optional": false,
       "level": "3-4",
@@ -827,6 +1131,13 @@
       "zones": [
         "The Red Vale"
       ],
+      "zones_ru": [
+        "Красная Долина"
+      ],
+      "zone_label": {
+        "en": "The Red Vale",
+        "ru": "Красная Долина"
+      },
       "kind": "boss",
       "optional": false,
       "level": "5",
@@ -852,6 +1163,13 @@
       "zones": [
         "Clearfell Encampment"
       ],
+      "zones_ru": [
+        "Лагерь Клирфелл"
+      ],
+      "zone_label": {
+        "en": "Clearfell Encampment",
+        "ru": "Лагерь Клирфелл"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -877,6 +1195,13 @@
       "zones": [
         "The Grelwood"
       ],
+      "zones_ru": [
+        "Грелвуд"
+      ],
+      "zone_label": {
+        "en": "The Grelwood",
+        "ru": "Грелвуд"
+      },
       "kind": "quest",
       "optional": false,
       "level": null,
@@ -901,6 +1226,13 @@
       "zones": [
         "The Grim Tangle"
       ],
+      "zones_ru": [
+        "Мрачные заросли"
+      ],
+      "zone_label": {
+        "en": "The Grim Tangle",
+        "ru": "Мрачные заросли"
+      },
       "kind": "quest",
       "optional": false,
       "level": "5-6",
@@ -926,6 +1258,13 @@
       "zones": [
         "Cemetery of the Eternals"
       ],
+      "zones_ru": [
+        "Кладбище Вечных"
+      ],
+      "zone_label": {
+        "en": "Cemetery of the Eternals",
+        "ru": "Кладбище Вечных"
+      },
       "kind": "boss",
       "optional": false,
       "level": "7",
@@ -950,6 +1289,13 @@
       "zones": [
         "Cemetery of the Eternals"
       ],
+      "zones_ru": [
+        "Кладбище Вечных"
+      ],
+      "zone_label": {
+        "en": "Cemetery of the Eternals",
+        "ru": "Кладбище Вечных"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -975,6 +1321,13 @@
       "zones": [
         "Hunting Grounds"
       ],
+      "zones_ru": [
+        "Охотничьи угодья"
+      ],
+      "zone_label": {
+        "en": "Hunting Grounds",
+        "ru": "Охотничьи угодья"
+      },
       "kind": "boss",
       "optional": false,
       "level": "7-8",
@@ -1009,6 +1362,13 @@
       "zones": [
         "Freythorn"
       ],
+      "zones_ru": [
+        "Фрейторн"
+      ],
+      "zone_label": {
+        "en": "Freythorn",
+        "ru": "Фрейторн"
+      },
       "kind": "boss",
       "optional": true,
       "level": "8-9",
@@ -1043,6 +1403,13 @@
       "zones": [
         "Clearfell Encampment"
       ],
+      "zones_ru": [
+        "Лагерь Клирфелл"
+      ],
+      "zone_label": {
+        "en": "Clearfell Encampment",
+        "ru": "Лагерь Клирфелл"
+      },
       "kind": "town",
       "optional": true,
       "level": "10",
@@ -1067,6 +1434,13 @@
       "zones": [
         "Ogham Farmlands"
       ],
+      "zones_ru": [
+        "Фермы Огама"
+      ],
+      "zone_label": {
+        "en": "Ogham Farmlands",
+        "ru": "Фермы Огама"
+      },
       "kind": "quest",
       "optional": false,
       "level": "10",
@@ -1100,6 +1474,13 @@
       "zones": [
         "Ogham Village"
       ],
+      "zones_ru": [
+        "Деревня Огама"
+      ],
+      "zone_label": {
+        "en": "Ogham Village",
+        "ru": "Деревня Огама"
+      },
       "kind": "boss",
       "optional": false,
       "level": "11",
@@ -1124,6 +1505,13 @@
       "zones": [
         "Clearfell Encampment"
       ],
+      "zones_ru": [
+        "Лагерь Клирфелл"
+      ],
+      "zone_label": {
+        "en": "Clearfell Encampment",
+        "ru": "Лагерь Клирфелл"
+      },
       "kind": "town",
       "optional": true,
       "level": null,
@@ -1158,6 +1546,13 @@
       "zones": [
         "The Manor Ramparts"
       ],
+      "zones_ru": [
+        "Стены поместья"
+      ],
+      "zone_label": {
+        "en": "The Manor Ramparts",
+        "ru": "Стены поместья"
+      },
       "kind": "quest",
       "optional": false,
       "level": "12",
@@ -1181,6 +1576,13 @@
       "zones": [
         "Ogham Manor"
       ],
+      "zones_ru": [
+        "Поместье Огама"
+      ],
+      "zone_label": {
+        "en": "Ogham Manor",
+        "ru": "Поместье Огама"
+      },
       "kind": "boss",
       "optional": false,
       "level": "14",
@@ -1206,6 +1608,13 @@
       "zones": [
         "Clearfell Encampment"
       ],
+      "zones_ru": [
+        "Лагерь Клирфелл"
+      ],
+      "zone_label": {
+        "en": "Clearfell Encampment",
+        "ru": "Лагерь Клирфелл"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -1230,6 +1639,13 @@
       "zones": [
         "Vastiri Outskirts"
       ],
+      "zones_ru": [
+        "Окраины Вастири"
+      ],
+      "zone_label": {
+        "en": "Vastiri Outskirts",
+        "ru": "Окраины Вастири"
+      },
       "kind": "boss",
       "optional": false,
       "level": "14",
@@ -1255,6 +1671,13 @@
       "zones": [
         "The Ardura Caravan"
       ],
+      "zones_ru": [
+        "Караван Ардура"
+      ],
+      "zone_label": {
+        "en": "The Ardura Caravan",
+        "ru": "Караван Ардура"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -1280,6 +1703,13 @@
       "zones": [
         "Mawdun Quarry"
       ],
+      "zones_ru": [
+        "Каменоломня Мавдун"
+      ],
+      "zone_label": {
+        "en": "Mawdun Quarry",
+        "ru": "Каменоломня Мавдун"
+      },
       "kind": "quest",
       "optional": false,
       "level": "16",
@@ -1304,6 +1734,13 @@
       "zones": [
         "Mawdun Mine"
       ],
+      "zones_ru": [
+        "Шахта Мавдун"
+      ],
+      "zone_label": {
+        "en": "Mawdun Mine",
+        "ru": "Шахта Мавдун"
+      },
       "kind": "boss",
       "optional": false,
       "level": "16-17",
@@ -1328,6 +1765,13 @@
       "zones": [
         "The Ardura Caravan"
       ],
+      "zones_ru": [
+        "Караван Ардура"
+      ],
+      "zone_label": {
+        "en": "The Ardura Caravan",
+        "ru": "Караван Ардура"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -1352,6 +1796,13 @@
       "zones": [
         "Traitor's Passage"
       ],
+      "zones_ru": [
+        "Проход Предателя"
+      ],
+      "zone_label": {
+        "en": "Traitor's Passage",
+        "ru": "Проход Предателя"
+      },
       "kind": "quest",
       "optional": false,
       "level": "17-18",
@@ -1375,6 +1826,13 @@
       "zones": [
         "The Halani Gates"
       ],
+      "zones_ru": [
+        "Врата Халани"
+      ],
+      "zone_label": {
+        "en": "The Halani Gates",
+        "ru": "Врата Халани"
+      },
       "kind": "boss",
       "optional": false,
       "level": "18",
@@ -1400,6 +1858,13 @@
       "zones": [
         "The Ardura Caravan"
       ],
+      "zones_ru": [
+        "Караван Ардура"
+      ],
+      "zone_label": {
+        "en": "The Ardura Caravan",
+        "ru": "Караван Ардура"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -1425,6 +1890,13 @@
       "zones": [
         "Trial of the Sekhemas"
       ],
+      "zones_ru": [
+        "Испытание Сехем"
+      ],
+      "zone_label": {
+        "en": "Trial of the Sekhemas",
+        "ru": "Испытание Сехем"
+      },
       "kind": "ascend",
       "optional": true,
       "level": "19-22",
@@ -1449,6 +1921,13 @@
       "zones": [
         "Mastodon Badlands"
       ],
+      "zones_ru": [
+        "Мастодонтовые пустоши"
+      ],
+      "zone_label": {
+        "en": "Mastodon Badlands",
+        "ru": "Мастодонтовые пустоши"
+      },
       "kind": "quest",
       "optional": false,
       "level": "20",
@@ -1472,6 +1951,13 @@
       "zones": [
         "The Bone Pits"
       ],
+      "zones_ru": [
+        "Костяные ямы"
+      ],
+      "zone_label": {
+        "en": "The Bone Pits",
+        "ru": "Костяные ямы"
+      },
       "kind": "boss",
       "optional": false,
       "level": "20-21",
@@ -1497,6 +1983,13 @@
       "zones": [
         "Keth"
       ],
+      "zones_ru": [
+        "Кет"
+      ],
+      "zone_label": {
+        "en": "Keth",
+        "ru": "Кет"
+      },
       "kind": "boss",
       "optional": false,
       "level": "21-22",
@@ -1531,6 +2024,13 @@
       "zones": [
         "The Lost City"
       ],
+      "zones_ru": [
+        "Затерянный город"
+      ],
+      "zone_label": {
+        "en": "The Lost City",
+        "ru": "Затерянный город"
+      },
       "kind": "quest",
       "optional": false,
       "level": "22",
@@ -1554,6 +2054,13 @@
       "zones": [
         "Buried Shrines"
       ],
+      "zones_ru": [
+        "Погребённые святилища"
+      ],
+      "zone_label": {
+        "en": "Buried Shrines",
+        "ru": "Погребённые святилища"
+      },
       "kind": "boss",
       "optional": false,
       "level": "22-23",
@@ -1578,6 +2085,13 @@
       "zones": [
         "Valley of the Titans"
       ],
+      "zones_ru": [
+        "Долина Титанов"
+      ],
+      "zone_label": {
+        "en": "Valley of the Titans",
+        "ru": "Долина Титанов"
+      },
       "kind": "quest",
       "optional": false,
       "level": "23",
@@ -1602,6 +2116,13 @@
       "zones": [
         "The Titan Grotto"
       ],
+      "zones_ru": [
+        "Грот Титана"
+      ],
+      "zone_label": {
+        "en": "The Titan Grotto",
+        "ru": "Грот Титана"
+      },
       "kind": "boss",
       "optional": false,
       "level": "24",
@@ -1626,6 +2147,13 @@
       "zones": [
         "The Ardura Caravan"
       ],
+      "zones_ru": [
+        "Караван Ардура"
+      ],
+      "zone_label": {
+        "en": "The Ardura Caravan",
+        "ru": "Караван Ардура"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -1651,6 +2179,13 @@
       "zones": [
         "Deshar"
       ],
+      "zones_ru": [
+        "Дешар"
+      ],
+      "zone_label": {
+        "en": "Deshar",
+        "ru": "Дешар"
+      },
       "kind": "quest",
       "optional": false,
       "level": "24",
@@ -1675,6 +2210,13 @@
       "zones": [
         "Path of Mourning"
       ],
+      "zones_ru": [
+        "Тропа скорби"
+      ],
+      "zone_label": {
+        "en": "Path of Mourning",
+        "ru": "Тропа скорби"
+      },
       "kind": "quest",
       "optional": false,
       "level": "25",
@@ -1698,6 +2240,13 @@
       "zones": [
         "The Spires of Deshar"
       ],
+      "zones_ru": [
+        "Шпили Дешара"
+      ],
+      "zone_label": {
+        "en": "The Spires of Deshar",
+        "ru": "Шпили Дешара"
+      },
       "kind": "boss",
       "optional": false,
       "level": "26",
@@ -1723,6 +2272,13 @@
       "zones": [
         "The Ardura Caravan"
       ],
+      "zones_ru": [
+        "Караван Ардура"
+      ],
+      "zone_label": {
+        "en": "The Ardura Caravan",
+        "ru": "Караван Ардура"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -1758,6 +2314,13 @@
       "zones": [
         "Trial of the Sekhemas"
       ],
+      "zones_ru": [
+        "Испытание Сехем"
+      ],
+      "zone_label": {
+        "en": "Trial of the Sekhemas",
+        "ru": "Испытание Сехем"
+      },
       "kind": "ascend",
       "optional": true,
       "level": "~28",
@@ -1782,6 +2345,13 @@
       "zones": [
         "The Dreadnought"
       ],
+      "zones_ru": [
+        "Дредноут"
+      ],
+      "zone_label": {
+        "en": "The Dreadnought",
+        "ru": "Дредноут"
+      },
       "kind": "boss",
       "optional": false,
       "level": "28-29",
@@ -1807,6 +2377,13 @@
       "zones": [
         "The Ardura Caravan"
       ],
+      "zones_ru": [
+        "Караван Ардура"
+      ],
+      "zone_label": {
+        "en": "The Ardura Caravan",
+        "ru": "Караван Ардура"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -1832,6 +2409,13 @@
       "zones": [
         "Sandswept Marsh"
       ],
+      "zones_ru": [
+        "Болото песков"
+      ],
+      "zone_label": {
+        "en": "Sandswept Marsh",
+        "ru": "Болото песков"
+      },
       "kind": "quest",
       "optional": false,
       "level": "29",
@@ -1856,6 +2440,13 @@
       "zones": [
         "Ziggurat Encampment"
       ],
+      "zones_ru": [
+        "Лагерь у зиккурата"
+      ],
+      "zone_label": {
+        "en": "Ziggurat Encampment",
+        "ru": "Лагерь у зиккурата"
+      },
       "kind": "town",
       "optional": false,
       "level": "29",
@@ -1881,6 +2472,13 @@
       "zones": [
         "Jungle Ruins"
       ],
+      "zones_ru": [
+        "Руины джунглей"
+      ],
+      "zone_label": {
+        "en": "Jungle Ruins",
+        "ru": "Руины джунглей"
+      },
       "kind": "boss",
       "optional": false,
       "level": "29-30",
@@ -1915,6 +2513,13 @@
       "zones": [
         "Venom Crypts"
       ],
+      "zones_ru": [
+        "Склепы яда"
+      ],
+      "zone_label": {
+        "en": "Venom Crypts",
+        "ru": "Склепы яда"
+      },
       "kind": "quest",
       "optional": true,
       "level": "30",
@@ -1939,6 +2544,13 @@
       "zones": [
         "Infested Barrens"
       ],
+      "zones_ru": [
+        "Заражённые пустоши"
+      ],
+      "zone_label": {
+        "en": "Infested Barrens",
+        "ru": "Заражённые пустоши"
+      },
       "kind": "quest",
       "optional": false,
       "level": "31",
@@ -1962,6 +2574,13 @@
       "zones": [
         "Chimeral Wetlands"
       ],
+      "zones_ru": [
+        "Химерные топи"
+      ],
+      "zone_label": {
+        "en": "Chimeral Wetlands",
+        "ru": "Химерные топи"
+      },
       "kind": "boss",
       "optional": false,
       "level": "32",
@@ -1986,6 +2605,13 @@
       "zones": [
         "Jiquani's Machinarium"
       ],
+      "zones_ru": [
+        "Машинариум Джикуани"
+      ],
+      "zone_label": {
+        "en": "Jiquani's Machinarium",
+        "ru": "Машинариум Джикуани"
+      },
       "kind": "boss",
       "optional": false,
       "level": "33",
@@ -2020,6 +2646,13 @@
       "zones": [
         "Jiquani's Sanctum"
       ],
+      "zones_ru": [
+        "Святилище Джикуани"
+      ],
+      "zone_label": {
+        "en": "Jiquani's Sanctum",
+        "ru": "Святилище Джикуани"
+      },
       "kind": "boss",
       "optional": false,
       "level": "33",
@@ -2045,6 +2678,13 @@
       "zones": [
         "Jungle Ruins"
       ],
+      "zones_ru": [
+        "Руины джунглей"
+      ],
+      "zone_label": {
+        "en": "Jungle Ruins",
+        "ru": "Руины джунглей"
+      },
       "kind": "quest",
       "optional": false,
       "level": null,
@@ -2068,6 +2708,13 @@
       "zones": [
         "Matlan Waterways"
       ],
+      "zones_ru": [
+        "Водные пути Матлана"
+      ],
+      "zone_label": {
+        "en": "Matlan Waterways",
+        "ru": "Водные пути Матлана"
+      },
       "kind": "quest",
       "optional": false,
       "level": "34",
@@ -2091,6 +2738,13 @@
       "zones": [
         "Azak Bog"
       ],
+      "zones_ru": [
+        "Болото Азак"
+      ],
+      "zone_label": {
+        "en": "Azak Bog",
+        "ru": "Болото Азак"
+      },
       "kind": "boss",
       "optional": true,
       "level": "35",
@@ -2125,6 +2779,13 @@
       "zones": [
         "Ziggurat Encampment"
       ],
+      "zones_ru": [
+        "Лагерь у зиккурата"
+      ],
+      "zone_label": {
+        "en": "Ziggurat Encampment",
+        "ru": "Лагерь у зиккурата"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -2149,6 +2810,13 @@
       "zones": [
         "Trial of Chaos"
       ],
+      "zones_ru": [
+        "Испытание Хаоса"
+      ],
+      "zone_label": {
+        "en": "Trial of Chaos",
+        "ru": "Испытание Хаоса"
+      },
       "kind": "ascend",
       "optional": true,
       "level": null,
@@ -2173,6 +2841,13 @@
       "zones": [
         "Drowned City"
       ],
+      "zones_ru": [
+        "Затонувший город"
+      ],
+      "zone_label": {
+        "en": "Drowned City",
+        "ru": "Затонувший город"
+      },
       "kind": "quest",
       "optional": false,
       "level": "36",
@@ -2196,6 +2871,13 @@
       "zones": [
         "Apex of Filth"
       ],
+      "zones_ru": [
+        "Обитель скверны"
+      ],
+      "zone_label": {
+        "en": "Apex of Filth",
+        "ru": "Обитель скверны"
+      },
       "kind": "boss",
       "optional": false,
       "level": "36-37",
@@ -2220,6 +2902,13 @@
       "zones": [
         "Molten Vault"
       ],
+      "zones_ru": [
+        "Расплавленное хранилище"
+      ],
+      "zone_label": {
+        "en": "Molten Vault",
+        "ru": "Расплавленное хранилище"
+      },
       "kind": "quest",
       "optional": true,
       "level": "37",
@@ -2244,6 +2933,13 @@
       "zones": [
         "Temple of Kopec"
       ],
+      "zones_ru": [
+        "Храм Копека"
+      ],
+      "zone_label": {
+        "en": "Temple of Kopec",
+        "ru": "Храм Копека"
+      },
       "kind": "boss",
       "optional": false,
       "level": "37",
@@ -2269,6 +2965,13 @@
       "zones": [
         "Ziggurat Encampment"
       ],
+      "zones_ru": [
+        "Лагерь у зиккурата"
+      ],
+      "zone_label": {
+        "en": "Ziggurat Encampment",
+        "ru": "Лагерь у зиккурата"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -2293,6 +2996,13 @@
       "zones": [
         "Utzaal"
       ],
+      "zones_ru": [
+        "Утзаал"
+      ],
+      "zone_label": {
+        "en": "Utzaal",
+        "ru": "Утзаал"
+      },
       "kind": "boss",
       "optional": false,
       "level": "38",
@@ -2317,6 +3027,13 @@
       "zones": [
         "Aggorat"
       ],
+      "zones_ru": [
+        "Аггорат"
+      ],
+      "zone_label": {
+        "en": "Aggorat",
+        "ru": "Аггорат"
+      },
       "kind": "quest",
       "optional": false,
       "level": "39",
@@ -2350,6 +3067,13 @@
       "zones": [
         "Black Chambers"
       ],
+      "zones_ru": [
+        "Чёрные палаты"
+      ],
+      "zone_label": {
+        "en": "Black Chambers",
+        "ru": "Чёрные палаты"
+      },
       "kind": "boss",
       "optional": false,
       "level": "40",
@@ -2374,6 +3098,13 @@
       "zones": [
         "Ziggurat Encampment"
       ],
+      "zones_ru": [
+        "Лагерь у зиккурата"
+      ],
+      "zone_label": {
+        "en": "Ziggurat Encampment",
+        "ru": "Лагерь у зиккурата"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -2398,6 +3129,13 @@
       "zones": [
         "Kingsmarch"
       ],
+      "zones_ru": [
+        "Кингсмарш"
+      ],
+      "zone_label": {
+        "en": "Kingsmarch",
+        "ru": "Кингсмарш"
+      },
       "kind": "town",
       "optional": false,
       "level": "41",
@@ -2422,6 +3160,13 @@
       "zones": [
         "Isle of Kin"
       ],
+      "zones_ru": [
+        "Остров родни"
+      ],
+      "zone_label": {
+        "en": "Isle of Kin",
+        "ru": "Остров родни"
+      },
       "kind": "quest",
       "optional": false,
       "level": null,
@@ -2445,6 +3190,13 @@
       "zones": [
         "Volcanic Warrens"
       ],
+      "zones_ru": [
+        "Вулканические норы"
+      ],
+      "zone_label": {
+        "en": "Volcanic Warrens",
+        "ru": "Вулканические норы"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -2470,6 +3222,13 @@
       "zones": [
         "Kedge Bay"
       ],
+      "zones_ru": [
+        "Бухта Кедж"
+      ],
+      "zone_label": {
+        "en": "Kedge Bay",
+        "ru": "Бухта Кедж"
+      },
       "kind": "quest",
       "optional": true,
       "level": null,
@@ -2493,6 +3252,13 @@
       "zones": [
         "Journey's End"
       ],
+      "zones_ru": [
+        "Конец пути"
+      ],
+      "zone_label": {
+        "en": "Journey's End",
+        "ru": "Конец пути"
+      },
       "kind": "boss",
       "optional": true,
       "level": null,
@@ -2527,6 +3293,13 @@
       "zones": [
         "Abandoned Prison"
       ],
+      "zones_ru": [
+        "Заброшенная тюрьма"
+      ],
+      "zone_label": {
+        "en": "Abandoned Prison",
+        "ru": "Заброшенная тюрьма"
+      },
       "kind": "quest",
       "optional": false,
       "level": "43",
@@ -2551,6 +3324,13 @@
       "zones": [
         "Solitary Confinement"
       ],
+      "zones_ru": [
+        "Одиночная камера"
+      ],
+      "zone_label": {
+        "en": "Solitary Confinement",
+        "ru": "Одиночная камера"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -2575,6 +3355,13 @@
       "zones": [
         "Shrike Island"
       ],
+      "zones_ru": [
+        "Остров сорокопутов"
+      ],
+      "zone_label": {
+        "en": "Shrike Island",
+        "ru": "Остров сорокопутов"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -2599,6 +3386,13 @@
       "zones": [
         "Whakapanu Island"
       ],
+      "zones_ru": [
+        "Остров Вакапану"
+      ],
+      "zone_label": {
+        "en": "Whakapanu Island",
+        "ru": "Остров Вакапану"
+      },
       "kind": "boss",
       "optional": true,
       "level": null,
@@ -2624,6 +3418,13 @@
       "zones": [
         "Singing Caverns"
       ],
+      "zones_ru": [
+        "Поющие пещеры"
+      ],
+      "zone_label": {
+        "en": "Singing Caverns",
+        "ru": "Поющие пещеры"
+      },
       "kind": "boss",
       "optional": true,
       "level": null,
@@ -2649,6 +3450,13 @@
       "zones": [
         "Eye of Hinekora"
       ],
+      "zones_ru": [
+        "Око Хинекоры"
+      ],
+      "zone_label": {
+        "en": "Eye of Hinekora",
+        "ru": "Око Хинекоры"
+      },
       "kind": "info",
       "optional": true,
       "level": "45",
@@ -2674,6 +3482,13 @@
       "zones": [
         "Halls of the Dead"
       ],
+      "zones_ru": [
+        "Залы мёртвых"
+      ],
+      "zone_label": {
+        "en": "Halls of the Dead",
+        "ru": "Залы мёртвых"
+      },
       "kind": "boss",
       "optional": true,
       "level": null,
@@ -2699,6 +3514,13 @@
       "zones": [
         "Trial of the Ancestors"
       ],
+      "zones_ru": [
+        "Испытание предков"
+      ],
+      "zone_label": {
+        "en": "Trial of the Ancestors",
+        "ru": "Испытание предков"
+      },
       "kind": "quest",
       "optional": true,
       "level": null,
@@ -2732,6 +3554,13 @@
       "zones": [
         "Kingsmarch"
       ],
+      "zones_ru": [
+        "Кингсмарш"
+      ],
+      "zone_label": {
+        "en": "Kingsmarch",
+        "ru": "Кингсмарш"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -2756,6 +3585,13 @@
       "zones": [
         "Arastas"
       ],
+      "zones_ru": [
+        "Арастас"
+      ],
+      "zone_label": {
+        "en": "Arastas",
+        "ru": "Арастас"
+      },
       "kind": "boss",
       "optional": false,
       "level": "46-47",
@@ -2781,6 +3617,13 @@
       "zones": [
         "The Excavation"
       ],
+      "zones_ru": [
+        "Раскопки"
+      ],
+      "zone_label": {
+        "en": "The Excavation",
+        "ru": "Раскопки"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -2806,6 +3649,13 @@
       "zones": [
         "Kingsmarch"
       ],
+      "zones_ru": [
+        "Кингсмарш"
+      ],
+      "zone_label": {
+        "en": "Kingsmarch",
+        "ru": "Кингсмарш"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -2831,6 +3681,14 @@
         "Ngakanu",
         "Heart of the Tribe"
       ],
+      "zones_ru": [
+        "Нгакану",
+        "Сердце племени"
+      ],
+      "zone_label": {
+        "en": "Ngakanu -> Heart of the Tribe",
+        "ru": "Нгакану → Сердце племени"
+      },
       "kind": "boss",
       "optional": false,
       "level": "48",
@@ -2855,6 +3713,13 @@
       "zones": [
         "Kingsmarch"
       ],
+      "zones_ru": [
+        "Кингсмарш"
+      ],
+      "zone_label": {
+        "en": "Kingsmarch",
+        "ru": "Кингсмарш"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -2879,6 +3744,13 @@
       "zones": [
         "The Khari Bazaar"
       ],
+      "zones_ru": [
+        "Базар Кхари"
+      ],
+      "zone_label": {
+        "en": "The Khari Bazaar",
+        "ru": "Базар Кхари"
+      },
       "kind": "town",
       "optional": false,
       "level": "~50",
@@ -2903,6 +3775,13 @@
       "zones": [
         "Skullmaw Stairway"
       ],
+      "zones_ru": [
+        "Лестница Черепа"
+      ],
+      "zone_label": {
+        "en": "Skullmaw Stairway",
+        "ru": "Лестница Черепа"
+      },
       "kind": "quest",
       "optional": true,
       "level": null,
@@ -2924,6 +3803,13 @@
       "zones": [
         "The Galai Gates"
       ],
+      "zones_ru": [
+        "Врата Галай"
+      ],
+      "zone_label": {
+        "en": "The Galai Gates",
+        "ru": "Врата Галай"
+      },
       "kind": "info",
       "optional": true,
       "level": null,
@@ -2947,6 +3833,13 @@
       "zones": [
         "The Khari Crossing"
       ],
+      "zones_ru": [
+        "Переправа Кхари"
+      ],
+      "zone_label": {
+        "en": "The Khari Crossing",
+        "ru": "Переправа Кхари"
+      },
       "kind": "boss",
       "optional": true,
       "level": null,
@@ -2981,6 +3874,13 @@
       "zones": [
         "Pools of Khatal"
       ],
+      "zones_ru": [
+        "Пруды Хатала"
+      ],
+      "zone_label": {
+        "en": "Pools of Khatal",
+        "ru": "Пруды Хатала"
+      },
       "kind": "quest",
       "optional": false,
       "level": null,
@@ -3005,6 +3905,14 @@
         "The Glade",
         "Ashen Forest"
       ],
+      "zones_ru": [
+        "Поляна",
+        "Пепельный лес"
+      ],
+      "zone_label": {
+        "en": "The Glade -> Ashen Forest",
+        "ru": "Поляна → Пепельный лес"
+      },
       "kind": "quest",
       "optional": false,
       "level": "~51",
@@ -3028,6 +3936,13 @@
       "zones": [
         "Kriar Village"
       ],
+      "zones_ru": [
+        "Деревня Криар"
+      ],
+      "zone_label": {
+        "en": "Kriar Village",
+        "ru": "Деревня Криар"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -3063,6 +3978,14 @@
         "Glacial Tarn",
         "Howling Caves"
       ],
+      "zones_ru": [
+        "Ледниковое озеро",
+        "Воющие пещеры"
+      ],
+      "zone_label": {
+        "en": "Glacial Tarn -> Howling Caves",
+        "ru": "Ледниковое озеро → Воющие пещеры"
+      },
       "kind": "boss",
       "optional": true,
       "level": null,
@@ -3097,6 +4020,13 @@
       "zones": [
         "Glacial Tarn"
       ],
+      "zones_ru": [
+        "Ледниковое озеро"
+      ],
+      "zone_label": {
+        "en": "Glacial Tarn",
+        "ru": "Ледниковое озеро"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -3121,6 +4051,13 @@
       "zones": [
         "Kriar Peaks"
       ],
+      "zones_ru": [
+        "Пики Криар"
+      ],
+      "zone_label": {
+        "en": "Kriar Peaks",
+        "ru": "Пики Криар"
+      },
       "kind": "quest",
       "optional": false,
       "level": null,
@@ -3145,6 +4082,13 @@
       "zones": [
         "Etched Ravine"
       ],
+      "zones_ru": [
+        "Высеченное ущелье"
+      ],
+      "zone_label": {
+        "en": "Etched Ravine",
+        "ru": "Высеченное ущелье"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -3169,6 +4113,13 @@
       "zones": [
         "The Cuachic Vault"
       ],
+      "zones_ru": [
+        "Хранилище Куачик"
+      ],
+      "zone_label": {
+        "en": "The Cuachic Vault",
+        "ru": "Хранилище Куачик"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -3194,6 +4145,13 @@
       "zones": [
         "Sel Khari Sanctuary"
       ],
+      "zones_ru": [
+        "Святилище Сель-Кхари"
+      ],
+      "zone_label": {
+        "en": "Sel Khari Sanctuary",
+        "ru": "Святилище Сель-Кхари"
+      },
       "kind": "boss",
       "optional": false,
       "level": "~54",
@@ -3218,6 +4176,13 @@
       "zones": [
         "The Galai Gates"
       ],
+      "zones_ru": [
+        "Врата Галай"
+      ],
+      "zone_label": {
+        "en": "The Galai Gates",
+        "ru": "Врата Галай"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -3242,6 +4207,13 @@
       "zones": [
         "Qimah"
       ],
+      "zones_ru": [
+        "Кима"
+      ],
+      "zone_label": {
+        "en": "Qimah",
+        "ru": "Кима"
+      },
       "kind": "quest",
       "optional": false,
       "level": null,
@@ -3266,6 +4238,13 @@
       "zones": [
         "Qimah Reservoir"
       ],
+      "zones_ru": [
+        "Водохранилище Кимы"
+      ],
+      "zone_label": {
+        "en": "Qimah Reservoir",
+        "ru": "Водохранилище Кимы"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -3292,6 +4271,14 @@
         "The Refuge",
         "Scorched Farmlands"
       ],
+      "zones_ru": [
+        "Убежище",
+        "Выжженные поля"
+      ],
+      "zone_label": {
+        "en": "The Refuge -> Scorched Farmlands",
+        "ru": "Убежище → Выжженные поля"
+      },
       "kind": "boss",
       "optional": false,
       "level": "~57",
@@ -3316,6 +4303,13 @@
       "zones": [
         "Stones of Serle"
       ],
+      "zones_ru": [
+        "Камни Серле"
+      ],
+      "zone_label": {
+        "en": "Stones of Serle",
+        "ru": "Камни Серле"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -3341,6 +4335,14 @@
         "The Blackwood",
         "Holten"
       ],
+      "zones_ru": [
+        "Чёрный лес",
+        "Холтен"
+      ],
+      "zone_label": {
+        "en": "The Blackwood -> Holten",
+        "ru": "Чёрный лес → Холтен"
+      },
       "kind": "quest",
       "optional": false,
       "level": null,
@@ -3364,6 +4366,13 @@
       "zones": [
         "Holten"
       ],
+      "zones_ru": [
+        "Холтен"
+      ],
+      "zone_label": {
+        "en": "Holten",
+        "ru": "Холтен"
+      },
       "kind": "quest",
       "optional": true,
       "level": null,
@@ -3385,6 +4394,13 @@
       "zones": [
         "Wolvenhold"
       ],
+      "zones_ru": [
+        "Волчья крепость"
+      ],
+      "zone_label": {
+        "en": "Wolvenhold",
+        "ru": "Волчья крепость"
+      },
       "kind": "boss",
       "optional": true,
       "level": null,
@@ -3416,6 +4432,13 @@
       "zones": [
         "Holten Estate"
       ],
+      "zones_ru": [
+        "Поместье Холтен"
+      ],
+      "zone_label": {
+        "en": "Holten Estate",
+        "ru": "Поместье Холтен"
+      },
       "kind": "boss",
       "optional": false,
       "level": null,
@@ -3440,6 +4463,13 @@
       "zones": [
         "The Refuge"
       ],
+      "zones_ru": [
+        "Убежище"
+      ],
+      "zone_label": {
+        "en": "The Refuge",
+        "ru": "Убежище"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -3464,6 +4494,13 @@
       "zones": [
         "Kingsmarch"
       ],
+      "zones_ru": [
+        "Кингсмарш"
+      ],
+      "zone_label": {
+        "en": "Kingsmarch",
+        "ru": "Кингсмарш"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -3498,6 +4535,13 @@
       "zones": [
         "The Ziggurat Refuge"
       ],
+      "zones_ru": [
+        "Убежище у зиккурата"
+      ],
+      "zone_label": {
+        "en": "The Ziggurat Refuge",
+        "ru": "Убежище у зиккурата"
+      },
       "kind": "town",
       "optional": false,
       "level": null,
@@ -3522,6 +4566,13 @@
       "zones": [
         "The Ziggurat Refuge"
       ],
+      "zones_ru": [
+        "Убежище у зиккурата"
+      ],
+      "zone_label": {
+        "en": "The Ziggurat Refuge",
+        "ru": "Убежище у зиккурата"
+      },
       "kind": "info",
       "optional": true,
       "level": null,
@@ -3542,6 +4593,13 @@
       "zones": [
         "Atlas"
       ],
+      "zones_ru": [
+        "Атлас"
+      ],
+      "zone_label": {
+        "en": "Atlas",
+        "ru": "Атлас"
+      },
       "kind": "info",
       "optional": true,
       "level": null,
@@ -3562,6 +4620,13 @@
       "zones": [
         "Atlas"
       ],
+      "zones_ru": [
+        "Атлас"
+      ],
+      "zone_label": {
+        "en": "Atlas",
+        "ru": "Атлас"
+      },
       "kind": "info",
       "optional": true,
       "level": null,
@@ -3582,6 +4647,13 @@
       "zones": [
         "Atlas"
       ],
+      "zones_ru": [
+        "Атлас"
+      ],
+      "zone_label": {
+        "en": "Atlas",
+        "ru": "Атлас"
+      },
       "kind": "info",
       "optional": true,
       "level": null,
@@ -3602,6 +4674,13 @@
       "zones": [
         "Atlas"
       ],
+      "zones_ru": [
+        "Атлас"
+      ],
+      "zone_label": {
+        "en": "Atlas",
+        "ru": "Атлас"
+      },
       "kind": "info",
       "optional": true,
       "level": null,
@@ -3624,6 +4703,14 @@
         "Trial of the Sekhemas",
         "Trial of Chaos"
       ],
+      "zones_ru": [
+        "Испытание Сехем",
+        "Испытание Хаоса"
+      ],
+      "zone_label": {
+        "en": "Trial of the Sekhemas / Trial of Chaos",
+        "ru": "Испытание Сехем → Испытание Хаоса"
+      },
       "kind": "ascend",
       "optional": true,
       "level": null,

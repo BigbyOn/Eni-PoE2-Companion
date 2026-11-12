@@ -524,6 +524,7 @@ struct SettingsIn {
     zone_aliases: Vec<ZoneAlias>,
     ai_provider: String,
     ai_model: String,
+    ai_reasoning: String,
     ai_enabled: bool,
     /// New key in plain text; only ever stored DPAPI-encrypted.
     ai_key: Option<String>,
@@ -566,7 +567,13 @@ fn save_settings(app: AppHandle, state: State<App>, settings: SettingsIn) -> Res
             .filter(|a| !a.alias.trim().is_empty() && !a.zone.trim().is_empty())
             .map(|a| ZoneAlias { alias: a.alias.trim().to_string(), zone: a.zone.trim().to_string() })
             .collect();
-        s.saved.ai = AiCfg { enabled: settings.ai_enabled, provider: settings.ai_provider.clone(), model: settings.ai_model.clone(), key_protected: key_protected.clone() };
+        s.saved.ai = AiCfg {
+            enabled: settings.ai_enabled,
+            provider: settings.ai_provider.clone(),
+            model: settings.ai_model.clone(),
+            reasoning: ai::normalize_reasoning(&settings.ai_reasoning).to_string(),
+            key_protected: key_protected.clone(),
+        };
     });
     {
         let mut shared = state.shared.lock().unwrap();
@@ -1030,40 +1037,132 @@ struct AiPrepared {
     path: String,
 }
 
-/// Writes the AI request description next to the screenshots. Nothing is sent.
-#[tauri::command]
-fn ai_prepare(app: AppHandle, state: State<App>, ids: Vec<String>, task: String) -> Result<AiPrepared, String> {
-    let task = match task.as_str() {
-        "compare_items" => ai::Task::CompareItems,
-        "review_passives" => ai::Task::ReviewPassives,
-        "compare_to_build" => ai::Task::CompareToBuild,
-        "next_upgrades" => ai::Task::NextUpgrades,
-        "answer" => ai::Task::Answer,
-        _ => ai::Task::AnalyseItem,
-    };
-    let (shots, provider, model, lang, profile, shots_dir) = {
+#[derive(Serialize)]
+struct AiAnswerView {
+    text: String,
+    reasoning: Option<String>,
+    model: String,
+    provider: String,
+    prompt_tokens: u32,
+    completion_tokens: u32,
+    image_sent: bool,
+    manifest: String,
+}
+
+/// Everything needed for an AI call, gathered under short-lived locks.
+struct AiInput {
+    request: ai::Request,
+    key: String,
+    images: Vec<Vec<u8>>,
+    shots_dir: PathBuf,
+    enabled: bool,
+}
+
+fn ai_input(state: &State<App>, ids: &[String], task: ai::Task, question: &str) -> Result<AiInput, String> {
+    let (cfg, shots, profile, lang, shots_dir) = {
         let s = state.snap.lock().unwrap();
         let shots: Vec<Shot> = s.saved.shots.iter().filter(|x| ids.contains(&x.id)).cloned().collect();
         let profile = s.saved.profile().cloned().ok_or("Нет активного профиля")?;
-        (shots, s.saved.ai.provider.clone(), s.saved.ai.model.clone(), s.saved.lang.clone(), profile, s.shots_dir.clone())
+        (s.saved.ai.clone(), shots, profile, s.saved.lang.clone(), s.shots_dir.clone())
     };
-    if shots.is_empty() {
-        return Err("Выберите хотя бы один скриншот".into());
+    // The key is only decrypted when AI is enabled; the manifest itself needs no key.
+    let key = match (cfg.enabled, cfg.key_protected.as_deref()) {
+        (true, Some(blob)) => ai::unprotect_key(blob)?,
+        _ => String::new(),
+    };
+    let (goal, next) = {
+        let c = state.campaign.read().unwrap();
+        let goal = c.step(profile.step).map(|st| st.goal.get(&lang).to_string()).unwrap_or_default();
+        let next: Vec<String> = c.steps.iter().skip(profile.step + 1).take(3).map(|s| s.goal.get(&lang).to_string()).collect();
+        (goal, next)
+    };
+    let request = {
+        let builds = state.builds.read().unwrap();
+        let build = builds
+            .iter()
+            .find(|b| b.id == profile.build_id)
+            .or_else(|| builds.first())
+            .ok_or("Нет загруженных билдов")?;
+        ai::prepare(task, &cfg, &shots, &profile, build, &lang, question, &goal, &next)
+    };
+    // Only a vision model gets the pixels; text models get the description only.
+    let mut images = Vec::new();
+    if ai::model_supports_vision(&request.provider, &request.model) {
+        for shot in &shots {
+            if let Ok(bytes) = std::fs::read(shots_dir.join(&shot.file)) {
+                images.push(bytes);
+            }
+        }
     }
-    let builds = state.builds.read().unwrap();
-    let build = builds
-        .iter()
-        .find(|b| b.id == profile.build_id)
-        .or_else(|| builds.first())
-        .ok_or("Нет загруженных билдов")?;
-    let provider = if provider == "disabled" || provider.is_empty() { "openai".to_string() } else { provider };
-    let req = ai::prepare(task, &provider, &model, &shots, &profile, build, &lang);
-    let json = serde_json::to_string_pretty(&req).map_err(|e| e.to_string())?;
-    std::fs::create_dir_all(&shots_dir).map_err(|e| format!("Папка скриншотов: {e}"))?;
-    let path = shots_dir.join(format!("ai-request-{}.json", chrono::Local::now().format("%Y%m%d-%H%M%S")));
-    std::fs::write(&path, &json).map_err(|e| format!("Запись подготовки ИИ: {e}"))?;
+    Ok(AiInput { request, key, images, shots_dir, enabled: cfg.enabled })
+}
+
+/// Network calls need an explicit, complete configuration.
+fn ensure_ai_ready(input: &AiInput) -> Result<(), String> {
+    if !input.enabled {
+        return Err("ИИ выключен: включите его в настройках, выберите провайдера и сохраните ключ.".into());
+    }
+    if input.key.trim().is_empty() {
+        return Err("Не задан API-ключ: вставьте ключ в настройках и сохраните.".into());
+    }
+    Ok(())
+}
+
+fn write_manifest(input: &AiInput) -> Result<String, String> {
+    let json = serde_json::to_string_pretty(&input.request).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&input.shots_dir).map_err(|e| format!("Папка скриншотов: {e}"))?;
+    let path = input.shots_dir.join(format!("ai-request-{}.json", chrono::Local::now().format("%Y%m%d-%H%M%S")));
+    std::fs::write(&path, &json).map_err(|e| format!("Запись описания запроса: {e}"))?;
+    Ok(path.display().to_string())
+}
+
+/// Writes the AI request description next to the screenshots. Nothing is sent.
+#[tauri::command]
+fn ai_prepare(app: AppHandle, state: State<App>, ids: Vec<String>, task: String) -> Result<AiPrepared, String> {
+    let input = ai_input(&state, &ids, ai::Task::parse(&task), "")?;
+    let path = write_manifest(&input)?;
+    let json = serde_json::to_string_pretty(&input.request).map_err(|e| e.to_string())?;
     let _ = app.emit("state", state.public());
-    Ok(AiPrepared { json, path: path.display().to_string() })
+    Ok(AiPrepared { json, path })
+}
+
+/// Sends the request. Explicit user action only: the button in the screenshot view.
+#[tauri::command]
+async fn ai_analyze(app: AppHandle, state: State<'_, App>, ids: Vec<String>, task: String, question: String) -> Result<AiAnswerView, String> {
+    let input = ai_input(&state, &ids, ai::Task::parse(&task), &question)?;
+    ensure_ai_ready(&input)?;
+    let manifest = write_manifest(&input)?;
+    let (request, key, images) = (input.request.clone(), input.key.clone(), input.images.clone());
+    let lang = { state.snap.lock().unwrap().saved.lang.clone() };
+    let answer = tauri::async_runtime::spawn_blocking(move || ai::complete(&request, &key, &lang, images))
+        .await
+        .map_err(|e| format!("Запрос ИИ прерван: {e}"))??;
+    let summary = answer.text.chars().take(160).collect::<String>();
+    let label = format!("ИИ: {} · {}", answer.model, answer.provider);
+    state.update(&app, |s, _| push_event(s, "ai", label, summary));
+    Ok(AiAnswerView {
+        text: answer.text,
+        reasoning: answer.reasoning,
+        model: answer.model,
+        provider: answer.provider,
+        prompt_tokens: answer.prompt_tokens,
+        completion_tokens: answer.completion_tokens,
+        image_sent: answer.image_sent,
+        manifest,
+    })
+}
+
+/// Round-trip check from the settings page: one short message, no images.
+#[tauri::command]
+async fn ai_test(state: State<'_, App>) -> Result<String, String> {
+    let input = ai_input(&state, &[], ai::Task::Answer, "Ответь одним словом: работает")?;
+    ensure_ai_ready(&input)?;
+    let (request, key) = (input.request.clone(), input.key.clone());
+    let lang = { state.snap.lock().unwrap().saved.lang.clone() };
+    let answer = tauri::async_runtime::spawn_blocking(move || ai::complete(&request, &key, &lang, Vec::new()))
+        .await
+        .map_err(|e| format!("Запрос ИИ прерван: {e}"))??;
+    Ok(format!("{} · {} · {} символов", answer.provider, answer.model, answer.text.chars().count()))
 }
 
 #[tauri::command]
@@ -1221,6 +1320,8 @@ fn main() {    tauri::Builder::default()
             copy_text,
             link_open,
             ai_prepare,
+            ai_analyze,
+            ai_test,
             diagnostics,
             reveal_data_dir,
             show_main_window,
@@ -1299,7 +1400,10 @@ fn main() {    tauri::Builder::default()
                 let hwnd = main.hwnd().map_or(0, |h| h.0 as isize);
                 handle.state::<App>().shared.lock().unwrap().main_hwnd = hwnd;
             }
-            show_main(&handle);
+            // Test knob: keep the window hidden while the pages still load.
+            if std::env::var("ENI_COMPANION_HEADLESS").is_err() {
+                show_main(&handle);
+            }
             if let Err(e) = handle.state::<App>().register_hotkeys(&handle) {
                 eprintln!("hotkeys: {e}");
             }

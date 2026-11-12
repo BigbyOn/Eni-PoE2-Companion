@@ -1,4 +1,4 @@
-﻿//! Follows the game log: opening, catch-up, appended lines, truncation/rotation.
+//! Follows the game log: opening, catch-up, appended lines, truncation/rotation.
 //!
 //! `Tailer::poll` does one step and is fully testable without threads;
 //! `spawn` wraps it in the usual 250 ms loop.

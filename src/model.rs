@@ -278,13 +278,15 @@ pub struct AiCfg {
     /// "disabled" | "openai" | "deepseek"
     pub provider: String,
     pub model: String,
+    /// "auto" | "low" | "medium" | "high" — sent as `reasoning_effort`.
+    pub reasoning: String,
     /// DPAPI-protected key, base64. Never plain text, never in the repo.
     pub key_protected: Option<String>,
 }
 
 impl Default for AiCfg {
     fn default() -> Self {
-        AiCfg { enabled: false, provider: "disabled".into(), model: String::new(), key_protected: None }
+        AiCfg { enabled: false, provider: "disabled".into(), model: String::new(), reasoning: "auto".into(), key_protected: None }
     }
 }
 
@@ -380,6 +382,10 @@ impl Saved {
                 p.rewards.drain(..keep);
             }
         }
+        self.ai.reasoning = match self.ai.reasoning.as_str() {
+            "low" | "medium" | "high" => self.ai.reasoning.clone(),
+            _ => "auto".into(),
+        };
         if self.history.len() > HISTORY_LIMIT {
             let keep = self.history.len() - HISTORY_LIMIT;
             self.history.drain(..keep);

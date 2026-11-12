@@ -13,6 +13,7 @@ let preview = null; // live look preview from the settings sliders
 const esc = (v) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const profile = () => S?.saved.profiles.find((p) => p.id === S.saved.active) || S?.saved.profiles[0] || null;
+const zoneLabel = (step) => l10n(step?.zone_label) || step?.zones?.[0] || "";
 const norm = (z) => String(z || "").trim().toLowerCase().split(/\s+/).join(" ").replace(/^the /, "");
 const step = () => (CAMP ? CAMP.steps[profile()?.step ?? 0] : null);
 const mode = () => preview?.mode || S?.saved.overlay.mode || "standard";
@@ -85,21 +86,21 @@ function render() {
   document.querySelector('[data-act="hide"]').title = t("overlay.hide");
 
   if (m === "compact") {
-    const zone = esc(p?.zone || s.zones[0] || "");
+    const zone = esc(p?.zone || zoneLabel(s));
     $("#body").innerHTML = go
-      ? `<div class="go">${esc(t("overlay.go_to"))} <span class="dest">${esc(s.zones[0])}</span>:</div> <span class="goal">${goalHtml(l10n(s.goal))}</span>`
+      ? `<div class="go">${esc(t("overlay.go_to"))} <span class="dest">${esc(zoneLabel(s))}</span>:</div> <span class="goal">${goalHtml(l10n(s.goal))}</span>`
       : `<span class="zone">${zone}${S.zone_unknown ? " · " + esc(t("overlay.zone_unknown")) : ""}</span> <span class="goal">${goalHtml(l10n(s.goal))}</span>
-         ${dest ? `<span class="then">${esc(t("overlay.next_dest"))}: <b>${esc(dest.zones[0])}</b></span>` : ""}`;
+         ${dest ? `<span class="then">${esc(t("overlay.next_dest"))}: <b>${esc(zoneLabel(dest))}</b></span>` : ""}`;
     reportSize();
     return;
   }
 
   let html = "";
-  if (go) html += `<div class="go">${esc(t("overlay.go_to"))} <span class="dest">${esc(s.zones[0])}</span> <span class="pct">· ${esc(p.zone)}</span></div>`;
-  html += `<div class="zone">${esc(s.zones[0])}${S.zone_unknown ? ` · <span class="warn">${esc(t("overlay.zone_unknown"))}</span>` : ""}</div>`;
+  if (go) html += `<div class="go">${esc(t("overlay.go_to"))} <span class="dest">${esc(zoneLabel(s))}</span> <span class="pct">· ${esc(p.zone)}</span></div>`;
+  html += `<div class="zone">${esc(zoneLabel(s))}${S.zone_unknown ? ` · <span class="warn">${esc(t("overlay.zone_unknown"))}</span>` : ""}</div>`;
   html += `<div class="goal">${goalHtml(l10n(s.goal))}</div>`;
   if (s.quest) html += `<div class="quest">${esc(t("home.quest"))}: ${esc(l10n(s.quest))}</div>`;
-  if (dest) html += `<div class="then">${esc(t("overlay.next_dest"))}: <b>${esc(dest.zones[0])}</b></div>`;
+  if (dest) html += `<div class="then">${esc(t("overlay.next_dest"))}: <b>${esc(zoneLabel(dest))}</b></div>`;
   html += `<div class="meta"><span class="pct">${esc(t("overlay.progress"))} ${pos}/${total}</span><span class="bar"><i style="width:${total ? Math.round((pos / total) * 100) : 0}%"></i></span></div>`;
 
   if (m === "extended") {

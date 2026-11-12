@@ -1,4 +1,4 @@
-﻿/* Eni-PoE2-Companion — dark stone, muted gold, compact panels. */
+/* Eni-PoE2-Companion — dark stone, muted gold, compact panels. */
 :root{
   --bg:#0b0a08; --bg2:#0f0d0a; --panel:#15120e; --panel2:#1b1712; --panel3:#211c16;
   --line:#2b261e; --line2:#3a3226; --gold:#d8b878; --gold2:#f0dfae; --gold-dim:#a38d6d;
@@ -214,3 +214,9 @@ a:hover{color:var(--gold2)}
 .kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:13px}
 .kv dt{color:var(--ink3)}
 .kv dd{margin:0;color:var(--ink)}
+
+/* ---------- ai answer ---------- */
+.ai-answer{margin-top:12px;padding:11px 13px;border:1px solid var(--line2);border-left:2px solid var(--gold-dim);border-radius:3px;background:#14110d}
+.ai-answer h3{color:var(--gold);font-size:14px;margin-bottom:6px}
+.ai-answer .ai-text{white-space:normal;line-height:1.5;color:var(--ink);font-size:13.5px}
+.ai-answer summary{cursor:pointer;color:var(--ink3)}

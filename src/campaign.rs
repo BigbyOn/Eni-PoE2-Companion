@@ -40,6 +40,9 @@ struct RawAct {
 struct RawZone {
     id: String,
     names: Vec<String>,
+    /// Russian display names, aligned with `names`.
+    #[serde(default)]
+    ru: Vec<String>,
     act: u32,
 }
 
@@ -49,6 +52,11 @@ struct RawStep {
     act: u32,
     zone: String,
     zones: Vec<String>,
+    /// Russian spellings of `zones`, also used for matching.
+    #[serde(default)]
+    zones_ru: Vec<String>,
+    #[serde(default)]
+    zone_label: Option<L10n>,
     #[serde(default)]
     kind: String,
     #[serde(default)]
@@ -82,6 +90,8 @@ pub struct Act {
 pub struct Zone {
     pub id: String,
     pub names: Vec<String>,
+    /// Russian display names, aligned with `names`.
+    pub ru: Vec<String>,
     pub act: u32,
 }
 
@@ -96,7 +106,10 @@ pub struct Step {
     pub id: String,
     pub act: u32,
     pub zone_id: String,
+    /// English and Russian zone names: both are matched against the log.
     pub zones: Vec<String>,
+    /// Zone line for the UI in both languages.
+    pub zone_label: L10n,
     pub kind: String,
     pub optional: bool,
     pub level: Option<String>,
@@ -157,7 +170,7 @@ impl Campaign {
             if z.names.is_empty() {
                 return Err(format!("Зона {} без названий", z.id));
             }
-            zones.push(Zone { id: z.id, names: z.names, act: z.act });
+            zones.push(Zone { id: z.id, names: z.names, ru: z.ru, act: z.act });
         }
 
         let mut steps = Vec::with_capacity(raw.steps.len());
@@ -174,11 +187,17 @@ impl Campaign {
             if steps.iter().any(|x: &Step| x.id == s.id) {
                 return Err(format!("Шаг {} указан дважды", s.id));
             }
+            let mut all_zones = s.zones.clone();
+            all_zones.extend(s.zones_ru.iter().filter(|n| !n.trim().is_empty()).cloned());
+            let label = s
+                .zone_label
+                .unwrap_or_else(|| L10n { ru: all_zones.first().cloned().unwrap_or_default(), en: all_zones.first().cloned().unwrap_or_default() });
             steps.push(Step {
                 id: s.id,
                 act: s.act,
                 zone_id: s.zone,
-                zones: s.zones,
+                zones: all_zones,
+                zone_label: label,
                 kind: s.kind,
                 optional: s.optional,
                 level: s.level,
@@ -413,6 +432,21 @@ mod tests {
         assert_eq!(resolved, "riverbank");
         // Without an alias the name is unknown and nothing moves.
         assert_eq!(c.advance(0, "Неизвестная зона", "all", &aliases), None);
+    }
+
+    #[test]
+    fn russian_zone_labels_match_without_aliases() {
+        let c = campaign();
+        // Every step carries a Russian label for the UI.
+        assert!(c.steps.iter().all(|s| !s.zone_label.ru.trim().is_empty()));
+        assert!(c.steps.iter().all(|s| !s.zone_label.en.trim().is_empty()));
+        // Russian zone names from the route data match directly, no alias table needed.
+        assert_eq!(c.step_for_zone("Берег реки", &[]), Some(0));
+        assert_eq!(c.advance(0, "Лагерь Клирфелл", "all", &[]), Some(1));
+        assert!(c.step_for_zone("Нгакану", &[]).is_some(), "combined zone matches by its first name");
+        // A combined zone shows both parts in Russian.
+        let combined = c.steps.iter().find(|s| s.zone_label.en.contains("->")).expect("a combined zone");
+        assert!(combined.zone_label.ru.contains('→'), "{}", combined.zone_label.ru);
     }
 
     #[test]

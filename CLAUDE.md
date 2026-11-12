@@ -1,6 +1,6 @@
 # CLAUDE.md — Eni-PoE2-Companion
 
-Помощник для Path of Exile 2: Rust + Tauri 2 + системный WebView2, офлайн, без телеметрии.
+Помощник для Path of Exile 2: Rust + Tauri 2 + системный WebView2, без телеметрии; сеть — только для ИИ по кнопке.
 Производная работа от [poe2overlay](https://github.com/maluramichael/poe2overlay) (MIT, © 2026 Michael Malura) — уведомления сохранены в [LICENSE](LICENSE) и [NOTICE](NOTICE).
 
 Документация: [README.md](README.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/BUILD.md](docs/BUILD.md), [docs/SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md), [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md), [docs/AI-PROVIDER.md](docs/AI-PROVIDER.md).
@@ -19,7 +19,7 @@
 | `src/screens.rs` | PNG, миниатюры 320 px, SHA‑256, папка скриншотов |
 | `src/capture.rs` | GDI `BitBlt` клиентской области игры |
 | `src/game.rs` | окно игры, размещение оверлея, перетаскивание, показ/скрытие |
-| `src/ai.rs` | реестр провайдеров ИИ (сеть отключена), DPAPI для ключа |
+| `src/ai.rs` | ИИ: DeepSeek/OpenAI по кнопке, сборка запросов, DPAPI для ключа |
 | `src/clip.rs` | запись в буфер обмена |
 | `ui/index.html`, `ui/app.js`, `ui/app.css`, `ui/i18n.js` | главное окно: 7 разделов, RU/EN |
 | `ui/overlay.*` | оверлей трёх режимов |
@@ -34,7 +34,7 @@
 3. **Горячие клавиши** регистрируются только на главном потоке: в `setup` и в `save_settings`. Не в обработчике хоткея и не из фонового потока.
 4. **Окна** создаются в `setup` после `manage()` (`"create": false` в `tauri.conf.json`), иначе страницы вызовут команды до инициализации состояния.
 5. **Оверлей** — `focusable: false`, `alwaysOnTop`, размер окна равен панели; фокус игры не перехватывается.
-6. **Сеть**: сетевых запросов нет. Обновления маршрута/билдов — только с новым релизом. ИИ-провайдер остаётся выключенным, пока не будет реализован отдельно.
+6. **Сеть**: только ИИ по явной кнопке (DeepSeek/OpenAI, фиксированные endpoint'ы, HTTPS, без редиректов, ключ в DPAPI). Никаких фоновых запросов, телеметрии и автообновлений; маршрут и билды обновляются только с релизом.
 7. **Ссылки** открываются только через `link_open` (https + белый список хостов).
 8. **Локализация**: русский — основной язык; в UI нет смеси языков, кроме имён собственных (зоны, боссы, предметы) — они остаются в написании клиента.
 9. **Лицензия**: сохранять MIT-уведомления и атрибуцию poe2overlay в README/NOTICE/CHANGELOG.
@@ -42,7 +42,7 @@
 ## Проверка
 
 ```powershell
-cargo test                    # 44 юнит-теста (включая русский клиент, кодировки, повреждённые данные, DPAPI)
+cargo test                    # 52 юнит-теста (журналы, локации, ИИ-запросы, DPAPI, повреждённые данные)
 cargo build                   # debug
 npx --yes @tauri-apps/cli@2.12.1 build   # NSIS + MSI
 ```

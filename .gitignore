@@ -22,3 +22,7 @@ desktop.ini
 
 # locally built installers (attached to Releases, not committed)
 /dist
+
+# python
+__pycache__/
+*.pyc

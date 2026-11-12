@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 import campaign_ru as ru
+from zone_ru import ZONE_RU
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "tools" / "route_source.jsonl"
@@ -53,10 +54,12 @@ def main() -> None:
         per_act[act] = per_act.get(act, 0) + 1
         names = zone_names(row["zone"])
         key = "|".join(sorted(n.lower() for n in names))
+        ru_names = [ZONE_RU.get(n, "") for n in names]
         if key not in seen_zones:
             seen_zones[key] = {
                 "id": "z" + re.sub(r"[^a-z0-9]+", "-", names[0].lower()).strip("-"),
                 "names": names,
+                "ru": ru_names,
                 "act": act,
             }
         zone_id = seen_zones[key]["id"]
@@ -74,6 +77,8 @@ def main() -> None:
             "act": act,
             "zone": zone_id,
             "zones": names,
+            "zones_ru": [r for r in ru_names if r],
+            "zone_label": {"en": row["zone"], "ru": " → ".join(r or n for n, r in zip(names, ru_names))},
             "kind": kind,
             "optional": "must" not in tags,
             "level": row.get("level"),

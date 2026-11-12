@@ -1,4 +1,4 @@
-﻿//! Screenshot storage: PNG encoding, preview thumbnails, SHA-256, metadata.
+//! Screenshot storage: PNG encoding, preview thumbnails, SHA-256, metadata.
 //!
 //! Everything stays local. A screenshot is written twice: the full image and a
 //! 320 px thumbnail for the gallery, so the UI never loads big files.

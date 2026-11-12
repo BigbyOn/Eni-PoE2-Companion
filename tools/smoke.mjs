@@ -127,7 +127,7 @@ const langRes = await main.eval(`(async () => {
   await window.__TAURI__.core.invoke('save_settings', { settings: {
     lang: s.lang, route: s.route, hotkeys: s.hotkeys, log: s.log, overlay: s.overlay,
     shots_dir: s.shots_dir, zone_aliases: s.zone_aliases,
-    ai_provider: s.ai.provider, ai_model: s.ai.model, ai_enabled: s.ai.enabled, ai_key: '', ai_clear_key: false } });
+    ai_provider: s.ai.provider, ai_model: s.ai.model, ai_reasoning: s.ai.reasoning || 'auto', ai_enabled: s.ai.enabled, ai_key: '', ai_clear_key: false } });
   await new Promise(r => setTimeout(r, 400));
   return document.documentElement.lang + '|' + document.querySelector('#nav-items button').textContent.trim();
 })()`);
@@ -140,7 +140,7 @@ await main.eval(`(async () => {
   await window.__TAURI__.core.invoke('save_settings', { settings: {
     lang: 'ru', route: s.route, hotkeys: s.hotkeys, log: s.log, overlay: s.overlay,
     shots_dir: s.shots_dir, zone_aliases: s.zone_aliases,
-    ai_provider: s.ai.provider, ai_model: s.ai.model, ai_enabled: s.ai.enabled, ai_key: '', ai_clear_key: false } });
+    ai_provider: s.ai.provider, ai_model: s.ai.model, ai_reasoning: s.ai.reasoning || 'auto', ai_enabled: s.ai.enabled, ai_key: '', ai_clear_key: false } });
   await new Promise(r => setTimeout(r, 300));
   return document.documentElement.lang;
 })()`);
@@ -155,7 +155,7 @@ await main.eval(`(async () => {
     lang: s.lang, route: s.route, hotkeys: s.hotkeys,
     log: { mode: 'manual', path: ${JSON.stringify(logPath)} },
     overlay: s.overlay, shots_dir: ${JSON.stringify(shotsDir)}, zone_aliases: s.zone_aliases,
-    ai_provider: s.ai.provider, ai_model: s.ai.model, ai_enabled: s.ai.enabled, ai_key: '', ai_clear_key: false } });
+    ai_provider: s.ai.provider, ai_model: s.ai.model, ai_reasoning: s.ai.reasoning || 'auto', ai_enabled: s.ai.enabled, ai_key: '', ai_clear_key: false } });
 })()`);
 await waitFor(main, "S.log_found && String(S.log_path).includes('_smoke') && S.saved.profiles[0].level === 6");
 const saveLog = await main.eval(`JSON.stringify({ found: S.log_found, path: S.log_path, zone: S.saved.profiles[0].zone, level: S.saved.profiles[0].level })`);
@@ -216,6 +216,41 @@ const rect = await main.eval(`(async () => {
 check("screenshot: size equals the game client area", rect[0] === shot.w && rect[1] === shot.h, `${shot.w}×${shot.h} vs client ${rect.join("×")}`);
 const thumbOk = existsSync(join(shotsDir, shot.thumb));
 check("screenshot: thumbnail written", thumbOk, shot.thumb);
+
+// 7b. AI UI is present and a disabled AI fails with a clear message
+const aiUi = JSON.parse(await main.eval(`(async () => {
+  go('settings');
+  await new Promise(r => setTimeout(r, 300));
+  return JSON.stringify({
+    provider: Boolean(document.querySelector('#st-ai-provider')),
+    model: Boolean(document.querySelector('#st-ai-model')),
+    reasoning: Boolean(document.querySelector('#st-ai-reasoning')),
+    reasoningOptions: document.querySelector('#st-ai-reasoning') ? [...document.querySelector('#st-ai-reasoning').options].map(o => o.value) : [],
+    key: Boolean(document.querySelector('#st-ai-key')),
+    test: Boolean(document.querySelector('[data-act="ai-test"]')),
+    visionHint: document.querySelector('#ai-vision-hint')?.textContent || '',
+  });
+})()`));
+check("ai ui: provider/model/reasoning/key/test present", aiUi.provider && aiUi.model && aiUi.reasoning && aiUi.key && aiUi.test, JSON.stringify(aiUi));
+check("ai ui: reasoning levels", aiUi.reasoningOptions.join(",") === "auto,low,medium,high", aiUi.reasoningOptions.join(","));
+const disabledAnswer = await main.eval(`(async () => {
+  try { await window.__TAURI__.core.invoke('ai_analyze', { ids: [${JSON.stringify(shot.id)}], task: 'analyse_item', question: '' }); return 'unexpected success'; }
+  catch (err) { return String(err); }
+})()`);
+check("ai: disabled provider refuses with a message", /ИИ выключен|Не задан API-ключ/.test(disabledAnswer), disabledAnswer);
+
+// 7c. screenshot modal offers the AI actions
+const modalUi = JSON.parse(await main.eval(`(async () => {
+  SHOTS = await window.__TAURI__.core.invoke('shots_list');
+  await openShot(${JSON.stringify(shot.id)});
+  return JSON.stringify({
+    buttons: [...document.querySelectorAll('[data-act="ai-run"]')].map(b => b.dataset.task),
+    question: Boolean(document.querySelector('#ms-question')),
+    answer: Boolean(document.querySelector('#ms-ai-answer')),
+  });
+})()`));
+check("ai ui: modal actions", modalUi.buttons.includes("analyse_item") && modalUi.buttons.includes("next_upgrades") && modalUi.question && modalUi.answer, JSON.stringify(modalUi));
+await main.eval(`(async () => { document.querySelector('#modal').hidden = true; activeShot = null; })()`);
 
 // 8. AI request preparation (local only)
 const ai = JSON.parse(await main.eval(`(async () => JSON.stringify(await window.__TAURI__.core.invoke('ai_prepare', { ids: [${JSON.stringify(shot.id)}], task: 'analyse_item' })))()`));
