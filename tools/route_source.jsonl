@@ -1,0 +1,115 @@
+{"i": 0, "act": 1, "zone": "The Riverbank", "tags": ["must", "boss"], "level": null, "quest": "Reaching Clearfell", "en": "Kill **The Bloated Miller**"}
+{"i": 1, "act": 1, "zone": "Clearfell Encampment", "tags": ["must", "town", "gem"], "level": null, "quest": "Reaching Clearfell", "en": "Talk to **Renly** -> first **Uncut Skill Gem**"}
+{"i": 2, "act": 1, "zone": "Clearfell", "tags": ["must", "buff", "boss"], "level": null, "quest": "Secrets in the Dark", "en": "Kill **Beira of the Rotten Pack** -> **+10% cold resistance**"}
+{"i": 3, "act": 1, "zone": "The Grelwood", "tags": ["must"], "level": "3-4", "quest": "Secrets in the Dark", "en": "Grab the **Waypoint** at the **Tree of Souls**, then into **The Red Vale**"}
+{"i": 4, "act": 1, "zone": "The Red Vale", "tags": ["must", "gear", "boss"], "level": "5", "quest": "Secrets in the Dark", "en": "Activate 3 **Obelisks of Rust**, kill the **Rust King**"}
+{"i": 5, "act": 1, "zone": "Clearfell Encampment", "tags": ["must", "town", "gear"], "level": null, "quest": "Secrets in the Dark", "en": "**Renly**: hand in the runes, take the **Runed Spikes**"}
+{"i": 6, "act": 1, "zone": "The Grelwood", "tags": ["must", "skip"], "level": null, "quest": "Secrets in the Dark", "en": "Break the **3 Runic Seals** at the Tree of Souls with the Runed Spikes"}
+{"i": 7, "act": 1, "zone": "The Grim Tangle", "tags": ["must", "skip", "gem"], "level": "5-6", "quest": "The Mysterious Shade", "en": "Summon **Una** at the roots, then on to the **Cemetery of the Eternals**"}
+{"i": 8, "act": 1, "zone": "Cemetery of the Eternals", "tags": ["must", "boss"], "level": "7", "quest": "Sorrow Among Stones", "en": "Kill **Asinia** and **Draven** -> 2 Memorial Key Pieces"}
+{"i": 9, "act": 1, "zone": "Cemetery of the Eternals", "tags": ["must", "boss", "skip"], "level": null, "quest": "Sorrow Among Stones", "en": "Kill **Lachlann of Endless Lament** at the **Memorial Gate** by the Waypoint"}
+{"i": 10, "act": 1, "zone": "Hunting Grounds", "tags": ["must", "buff", "boss"], "level": "7-8", "quest": "The Trail of Corruption", "en": "Kill **The Crowbell** -> **+2 passive points**"}
+{"i": 11, "act": 1, "zone": "Freythorn", "tags": ["optional", "buff", "boss"], "level": "8-9", "quest": "Ominous Altars", "en": "Cleanse 3 Ritual Altars, kill **The King in the Mists** -> **+30 Spirit**"}
+{"i": 12, "act": 1, "zone": "Clearfell Encampment", "tags": ["town", "optional"], "level": "10", "quest": "Ominous Altars", "en": "**Finn**: pick a Charm, **Una**: buy a Greater Life/Mana Flask"}
+{"i": 13, "act": 1, "zone": "Ogham Farmlands", "tags": ["must", "buff"], "level": "10", "quest": "The Lost Lute", "en": "Pick up **Una's Lute** -> **+2 passive points** from Una"}
+{"i": 14, "act": 1, "zone": "Ogham Village", "tags": ["must", "boss"], "level": "11", "quest": "The Trail of Corruption", "en": "Kill **The Executioner**, pull the lever, talk to **Leitis**"}
+{"i": 15, "act": 1, "zone": "Clearfell Encampment", "tags": ["town", "gem", "optional"], "level": null, "quest": "The Lost Lute", "en": "**Una**: hand in the lute -> **+2 passive points**"}
+{"i": 16, "act": 1, "zone": "The Manor Ramparts", "tags": ["must"], "level": "12", "quest": "The Mad Wolf of Ogham", "en": "To **Ogham Manor**, reaching **level 13** on the way"}
+{"i": 17, "act": 1, "zone": "Ogham Manor", "tags": ["must", "buff", "boss"], "level": "14", "quest": "The Mad Wolf of Ogham", "en": "Kill **Count Geonor** at **level 14**"}
+{"i": 18, "act": 1, "zone": "Clearfell Encampment", "tags": ["must", "town"], "level": null, "quest": "The Mad Wolf of Ogham", "en": "Talk to the **Hooded One** -> **Follow the Beast's trail**"}
+{"i": 19, "act": 2, "zone": "Vastiri Outskirts", "tags": ["must", "boss", "gem"], "level": "14", "quest": "Earning Passage", "en": "Kill **Rathbreaker**"}
+{"i": 20, "act": 2, "zone": "The Ardura Caravan", "tags": ["must", "town", "gear"], "level": null, "quest": "The Trail of Corruption", "en": "Talk to the **Hooded One**, then **Asala** -> Desert Map **Mawdun Quarry**"}
+{"i": 21, "act": 2, "zone": "Mawdun Quarry", "tags": ["must", "gear"], "level": "16", "quest": "The Trail of Corruption", "en": "Find the entrance to **Mawdun Mine**"}
+{"i": 22, "act": 2, "zone": "Mawdun Mine", "tags": ["must", "boss"], "level": "16-17", "quest": "The Trail of Corruption", "en": "Kill **Rudja, the Dread Engineer**, free **Risu**"}
+{"i": 23, "act": 2, "zone": "The Ardura Caravan", "tags": ["must", "town"], "level": null, "quest": "The Trail of Corruption", "en": "Talk to **Risu**, then **Asala** -> Desert Map **Traitor's Passage**"}
+{"i": 24, "act": 2, "zone": "Traitor's Passage", "tags": ["must"], "level": "17-18", "quest": "The Trail of Corruption", "en": "Run through to **The Halani Gates**"}
+{"i": 25, "act": 2, "zone": "The Halani Gates", "tags": ["must", "boss", "warn"], "level": "18", "quest": "The Trail of Corruption", "en": "Kill **Jamanra, the Risen King**"}
+{"i": 26, "act": 2, "zone": "The Ardura Caravan", "tags": ["must", "town", "gem"], "level": null, "quest": "The Trail of Corruption", "en": "Take the Uncut Skill Gem (level 7) from **Zarka**, talk to **Asala** -> Desert Map **Mastodon Badlands**"}
+{"i": 27, "act": 2, "zone": "Trial of the Sekhemas", "tags": ["ascend", "optional"], "level": "19-22", "quest": "Ascent to Power", "en": "**Trial of the Sekhemas** with Balbala's Barya (level 22)"}
+{"i": 28, "act": 2, "zone": "Mastodon Badlands", "tags": ["must"], "level": "20", "quest": "A Theft of Ivory", "en": "Find the entrance to **The Bone Pits**"}
+{"i": 29, "act": 2, "zone": "The Bone Pits", "tags": ["must", "boss", "buff"], "level": "20-21", "quest": "A Theft of Ivory", "en": "Kill **Iktab, the Deathlord & Ekbab, Ancient Steed** -> **Mastodon Tusks**"}
+{"i": 30, "act": 2, "zone": "Keth", "tags": ["must", "buff", "boss"], "level": "21-22", "quest": "The City of Seven Waters", "en": "Kill **Kabala, Constrictor Queen** -> **+2 passive points (+2 weapon set points)**"}
+{"i": 31, "act": 2, "zone": "The Lost City", "tags": ["must"], "level": "22", "quest": "The City of Seven Waters", "en": "Find the entrance to the **Buried Shrines**"}
+{"i": 32, "act": 2, "zone": "Buried Shrines", "tags": ["must", "boss"], "level": "22-23", "quest": "The City of Seven Waters", "en": "Kill **Azarian, the Forsaken Son** -> **Essence of Water**"}
+{"i": 33, "act": 2, "zone": "Valley of the Titans", "tags": ["must", "buff"], "level": "23", "quest": "A Crown of Stone", "en": "Activate the **3 Ancient Seals**: one at the end of each canyon"}
+{"i": 34, "act": 2, "zone": "The Titan Grotto", "tags": ["must", "boss"], "level": "24", "quest": "A Crown of Stone", "en": "Kill **Zalmarath, the Colossus** -> **Flame Ruby**"}
+{"i": 35, "act": 2, "zone": "The Ardura Caravan", "tags": ["must", "town", "tip"], "level": null, "quest": "The Trail of Corruption", "en": "Desert Map to the sandstorm (**Traitor's Passage**), then **Sound the Horn** at the front of the caravan"}
+{"i": 36, "act": 2, "zone": "Deshar", "tags": ["must", "buff"], "level": "24", "quest": "Tradition's Toll", "en": "Take the **Final Letter** from **Fallen Dekhara** (for Shambrin: +2 passive points (+2 weapon set points))"}
+{"i": 37, "act": 2, "zone": "Path of Mourning", "tags": ["must"], "level": "25", "quest": "The Trail of Corruption", "en": "Run through to **The Spires of Deshar**"}
+{"i": 38, "act": 2, "zone": "The Spires of Deshar", "tags": ["must", "buff", "boss"], "level": "26", "quest": "The Trail of Corruption", "en": "Kill **Tor Gul, the Defiler**"}
+{"i": 39, "act": 2, "zone": "The Ardura Caravan", "tags": ["must", "town", "buff", "tip"], "level": null, "quest": "Tradition's Toll", "en": "Pick **The Dreadnought** on the Desert Map, hand the **Final Letter** to **Shambrin** while travelling -> **+2 passive points (+2 weapon set points)**"}
+{"i": 40, "act": 2, "zone": "Trial of the Sekhemas", "tags": ["ascend", "optional"], "level": "~28", "quest": "Ascent to Power", "en": "**Trial of the Sekhemas** with the level-28 Barya from Deshar"}
+{"i": 41, "act": 2, "zone": "The Dreadnought", "tags": ["must", "boss", "warn"], "level": "28-29", "quest": "The Trail of Corruption", "en": "Kill **Jamanra, the Abomination** (act boss)"}
+{"i": 42, "act": 2, "zone": "The Ardura Caravan", "tags": ["must", "town", "tip"], "level": null, "quest": "The Trail of Corruption", "en": "Talk to the **Hooded One** in the shrine northwest of the caravan's midpoint (down a ramp)"}
+{"i": 43, "act": 3, "zone": "Sandswept Marsh", "tags": ["must", "gem"], "level": "29", "quest": "Legacy of the Vaal", "en": "Run through to the **Ziggurat Encampment**"}
+{"i": 44, "act": 3, "zone": "Ziggurat Encampment", "tags": ["must", "town", "gear"], "level": "29", "quest": "Legacy of the Vaal", "en": "Talk to **Oswald**, check vendors"}
+{"i": 45, "act": 3, "zone": "Jungle Ruins", "tags": ["must", "buff", "boss"], "level": "29-30", "quest": "Legacy of the Vaal", "en": "Kill **Mighty Silverfist** -> **+2 passive points** (+2 weapon set points)"}
+{"i": 46, "act": 3, "zone": "Venom Crypts", "tags": ["buff", "optional"], "level": "30", "quest": "The Slithering Dead", "en": "Take the **Corpse-snake Venom** from the corpse"}
+{"i": 47, "act": 3, "zone": "Infested Barrens", "tags": ["must"], "level": "31", "quest": "Legacy of the Vaal", "en": "Run through to the **Chimeral Wetlands**"}
+{"i": 48, "act": 3, "zone": "Chimeral Wetlands", "tags": ["must", "boss"], "level": "32", "quest": "Legacy of the Vaal", "en": "Kill **Xyclucian**, continue into **Jiquani's Machinarium**"}
+{"i": 49, "act": 3, "zone": "Jiquani's Machinarium", "tags": ["must", "buff", "boss"], "level": "33", "quest": "Legacy of the Vaal", "en": "Kill **Blackjaw** -> **Flame Core**: **+10% fire resistance**"}
+{"i": 50, "act": 3, "zone": "Jiquani's Sanctum", "tags": ["must", "boss", "tip"], "level": "33", "quest": "Legacy of the Vaal", "en": "Kill **Zicoatl** -> **Large Soul Core**"}
+{"i": 51, "act": 3, "zone": "Jungle Ruins", "tags": ["must"], "level": null, "quest": "Legacy of the Vaal", "en": "**Large Soul Core** into the **Stone Altar** -> opens the **Matlan Waterways**"}
+{"i": 52, "act": 3, "zone": "Matlan Waterways", "tags": ["must"], "level": "34", "quest": "Legacy of the Vaal", "en": "Walk over the pressure pads, activate the **mechanism** at the end"}
+{"i": 53, "act": 3, "zone": "Azak Bog", "tags": ["buff", "boss", "optional"], "level": "35", "quest": "Tribal Vengeance", "en": "Kill **Ignagduk** -> **Gemrot Skull: +30 Spirit** + Uncut Spirit Gem level 10"}
+{"i": 54, "act": 3, "zone": "Ziggurat Encampment", "tags": ["must", "town"], "level": null, "quest": "Legacy of the Vaal", "en": "Talk to **Alva** at the bottom of the Ziggurat -> **Drowned City**"}
+{"i": 55, "act": 3, "zone": "Trial of Chaos", "tags": ["ascend", "optional"], "level": null, "quest": "The Trials of Chaos", "en": "**Trial of Chaos** with the Chimeral Inscribed Ultimatum: ascendancy"}
+{"i": 56, "act": 3, "zone": "Drowned City", "tags": ["must"], "level": "36", "quest": "Legacy of the Vaal", "en": "Run through to the **Apex of Filth**"}
+{"i": 57, "act": 3, "zone": "Apex of Filth", "tags": ["must", "boss"], "level": "36-37", "quest": "Legacy of the Vaal", "en": "Kill the **Queen of Filth** -> **Temple Door Idol**"}
+{"i": 58, "act": 3, "zone": "Molten Vault", "tags": ["gear", "optional"], "level": "37", "quest": "Treasures of Utzaal", "en": "Kill **Mektul** -> Hammer of Kamasa to **Oswald**: **Reforging Bench**"}
+{"i": 59, "act": 3, "zone": "Temple of Kopec", "tags": ["must", "boss", "tip"], "level": "37", "quest": "Legacy of the Vaal", "en": "Run all the way up, kill **Ketzuli**"}
+{"i": 60, "act": 3, "zone": "Ziggurat Encampment", "tags": ["must", "town"], "level": null, "quest": "Legacy of the Vaal", "en": "Through the **Gateway**, down the stairs to **Utzaal**"}
+{"i": 61, "act": 3, "zone": "Utzaal", "tags": ["must", "boss"], "level": "38", "quest": "Legacy of the Vaal", "en": "Kill **Viper Napuatzi**"}
+{"i": 62, "act": 3, "zone": "Aggorat", "tags": ["must", "buff"], "level": "39", "quest": "Legacy of the Vaal", "en": "Sacrifice the **Sacrificial Heart** at the blood sacrifice altar -> **+2 passive points** (+2 weapon set points)"}
+{"i": 63, "act": 3, "zone": "Black Chambers", "tags": ["must", "boss"], "level": "40", "quest": "Legacy of the Vaal", "en": "Kill **Doryani**"}
+{"i": 64, "act": 3, "zone": "Ziggurat Encampment", "tags": ["must", "town"], "level": null, "quest": "Legacy of the Vaal", "en": "Talk to **Doryani**, then travel with **Alva** to **Kingsmarch**"}
+{"i": 65, "act": 4, "zone": "Kingsmarch", "tags": ["must", "town"], "level": "41", "quest": "The Search", "en": "Talk to **Doryani** and **Alva**, then **Makoru** at the ship -> Isle of Kin"}
+{"i": 66, "act": 4, "zone": "Isle of Kin", "tags": ["must"], "level": null, "quest": "Land of the Kin", "en": "Go through to the **Volcanic Warrens**"}
+{"i": 67, "act": 4, "zone": "Volcanic Warrens", "tags": ["must", "boss", "gear"], "level": null, "quest": "Land of the Kin", "en": "Kill **Krutog** -> weapon piece 1/3"}
+{"i": 68, "act": 4, "zone": "Kedge Bay", "tags": ["optional"], "level": null, "quest": "Dark Mists", "en": "Go through to **Journey's End**"}
+{"i": 69, "act": 4, "zone": "Journey's End", "tags": ["optional", "buff", "boss"], "level": null, "quest": "Dark Mists", "en": "Kill **Omniphobia** -> **+2 passive points** (+2 weapon set points)"}
+{"i": 70, "act": 4, "zone": "Abandoned Prison", "tags": ["must", "buff"], "level": "43", "quest": "Abandoned Prison", "en": "Go through to **Solitary Confinement**"}
+{"i": 71, "act": 4, "zone": "Solitary Confinement", "tags": ["must", "boss"], "level": null, "quest": "Abandoned Prison", "en": "Kill **The Prisoner** -> weapon piece 2/3"}
+{"i": 72, "act": 4, "zone": "Shrike Island", "tags": ["must", "boss"], "level": null, "quest": "Shrike Island", "en": "Kill **Scourge of the Skies** -> weapon piece 3/3"}
+{"i": 73, "act": 4, "zone": "Whakapanu Island", "tags": ["optional", "buff", "boss"], "level": null, "quest": "Tribal Medicine", "en": "Kill the **Great White One** -> **Shark Fin**"}
+{"i": 74, "act": 4, "zone": "Singing Caverns", "tags": ["optional", "buff", "boss"], "level": null, "quest": "Whakapanu Island", "en": "Kill **Diamora** -> free **Matiki**"}
+{"i": 75, "act": 4, "zone": "Eye of Hinekora", "tags": ["optional", "buff", "tip"], "level": "45", "quest": "Trial of the Ancestors", "en": "**Silent Hall** -> **+5% max. mana**"}
+{"i": 76, "act": 4, "zone": "Halls of the Dead", "tags": ["optional", "buff", "boss"], "level": null, "quest": "Trial of the Ancestors", "en": "Complete 3 tests -> **3 tattoos**"}
+{"i": 77, "act": 4, "zone": "Trial of the Ancestors", "tags": ["optional", "buff"], "level": null, "quest": "Trial of the Ancestors", "en": "Talk to **Navali** -> **+2 passive points** (+2 weapon set points)"}
+{"i": 78, "act": 4, "zone": "Kingsmarch", "tags": ["must", "town"], "level": null, "quest": "The Search", "en": "Talk to the **Hooded One**, then **Makoru** -> Arastas"}
+{"i": 79, "act": 4, "zone": "Arastas", "tags": ["must", "boss", "warn"], "level": "46-47", "quest": "The Search", "en": "Kill **Torvian**"}
+{"i": 80, "act": 4, "zone": "The Excavation", "tags": ["must", "boss", "tip"], "level": null, "quest": "The Search", "en": "Kill **Benedictus**"}
+{"i": 81, "act": 4, "zone": "Kingsmarch", "tags": ["must", "town"], "level": null, "quest": "The Search", "en": "Talk to the **Hooded One**, then **Rhodri** at the ship -> Ngakanu"}
+{"i": 82, "act": 4, "zone": "Ngakanu -> Heart of the Tribe", "tags": ["must", "boss"], "level": "48", "quest": "The Search", "en": "Kill **Tavakai**"}
+{"i": 83, "act": 4, "zone": "Kingsmarch", "tags": ["must", "town"], "level": null, "quest": "The Search", "en": "Talk to the **Hooded One** -> Interludes unlocked"}
+{"i": 84, "act": 5, "zone": "The Khari Bazaar", "tags": ["must", "town"], "level": "~50", "quest": "Recruit the Maraketh", "en": "Talk to **Asala** and **Zarka**, take the north-east exit"}
+{"i": 85, "act": 5, "zone": "Skullmaw Stairway", "tags": ["buff", "optional"], "level": null, "quest": "", "en": "Take **Molten One's Gift** -> **+5% max. life**"}
+{"i": 86, "act": 5, "zone": "The Galai Gates", "tags": ["tip"], "level": null, "quest": "Recruit the Maraketh", "en": "Just grab the **waypoint**, go back to the Khari Crossing"}
+{"i": 87, "act": 5, "zone": "The Khari Crossing", "tags": ["buff", "boss", "optional"], "level": null, "quest": "Clearing the Way", "en": "Kill **Akthi & Anundr** -> Risu: **+2 passive points (+2 weapon set points)**"}
+{"i": 88, "act": 5, "zone": "Pools of Khatal", "tags": ["must"], "level": null, "quest": "Recruit the Maraketh", "en": "Activate the **waypoint**, WP back to the Khari Bazaar"}
+{"i": 89, "act": 5, "zone": "The Glade -> Ashen Forest", "tags": ["must"], "level": "~51", "quest": "Recruit the Vaal", "en": "Through the **Ashen Forest** to **Kriar Village**"}
+{"i": 90, "act": 5, "zone": "Kriar Village", "tags": ["must", "buff", "boss"], "level": null, "quest": "Recruit the Vaal", "en": "Kill **Lythara** -> **+40 Spirit**"}
+{"i": 91, "act": 5, "zone": "Glacial Tarn -> Howling Caves", "tags": ["buff", "boss", "optional"], "level": null, "quest": "Howling Winds", "en": "Kill the **Abominable Yeti** -> Hilda: **+2 passive points (+2 weapon set points)**"}
+{"i": 92, "act": 5, "zone": "Glacial Tarn", "tags": ["must", "boss"], "level": null, "quest": "Recruit the Vaal", "en": "Kill **Rakkar** -> Kriar Peaks"}
+{"i": 93, "act": 5, "zone": "Kriar Peaks", "tags": ["must", "gear"], "level": null, "quest": "Recruit the Vaal", "en": "Talk to **Elder Madox** -> **1 Unique of your choice**"}
+{"i": 94, "act": 5, "zone": "Etched Ravine", "tags": ["must", "boss"], "level": null, "quest": "Recruit the Vaal", "en": "Kill **Stormgore** -> Cuachic Vault"}
+{"i": 95, "act": 5, "zone": "The Cuachic Vault", "tags": ["must", "boss", "warn"], "level": null, "quest": "Recruit the Vaal", "en": "Kill **Zolin & Zelina**, then **summon and talk to Doryani**"}
+{"i": 96, "act": 5, "zone": "Sel Khari Sanctuary", "tags": ["must", "boss"], "level": "~54", "quest": "Recruit the Maraketh", "en": "Kill **Elzarah**, then talk to **Asala**"}
+{"i": 97, "act": 5, "zone": "The Galai Gates", "tags": ["must", "boss"], "level": null, "quest": "Recruit the Maraketh", "en": "Kill **Vornas** -> Qimah"}
+{"i": 98, "act": 5, "zone": "Qimah", "tags": ["must", "buff"], "level": null, "quest": "Recruit the Maraketh", "en": "Pick a **boon** at the Seven Pillars, summon **Jado**"}
+{"i": 99, "act": 5, "zone": "Qimah Reservoir", "tags": ["must", "boss", "warn"], "level": null, "quest": "Recruit the Maraketh", "en": "Kill **Azmadi**, use the **Grand Barya**, talk to **Jado**"}
+{"i": 100, "act": 5, "zone": "The Refuge -> Scorched Farmlands", "tags": ["must", "boss"], "level": "~57", "quest": "Recruit the Ezomytes", "en": "Kill **Isolde & Heldra** -> Stones of Serle"}
+{"i": 101, "act": 5, "zone": "Stones of Serle", "tags": ["must", "boss"], "level": null, "quest": "Recruit the Ezomytes", "en": "Activate the **6 megaliths**, then kill **Siora**"}
+{"i": 102, "act": 5, "zone": "The Blackwood -> Holten", "tags": ["must"], "level": null, "quest": "Recruit the Ezomytes", "en": "Checkpoint to the darkness, through **The Blackwood** to **Holten**"}
+{"i": 103, "act": 5, "zone": "Holten", "tags": ["gear", "optional"], "level": null, "quest": "", "en": "Buy Greater Runes from the **Soul of the Ferryman**"}
+{"i": 104, "act": 5, "zone": "Wolvenhold", "tags": ["buff", "boss", "optional"], "level": null, "quest": "", "en": "Kill **Oswin** -> **Warden's Ledger**: +2 passive points (+2 weapon set points)"}
+{"i": 105, "act": 5, "zone": "Holten Estate", "tags": ["must", "boss"], "level": null, "quest": "Recruit the Ezomytes", "en": "Kill **Thane Wulfric & Lady Elswyth**"}
+{"i": 106, "act": 5, "zone": "The Refuge", "tags": ["must", "town"], "level": null, "quest": "Recruit the Ezomytes", "en": "Talk to **Renly**, WP to Kingsmarch"}
+{"i": 107, "act": 5, "zone": "Kingsmarch", "tags": ["must", "town", "buff"], "level": null, "quest": "Siege of Oriath", "en": "**Hooded One**: get the Book of Specialisation -> **+2 passive points (+2 weapon set points)**"}
+{"i": 108, "act": 5, "zone": "The Ziggurat Refuge", "tags": ["must", "town"], "level": null, "quest": "Siege of Oriath", "en": "Talk to the **Hooded One** and **Doryani**, use the **Map Device**"}
+{"i": 109, "act": 6, "zone": "The Ziggurat Refuge", "tags": ["tip"], "level": null, "quest": "", "en": "Take the waystone from **Doryani**, reforge it up at the **Reforging Bench**"}
+{"i": 110, "act": 6, "zone": "Atlas", "tags": ["tip"], "level": null, "quest": "", "en": "Head for **Powerful Map Bosses**: the boss drops a waystone one tier higher"}
+{"i": 111, "act": 6, "zone": "Atlas", "tags": ["tip"], "level": null, "quest": "", "en": "First goal: the **Fortress quest line** for Atlas points"}
+{"i": 112, "act": 6, "zone": "Atlas", "tags": ["tip"], "level": null, "quest": "", "en": "Stay at most **6-8 levels** below the map level"}
+{"i": 113, "act": 6, "zone": "Atlas", "tags": ["tip", "warn"], "level": null, "quest": "", "en": "**Cap fire and lightning resistance**, leave cold open if you must"}
+{"i": 114, "act": 6, "zone": "Trial of the Sekhemas / Trial of Chaos", "tags": ["ascend"], "level": null, "quest": "", "en": "**Catch up on ascendancy**: 2nd trial with the Chimeral Inscribed Ultimatum (Act 3), 3rd with a level 60 Barya"}
