@@ -277,6 +277,25 @@ check("items: AI disabled refuses", /ИИ выключен|Не задан API-�
 const items = JSON.parse(await main.eval(`(async () => JSON.stringify(await window.__TAURI__.core.invoke('items_list')))()`));
 check("items: list returns the record", items.length >= 1 && items[0].id === item.id, String(items.length));
 
+const tradeUi = JSON.parse(await main.eval(`(async () => {
+  go('settings');
+  await new Promise(r => setTimeout(r, 250));
+  return JSON.stringify({
+    enable: Boolean(document.querySelector('#st-trade-enabled')),
+    league: Boolean(document.querySelector('#st-trade-league')),
+  });
+})()`));
+check("trade ui: settings controls present", tradeUi.enable && tradeUi.league, JSON.stringify(tradeUi));
+const tradeDisabled = await main.eval(`(async () => {
+  go('build');
+  await new Promise(r => setTimeout(r, 300));
+  const priceBtn = document.querySelector('[data-act="item-price"]');
+  const res = await window.__TAURI__.core.invoke('trade_price', { id: ${JSON.stringify(item.id)} }).then(() => 'unexpected success').catch((e) => String(e));
+  return JSON.stringify({ priceBtn: Boolean(priceBtn), err: res });
+})()`);
+const tradeState = JSON.parse(tradeDisabled);
+check("trade: hidden button and clear refusal while disabled", tradeState.priceBtn === false && /выключена/.test(tradeState.err), tradeDisabled);
+
 // 8. AI request preparation (local only)
 const ai = JSON.parse(await main.eval(`(async () => JSON.stringify(await window.__TAURI__.core.invoke('ai_prepare', { ids: [${JSON.stringify(shot.id)}], task: 'analyse_item' })))()`));
 check("ai: request description written locally", existsSync(ai.path) && ai.json.includes("analyse_item"), ai.path);

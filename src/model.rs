@@ -303,6 +303,21 @@ pub struct Shot {
     pub level: u32,
 }
 
+/// Price check through the official trade API (opt-in, one click per request).
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(default)]
+pub struct TradeCfg {
+    pub enabled: bool,
+    /// Empty means "detect the current challenge league".
+    pub league: String,
+}
+
+impl Default for TradeCfg {
+    fn default() -> Self {
+        TradeCfg { enabled: false, league: String::new() }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(default)]
 pub struct AiCfg {
@@ -346,6 +361,8 @@ pub struct Saved {
     pub buildings_dir: Option<PathBuf>,
     pub shots_dir: Option<PathBuf>,
     pub ai: AiCfg,
+    #[serde(default)]
+    pub trade: TradeCfg,
     #[serde(default = "default_aliases")]
     pub zone_aliases: Vec<ZoneAlias>,
 }
@@ -369,6 +386,7 @@ impl Default for Saved {
             buildings_dir: None,
             shots_dir: None,
             ai: AiCfg::default(),
+            trade: TradeCfg::default(),
             zone_aliases: default_aliases(),
         }
     }

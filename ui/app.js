@@ -867,6 +867,16 @@ function renderSettings() {
     </div>
 
     <div class="card">
+      <h2>${esc(t("set.trade"))}</h2>
+      <div class="small" style="margin-bottom:8px">${esc(t("set.trade_hint"))}</div>
+      <div class="grid c2">
+        <label class="check"><input type="checkbox" id="st-trade-enabled" ${S.saved.trade?.enabled ? "checked" : ""}> ${esc(t("set.trade_enable"))}</label>
+        <div class="field"><label>${esc(t("set.trade_league"))}</label>
+          <input type="text" id="st-trade-league" value="${esc(S.saved.trade?.league || "")}" placeholder="Standard"></div>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>${esc(t("set.ai"))}</h2>
       <div class="small" style="margin-bottom:8px">${esc(t("set.ai_hint"))}</div>
       <div class="grid c3">
@@ -1000,12 +1010,14 @@ function itemCard(rec) {
       <div><b>${esc(p.name || p.base)}</b>${p.base && p.base !== p.name ? ` <span class="small">${esc(p.base)}</span>` : ""}</div>
       <div class="row">
         <span class="small ${cls}">${esc(t("items.score"))}: ${score}</span>
+        ${S.saved.trade?.enabled ? `<button class="btn sm ghost" data-act="item-price" data-id="${esc(rec.id)}">${esc(t("items.price"))}</button>` : ""}
         <button class="btn sm ghost" data-act="item-ai" data-id="${esc(rec.id)}">${esc(t("items.ai"))}</button>
         <button class="btn sm danger" data-act="item-delete" data-id="${esc(rec.id)}">${esc(t("items.delete"))}</button>
       </div>
     </div>
     <div class="small">${esc(p.rarity || "")}${p.slot ? " · " + esc(p.slot) : ""}${p.item_level ? ` · ${esc(t("items.ilvl"))} ${p.item_level}` : ""} · ${fmtTime(rec.ts)}</div>
     <div class="chips" style="margin-top:5px">${matches}${warnings}</div>
+    <div class="price-slot" style="margin-top:6px" hidden></div>
     <div class="ai-slot" style="margin-top:6px" ${rec.ai ? "" : "hidden"}>
       ${rec.ai ? `<div class="ai-answer"><div class="small">${esc(t("ai.answer"))}</div><div class="ai-text">${esc(rec.ai).replaceAll("\n", "<br>")}</div></div>` : ""}
     </div>
@@ -1104,6 +1116,8 @@ function baseSettings() {
     ai_enabled: S.saved.ai.enabled,
     ai_key: "",
     ai_clear_key: false,
+    trade_enabled: Boolean(S.saved.trade?.enabled),
+    trade_league: S.saved.trade?.league || "",
   };
 }
 
@@ -1137,6 +1151,8 @@ function collectSettings({ keepKey = false } = {}) {
     ai_enabled: $("#st-ai-enabled")?.checked ?? false,
     ai_key: keepKey ? "" : $("#st-ai-key")?.value || "",
     ai_clear_key: false,
+    trade_enabled: $("#st-trade-enabled")?.checked ?? false,
+    trade_league: $("#st-trade-league")?.value.trim() || "",
   };
 }
 
@@ -1290,6 +1306,31 @@ async function act(name, el) {
       await invoke("item_delete", { id: el.dataset.id });
       await loadItems();
       break;
+    case "item-price": {
+      const box = el.closest(".item")?.querySelector(".price-slot");
+      if (box) {
+        box.hidden = false;
+        box.innerHTML = `<div class="small">${esc(t("items.price_wait"))}</div>`;
+      }
+      el.disabled = true;
+      try {
+        const p = await invoke("trade_price", { id: el.dataset.id });
+        const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+        if (box) {
+          const line =
+            p.total === 0
+              ? esc(p.note || t("items.price_failed"))
+              : `${esc(t("items.price_min"))} <b>${money(p.min)} ${esc(p.currency)}</b> · ${esc(t("items.price_median"))} <b>${money(p.median)} ${esc(p.currency)}</b> · ${p.total} ${esc(t("items.price_lots"))}`;
+          box.innerHTML = `<div class="small">${line}</div>
+            <div class="small">${esc(p.league)}${p.note ? " · " + esc(p.note) : ""} · <button class="link" data-act="link" data-url="${esc(p.trade_url)}">${esc(t("items.price_open"))}</button></div>`;
+        }
+      } catch (err) {
+        if (box) box.innerHTML = `<div class="small bad-text">${esc(t("items.price_failed"))}: ${esc(String(err))}</div>`;
+      } finally {
+        el.disabled = false;
+      }
+      break;
+    }
     case "item-ai": {
       const box = el.closest(".item")?.querySelector(".ai-slot");
       if (box) {

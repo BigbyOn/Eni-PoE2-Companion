@@ -20,6 +20,7 @@ mod logparse;
 mod model;
 mod screens;
 mod tail;
+mod trade;
 
 use model::*;
 use serde::{Deserialize, Serialize};
@@ -117,6 +118,8 @@ struct App {
     last_area: Mutex<String>,
     /// Overlay regex list toggle (runtime only).
     regex_open: Mutex<bool>,
+    /// Last trade request, to keep at least a few seconds between them.
+    last_trade: Mutex<Option<std::time::Instant>>,
 }
 
 fn action_label(action: &str) -> &'static str {
@@ -617,6 +620,10 @@ struct SettingsIn {
     ai_model: String,
     ai_reasoning: String,
     ai_enabled: bool,
+    #[serde(default)]
+    trade_enabled: bool,
+    #[serde(default)]
+    trade_league: String,
     /// New key in plain text; only ever stored DPAPI-encrypted.
     ai_key: Option<String>,
     ai_clear_key: bool,
@@ -666,6 +673,10 @@ fn save_settings(app: AppHandle, state: State<App>, settings: SettingsIn) -> Res
             .filter(|a| !a.alias.trim().is_empty() && !a.zone.trim().is_empty())
             .map(|a| ZoneAlias { alias: a.alias.trim().to_string(), zone: a.zone.trim().to_string() })
             .collect();
+        s.saved.trade = TradeCfg {
+            enabled: settings.trade_enabled,
+            league: settings.trade_league.trim().chars().take(60).collect(),
+        };
         s.saved.ai = AiCfg {
             enabled: settings.ai_enabled,
             provider: settings.ai_provider.clone(),
@@ -1252,6 +1263,32 @@ fn item_import(app: AppHandle, state: State<App>) -> Result<ItemRecord, String> 
     state.import_item(&app)
 }
 
+/// Price check for an imported item through the official trade API.
+#[tauri::command]
+async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceResult, String> {
+    let (parsed, enabled, league) = {
+        let s = state.snap.lock().unwrap();
+        let rec = s.saved.items.iter().find(|x| x.id == id).ok_or("Предмет не найден")?;
+        (rec.parsed.clone(), s.saved.trade.enabled, s.saved.trade.league.clone())
+    };
+    if !enabled {
+        return Err("Проверка цен выключена: включи её в настройках (официальный trade API).".into());
+    }
+    {
+        let mut last = state.last_trade.lock().unwrap();
+        if let Some(at) = *last {
+            let elapsed = at.elapsed();
+            if elapsed < std::time::Duration::from_secs(3) {
+                return Err(format!("Не чаще раза в 3 секунды: подожди {} с.", 3 - elapsed.as_secs()));
+            }
+        }
+        *last = Some(std::time::Instant::now());
+    }
+    tauri::async_runtime::spawn_blocking(move || trade::check(&parsed, &league))
+        .await
+        .map_err(|e| format!("Запрос прерван: {e}"))?
+}
+
 #[tauri::command]
 fn item_delete(app: AppHandle, state: State<App>, id: String) {
     state.update(&app, |s, _| s.saved.items.retain(|x| x.id != id));
@@ -1388,6 +1425,7 @@ fn diagnostics(state: State<App>) -> String {
     out.push_str(&format!("history: {} events\n", s.saved.history.len()));
     out.push_str(&format!("screenshots: {} entries\n", s.saved.shots.len()));
     out.push_str(&format!("items: {} imported, {} regexes\n", s.saved.items.len(), s.saved.regexes.len()));
+    out.push_str(&format!("trade: enabled={} league={}\n", s.saved.trade.enabled, if s.saved.trade.league.is_empty() { "auto" } else { s.saved.trade.league.as_str() }));
     out.push_str(&format!("hotkey error: {}\n", s.hotkey_error.clone().unwrap_or_else(|| "нет".into())));
     out.push_str(&format!("zone unknown: {}\n", s.zone_unknown));
     out.push_str(&format!("area id: {}\n", s.area_id));
@@ -1524,6 +1562,7 @@ fn main() {    tauri::Builder::default()
             item_import,
             item_delete,
             item_ai,
+            trade_price,
             regex_toggle,
             copy_regex,
             diagnostics,
@@ -1604,6 +1643,7 @@ fn main() {    tauri::Builder::default()
                 dir: dir.clone(),
                 last_area: Mutex::new(String::new()),
                 regex_open: Mutex::new(false),
+                last_trade: Mutex::new(None),
             });
             // Windows are created only now ("create": false in tauri.conf.json):
             // their pages call commands right away, and those need the state above.
