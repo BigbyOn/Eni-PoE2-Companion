@@ -67,6 +67,8 @@ struct Snapshot {
     regex_open: bool,
     /// Short confirmation shown in the overlay after an import.
     last_item: Option<ItemToast>,
+    /// Current map checklist (runtime, reset on area change).
+    map_run: MapRun,
     /// Session counters, reset when the app starts.
     session_started: String,
     session_deaths: u32,
@@ -74,6 +76,52 @@ struct Snapshot {
     session_levels: u32,
     zone_since: String,
     version: String,
+}
+
+/// Live checklist of the current endgame map.
+#[derive(Serialize, Clone, Debug, Default)]
+struct MapRun {
+    zone: String,
+    started: String,
+    rares: u32,
+    boss: bool,
+    checks: Vec<MapCheck>,
+    open: bool,
+}
+
+#[derive(Serialize, Clone, Debug, Default)]
+struct MapCheck {
+    name: String,
+    done: bool,
+}
+
+impl MapRun {
+    fn new(zone: &str, mechanics: &[String]) -> Self {
+        MapRun {
+            zone: zone.to_string(),
+            started: now_iso(),
+            rares: 0,
+            boss: false,
+            checks: mechanics.iter().map(|m| MapCheck { name: m.clone(), done: false }).collect(),
+            open: false,
+        }
+    }
+
+    fn active(&self) -> bool {
+        self.rares > 0 || self.boss || self.checks.iter().any(|c| c.done)
+    }
+
+    fn summary(&self) -> String {
+        let done = self.checks.iter().filter(|c| c.done).count();
+        format!(
+            "{}: {} редких, босс: {}, механик: {}/{}",
+            if self.zone.is_empty() { "карта" } else { &self.zone },
+            self.rares,
+            if self.boss { "да" } else { "нет" },
+            done,
+            self.checks.len()
+        )
+    }
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -134,6 +182,7 @@ fn action_label(action: &str) -> &'static str {
         "screenshot" => "скриншот",
         "item" => "импорт предмета",
         "regex" => "regex-список",
+        "map" => "чек-лист карты",
         _ => "главное окно",
     }
 }
@@ -261,8 +310,10 @@ impl App {
             let list: Vec<String> = names.iter().map(|n| format!("«{}»", action_label(n))).collect();
             format!("Горячие клавиши заняты другой программой: {}", list.join(", "))
         });
-        self.report_hotkeys(app, err.clone());
-        err.map_or(Ok(()), Err)
+        // A busy combination is reported in the UI banner, but the rest of the
+        // settings must still be saved.
+        self.report_hotkeys(app, err);
+        Ok(())
     }
 
     /// Retries refused hotkeys on the main thread, outside the shortcut handler.
@@ -376,6 +427,7 @@ impl App {
                 }
             }
             "regex" => self.toggle_regex(app),
+            "map" => self.update(app, |s, _| s.map_run.open = !s.map_run.open),
             _ => toggle_main(app),
         }
     }
@@ -465,6 +517,16 @@ impl App {
                         if let Some(i) = c.advance(p.step, &resolved, &mode, &[]) {
                             p.step = i;
                         }
+                    }
+                    if s.map_run.zone != zone {
+                        if s.map_run.active() {
+                            let summary = s.map_run.summary();
+                            push_event(s, "map", summary, String::new());
+                        }
+                        let mechanics = s.saved.map.mechanics.clone();
+                        let auto_open = s.saved.map.enabled;
+                        s.map_run = MapRun::new(&zone, &mechanics);
+                        s.map_run.open = auto_open;
                     }
                     s.session_zones += 1;
                     s.zone_since = now_iso();
@@ -636,6 +698,10 @@ struct SettingsIn {
     trade_league: String,
     #[serde(default = "crate::model::default_trade_filters")]
     trade_filters: u8,
+    #[serde(default)]
+    map_enabled: bool,
+    #[serde(default)]
+    map_mechanics: Vec<String>,
     /// New key in plain text; only ever stored DPAPI-encrypted.
     ai_key: Option<String>,
     ai_clear_key: bool,
@@ -685,6 +751,16 @@ fn save_settings(app: AppHandle, state: State<App>, settings: SettingsIn) -> Res
             .filter(|a| !a.alias.trim().is_empty() && !a.zone.trim().is_empty())
             .map(|a| ZoneAlias { alias: a.alias.trim().to_string(), zone: a.zone.trim().to_string() })
             .collect();
+        s.saved.map = MapCfg {
+            enabled: settings.map_enabled,
+            mechanics: settings
+                .map_mechanics
+                .iter()
+                .map(|m| m.trim().chars().take(30).collect::<String>())
+                .filter(|m| !m.is_empty())
+                .take(12)
+                .collect(),
+        };
         s.saved.trade = TradeCfg {
             enabled: settings.trade_enabled,
             league: settings.trade_league.trim().chars().take(60).collect(),
@@ -1194,10 +1270,6 @@ fn log_check(path: String) -> LogCheck {
     }
 }
 
-#[tauri::command]
-fn copy_text(text: String) -> Result<(), String> {
-    clip::copy(&text).map_err(|e| e.to_string())
-}
 
 #[tauri::command]
 fn link_open(url: String) -> Result<(), String> {
@@ -1421,6 +1493,82 @@ async fn item_ai(app: AppHandle, state: State<'_, App>, id: String, question: St
 }
 
 #[tauri::command]
+fn map_toggle_check(app: AppHandle, state: State<App>, name: String) {
+    state.update(&app, |s, _| {
+        if let Some(check) = s.map_run.checks.iter_mut().find(|c| c.name == name) {
+            check.done = !check.done;
+        }
+    });
+}
+
+#[tauri::command]
+fn map_rare(app: AppHandle, state: State<App>, delta: i32) {
+    state.update(&app, |s, _| {
+        s.map_run.rares = (s.map_run.rares as i32 + delta).max(0) as u32;
+        s.map_run.open = true;
+    });
+}
+
+#[tauri::command]
+fn map_boss(app: AppHandle, state: State<App>) {
+    state.update(&app, |s, _| {
+        s.map_run.boss = !s.map_run.boss;
+        s.map_run.open = true;
+    });
+}
+
+#[tauri::command]
+fn map_reset(app: AppHandle, state: State<App>) {
+    state.update(&app, |s, _| {
+        let mechanics = s.saved.map.mechanics.clone();
+        let zone = s.map_run.zone.clone();
+        s.map_run = MapRun::new(&zone, &mechanics);
+        s.map_run.open = true;
+    });
+}
+
+#[tauri::command]
+fn map_panel(app: AppHandle, state: State<App>) {
+    state.update(&app, |s, _| s.map_run.open = !s.map_run.open);
+}
+
+#[derive(Serialize)]
+struct TradeSearchView {
+    listings: Vec<trade::ListingView>,
+    url: String,
+}
+
+#[tauri::command]
+async fn trade_search(state: State<'_, App>, query: String) -> Result<TradeSearchView, String> {
+    let (enabled, league) = {
+        let s = state.snap.lock().unwrap();
+        (s.saved.trade.enabled, s.saved.trade.league.clone())
+    };
+    if !enabled {
+        return Err("Торговля выключена: включи проверку цен в настройках.".into());
+    }
+    {
+        let mut last = state.last_trade.lock().unwrap();
+        if let Some(at) = *last {
+            let elapsed = at.elapsed();
+            if elapsed < std::time::Duration::from_secs(3) {
+                return Err(format!("Не чаще раза в 3 секунды: подожди {} с.", 3 - elapsed.as_secs()));
+            }
+        }
+        *last = Some(std::time::Instant::now());
+    }
+    tauri::async_runtime::spawn_blocking(move || trade::search_text(&query, &league))
+        .await
+        .map_err(|e| format!("Запрос прерван: {e}"))?
+        .map(|(listings, url)| TradeSearchView { listings, url })
+}
+
+#[tauri::command]
+fn copy_text(text: String) -> Result<(), String> {
+    clip::copy(&text).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn regex_toggle(app: AppHandle, state: State<App>) {
     state.toggle_regex(&app);
 }
@@ -1515,6 +1663,7 @@ fn diagnostics(state: State<App>) -> String {
     out.push_str(&format!("history: {} events\n", s.saved.history.len()));
     out.push_str(&format!("screenshots: {} entries\n", s.saved.shots.len()));
     out.push_str(&format!("items: {} imported, {} regexes\n", s.saved.items.len(), s.saved.regexes.len()));
+    out.push_str(&format!("map: checklist={} mechanics={}\n", s.saved.map.enabled, s.saved.map.mechanics.len()));
     out.push_str(&format!("trade: enabled={} league={} stats_cached={}\n", s.saved.trade.enabled, if s.saved.trade.league.is_empty() { "auto" } else { s.saved.trade.league.as_str() }, s.data_dir.join("trade_stats.json").is_file()));
     out.push_str(&format!("hotkey error: {}\n", s.hotkey_error.clone().unwrap_or_else(|| "нет".into())));
     out.push_str(&format!("zone unknown: {}\n", s.zone_unknown));
@@ -1657,6 +1806,12 @@ fn main() {    tauri::Builder::default()
             trade_price,
             regex_toggle,
             copy_regex,
+            map_toggle_check,
+            map_rare,
+            map_boss,
+            map_reset,
+            map_panel,
+            trade_search,
             diagnostics,
             reveal_data_dir,
             show_main_window,
@@ -1720,6 +1875,7 @@ fn main() {    tauri::Builder::default()
                     regexes: Vec::new(),
                     regex_open: false,
                     last_item: None,
+                    map_run: MapRun::default(),
                     session_started: now_iso(),
                     session_deaths: 0,
                     session_zones: 0,
@@ -1805,15 +1961,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn map_summary_counts_progress() {
+        let mut run = MapRun::new("Охотничьи угодья", &["Breach".to_string()]);
+        run.rares = 3;
+        run.boss = true;
+        run.checks[0].done = true;
+        let summary = run.summary();
+        assert!(summary.contains("3 редких"), "{summary}");
+        assert!(summary.contains("босс: да"), "{summary}");
+        assert!(summary.contains("1/1"), "{summary}");
+        assert!(run.active());
+        assert!(!MapRun::new("x", &[]).active());
+    }
+
+    #[test]
     fn hotkeys_parse_and_reject_duplicates() {
         let mut h = Hotkeys::default();
-        assert_eq!(parse_hotkeys(&h).unwrap().len(), 8);
+        assert_eq!(parse_hotkeys(&h).unwrap().len(), 9);
         h.screenshot = h.next.clone();
         assert!(parse_hotkeys(&h).unwrap_err().contains("занято"));
         h.screenshot = "Ctrl+Nonsense".into();
         assert!(parse_hotkeys(&h).is_err());
         h.screenshot = String::new();
-        assert_eq!(parse_hotkeys(&h).unwrap().len(), 7, "an empty field is simply unused");
+        assert_eq!(parse_hotkeys(&h).unwrap().len(), 8, "an empty field is simply unused");
     }
 
     #[test]

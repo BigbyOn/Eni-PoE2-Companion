@@ -25,7 +25,7 @@ const ASCENDANCIES = [
   "Deadeye", "Pathfinder", "Amazon", "Ritualist", "Infernalist", "Blood Mage", "Stormweaver",
   "Chronomancer", "Titan", "Warbringer", "Invoker", "Acolyte of Chayula", "Witchhunter", "Gemling Legionnaire",
 ];
-const SECTIONS = ["home", "character", "build", "campaign", "history", "shots", "settings"];
+const SECTIONS = ["home", "character", "build", "campaign", "trade", "history", "shots", "settings"];
 const SHOT_KINDS = ["item", "inventory", "passive", "gems", "other"];
 const REASONING = ["auto", "low", "medium", "high"];
 
@@ -159,7 +159,7 @@ function renderChips() {
 function renderSection() {
   $("#page-title").textContent = t("nav." + section);
   $("#ver").textContent = `v${VERSION}`;
-  const render = { home: renderHome, character: renderChar, build: renderBuild, campaign: renderCampaign, history: renderHistory, shots: renderShots, settings: renderSettings }[section];
+  const render = { home: renderHome, character: renderChar, build: renderBuild, campaign: renderCampaign, trade: renderTrade, history: renderHistory, shots: renderShots, settings: renderSettings }[section];
   try {
     render();
   } catch (err) {
@@ -426,7 +426,12 @@ function renderBuild() {
         )
         .join("")}</ul>
       ${stage.passives?.length ? `<h3 style="margin-top:12px">${esc(t("build.passives"))}</h3><ul class="list">${stage.passives.map((x) => `<li>${esc(l10n(x))}</li>`).join("")}</ul>` : ""}
-      ${stage.gear?.length ? `<h3 style="margin-top:12px">${esc(t("build.gear"))}</h3><ul class="list">${stage.gear.map((x) => `<li>${esc(l10n(x))}</li>`).join("")}</ul>` : ""}
+      ${stage.gear?.length ? `<h3 style="margin-top:12px">${esc(t("build.gear"))}</h3><ul class="list">${stage.gear.map((x) => {
+            const line = l10n(x);
+            const inside = line.match(/\(([^)]+)\)\s*$/);
+            const base = (inside ? inside[1] : line).trim();
+            return `<li>${esc(line)} <button class="link" data-act="find-item" data-q="${esc(base)}">${esc(t("trade.find"))}</button></li>`;
+          }).join("")}</ul>` : ""}
       ${stage.checklist?.length ? `<h3 style="margin-top:12px">${esc(t("build.checklist"))}</h3><div>${stage.checklist
         .map((c) => `<label class="check-item ${done.has(c.id) ? "done" : ""}"><input type="checkbox" data-item="${esc(c.id)}" ${done.has(c.id) ? "checked" : ""}><span>${esc(l10n(c.label))}</span></label>`)
         .join("")}</div>` : ""}
@@ -539,8 +544,62 @@ function renderCampaign() {
 }
 
 // ---------------------------------------------------------------- history
+function renderTrade() {
+  const enabled = S.saved.trade?.enabled;
+  $("#content").innerHTML = `
+    <div class="card">
+      <div class="row between">
+        <h2>${esc(t("trade.title"))}</h2>
+        <span class="small">${esc(t("trade.league"))}: ${esc(S.saved.trade?.league || t("trade.auto"))}</span>
+      </div>
+      <div class="small" style="margin:4px 0 10px">${esc(t("trade.hint"))}</div>
+      ${
+        enabled
+          ? `<div class="row"><input type="text" id="trade-q" style="flex:1;min-width:240px" placeholder="${esc(t("trade.placeholder"))}">
+             <button class="btn primary" data-act="trade-run">${esc(t("trade.search"))}</button></div>
+             <div id="trade-out" style="margin-top:10px"></div>`
+          : `<div class="small bad-text">${esc(t("trade.disabled"))}</div>`
+      }
+    </div>`;
+}
+
+async function runTradeSearch(q) {
+  const out = $("#trade-out");
+  if (!out) return;
+  const query = (q || "").trim();
+  if (query.length < 2) {
+    out.innerHTML = `<div class="small bad-text">${esc(t("trade.short"))}</div>`;
+    return;
+  }
+  out.innerHTML = `<div class="small">${esc(t("trade.wait"))}</div>`;
+  try {
+    const res = await invoke("trade_search", { query });
+    if (!res.listings.length) {
+      out.innerHTML = `<div class="small">${esc(t("trade.empty"))}</div>`;
+      return;
+    }
+    out.innerHTML = `<table class="table">
+      <thead><tr><th>${esc(t("trade.price"))}</th><th>${esc(t("trade.item"))}</th><th>${esc(t("trade.account"))}</th><th></th></tr></thead>
+      <tbody>${res.listings
+        .map(
+          (l) => `<tr>
+            <td><b>${esc(String(l.price))} ${esc(l.currency)}</b></td>
+            <td>${esc(l.name || l.base)}<div class="small">${esc(l.base)}${l.rarity ? " · " + esc(l.rarity) : ""}</div></td>
+            <td class="small">${esc(l.account)}</td>
+            <td><div class="row">
+              <button class="btn sm ghost" data-act="trade-copy" data-text="${esc(l.whisper)}">${esc(t("trade.copy"))}</button>
+              <button class="btn sm ghost" data-act="trade-open" data-url="${esc(res.url)}">${esc(t("trade.open"))}</button>
+            </div></td>
+          </tr>`
+        )
+        .join("")}</tbody></table>`;
+  } catch (e) {
+    out.innerHTML = `<div class="small bad-text">${esc(String(e))}</div>`;
+  }
+}
+
 function renderHistory() {
-  const kinds = ["zone", "level", "reward", "task", "manual", "shot", "ai", "item", "death"];
+  const kinds = ["zone", "level", "reward", "task", "manual", "shot", "ai", "item", "death", "map"];
   const p = profile();
   $("#content").innerHTML = `
     <div class="card tight">
@@ -798,6 +857,7 @@ function renderSettings() {
     ["main", "set.hk_main"],
     ["item", "set.hk_item"],
     ["regex", "set.hk_regex"],
+    ["map", "set.hk_map"],
   ];
   const providerOptions = [{ id: "disabled", label: t("common.none") }, ...(S.ai_providers || [])]
     .map((p) => `<option value="${esc(p.id)}" ${p.id === (S.saved.ai.provider || "disabled") ? "selected" : ""}>${esc(p.label)}</option>`)
@@ -899,6 +959,14 @@ function renderSettings() {
         ${(S.saved.regexes || []).map((r) => regexRow(r)).join("")}
       </div>
       <button class="btn sm ghost" data-act="regex-add" style="margin-top:6px">+ ${esc(t("set.regex_add"))}</button>
+    </div>
+
+    <div class="card">
+      <h2>${esc(t("set.map"))}</h2>
+      <div class="small" style="margin-bottom:8px">${esc(t("set.map_hint"))}</div>
+      <label class="check"><input type="checkbox" id="st-map-enabled" ${S.saved.map?.enabled ? "checked" : ""}> ${esc(t("set.map_enable"))}</label>
+      <div class="field" style="margin-top:8px"><label>${esc(t("set.map_mechanics"))}</label>
+        <input type="text" id="st-map-mechanics" value="${esc((S.saved.map?.mechanics || []).join(", "))}" placeholder="Breach, Ritual, Expedition, Delirium, Tower"></div>
     </div>
 
     <div class="card">
@@ -1167,6 +1235,8 @@ function baseSettings() {
     trade_enabled: Boolean(S.saved.trade?.enabled),
     trade_league: S.saved.trade?.league || "",
     trade_filters: S.saved.trade?.filters ?? 2,
+    map_enabled: Boolean(S.saved.map?.enabled),
+    map_mechanics: S.saved.map?.mechanics || [],
   };
 }
 
@@ -1203,6 +1273,11 @@ function collectSettings({ keepKey = false } = {}) {
     trade_enabled: $("#st-trade-enabled")?.checked ?? false,
     trade_league: $("#st-trade-league")?.value.trim() || "",
     trade_filters: Number($("#st-trade-filters")?.value ?? 2),
+    map_enabled: $("#st-map-enabled")?.checked ?? false,
+    map_mechanics: ($("#st-map-mechanics")?.value || "")
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean),
   };
 }
 
@@ -1355,6 +1430,24 @@ async function act(name, el) {
     case "item-delete":
       await invoke("item_delete", { id: el.dataset.id });
       await loadItems();
+      break;
+    case "trade-run":
+      await runTradeSearch($("#trade-q")?.value || "");
+      break;
+    case "find-item": {
+      const q = el.dataset.q || "";
+      go("trade");
+      const input = $("#trade-q");
+      if (input) input.value = q;
+      await runTradeSearch(q);
+      break;
+    }
+    case "trade-copy":
+      await invoke("copy_text", { text: el.dataset.text || "" });
+      toast(t("trade.copied"));
+      break;
+    case "trade-open":
+      await invoke("link_open", { url: el.dataset.url || "" });
       break;
     case "pob-import":
       openPobImport();

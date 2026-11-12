@@ -223,12 +223,46 @@ struct Fetch {
 struct Fetched {
     #[serde(default)]
     listing: Listing,
+    #[serde(default)]
+    item: FetchedItem,
 }
 
 #[derive(Default, Deserialize)]
 struct Listing {
     #[serde(default)]
     price: Option<Price>,
+    #[serde(default)]
+    account: Account,
+    #[serde(default)]
+    whisper: String,
+}
+
+#[derive(Default, Deserialize)]
+struct Account {
+    #[serde(default)]
+    name: String,
+}
+
+#[derive(Default, Deserialize)]
+struct FetchedItem {
+    #[serde(default)]
+    name: String,
+    #[serde(default, rename = "typeLine")]
+    type_line: String,
+    #[serde(default)]
+    rarity: String,
+}
+
+/// One listing of a text search, ready for the UI.
+#[derive(Serialize, Clone, Debug, PartialEq, Default)]
+pub struct ListingView {
+    pub price: f64,
+    pub currency: String,
+    pub name: String,
+    pub base: String,
+    pub rarity: String,
+    pub account: String,
+    pub whisper: String,
 }
 
 #[derive(Deserialize)]
@@ -345,6 +379,29 @@ pub fn parse_search(json: &str) -> Result<(String, u64, Vec<String>), String> {
     Ok((id, s.total, s.result))
 }
 
+/// Parses listings with seller and whisper text (text search).
+pub fn parse_listings(json: &str) -> Result<Vec<ListingView>, String> {
+    let f: Fetch = serde_json::from_str(json).map_err(|e| format!("Ответ списка не разобран: {e}"))?;
+    if let Some(err) = f.error {
+        return Err(format!("Trade API: {}", err.message));
+    }
+    Ok(f.result
+        .into_iter()
+        .filter_map(|x| {
+            let price = x.listing.price?;
+            Some(ListingView {
+                price: price.amount,
+                currency: price.currency,
+                name: x.item.name,
+                base: x.item.type_line,
+                rarity: x.item.rarity,
+                account: x.listing.account.name,
+                whisper: x.listing.whisper,
+            })
+        })
+        .collect())
+}
+
 pub fn parse_fetch(json: &str) -> Result<Vec<(f64, String)>, String> {
     let f: Fetch = serde_json::from_str(json).map_err(|e| format!("Ответ списка не разобран: {e}"))?;
     if let Some(err) = f.error {
@@ -387,6 +444,49 @@ fn get_json(url: &str) -> Result<String, String> {
         return Err(format!("Trade API HTTP {status}: {}", body.chars().take(200).collect::<String>()));
     }
     Ok(body)
+}
+
+/// Free-text item search: `type`/name online listings sorted by price.
+pub fn search_text(query_text: &str, league_pref: &str) -> Result<(Vec<ListingView>, String), String> {
+    let text = query_text.trim();
+    if text.chars().count() < 2 {
+        return Err("Слишком короткий запрос: минимум 2 символа".into());
+    }
+    let league = resolve_league(league_pref)?;
+    let query = serde_json::json!({
+        "status": { "option": "online" },
+        "type": text,
+    });
+    let url = format!("{BASE}/api/trade2/search/poe2/{}", encode(&league));
+    let body = serde_json::json!({ "query": query, "sort": { "price": "asc" } });
+    let mut res = agent()
+        .post(&url)
+        .header("User-Agent", &ua())
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
+        .send(body.to_string().as_bytes())
+        .map_err(|e| format!("Сеть: {e}"))?;
+    let status = res.status().as_u16();
+    let text_body = res.body_mut().read_to_string().map_err(|e| format!("Чтение ответа: {e}"))?;
+    if status == 429 {
+        return Err("Слишком часто: trade API просит подождать.".into());
+    }
+    if !(200..300).contains(&status) {
+        return Err(format!("Trade API HTTP {status}: {}", text_body.chars().take(200).collect::<String>()));
+    }
+    let (id, _total, hashes) = parse_search(&text_body)?;
+    if hashes.is_empty() {
+        return Ok((Vec::new(), build_text_url(&league, text)));
+    }
+    let hashes: Vec<&str> = hashes.iter().take(10).map(|s| s.as_str()).collect();
+    let fetch_url = format!("{BASE}/api/trade2/fetch/{}?query={}", hashes.join(","), encode(&id));
+    let listings = parse_listings(&get_json(&fetch_url)?)?;
+    Ok((listings, build_text_url(&league, text)))
+}
+
+fn build_text_url(league: &str, text: &str) -> String {
+    let body = serde_json::json!({ "query": { "status": { "option": "online" }, "type": text }, "sort": { "price": "asc" } });
+    format!("{BASE}/trade2/search/poe2/{}?q={}", encode(league), encode(&body.to_string()))
 }
 
 /// Downloads the stat dataset (one request, cached by the caller).
@@ -604,6 +704,23 @@ mod tests {
         let filters = match_stats(&item, &stats, 3);
         assert_eq!(filters.len(), 1);
         assert_eq!((filters[0].min, filters[0].max), (5.0, Some(10.0)));
+    }
+
+    #[test]
+    fn text_search_listings_are_parsed() {
+        let json = r#"{"result":[{"listing":{"price":{"amount":3,"currency":"divine"},"account":{"name":"seller#1234"},"whisper":"@seller Hi, I would like to buy"},"item":{"name":"Doom Loop","typeLine":"Prismatic Ring","rarity":"rare"}}]}"#;
+        let listings = parse_listings(json).unwrap();
+        assert_eq!(listings.len(), 1);
+        assert_eq!(listings[0].account, "seller#1234");
+        assert!(listings[0].whisper.contains("would like to buy"));
+        assert_eq!(listings[0].base, "Prismatic Ring");
+    }
+
+    #[test]
+    fn text_search_url_is_encoded() {
+        let url = build_text_url("Standard", "Prismatic Ring");
+        assert!(url.starts_with("https://www.pathofexile.com/trade2/search/poe2/Standard?q="));
+        assert!(url.contains("Prismatic%20Ring"));
     }
 
     #[test]

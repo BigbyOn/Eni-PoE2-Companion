@@ -70,6 +70,40 @@ function renderRegex() {
   reportSize();
 }
 
+function renderLocation() {
+  const run = S.map_run || { zone: "", rares: 0, boss: false, checks: [], started: "" };
+  const panel = $("#panel");
+  const look = preview || S.saved.overlay;
+  panel.hidden = false;
+  panel.className = "location";
+  panel.style.setProperty("--panel", `rgba(12,11,9,${(look.opacity ?? 88) / 100})`);
+  panel.style.zoom = `${(look.scale ?? 100) / 100}`;
+  $("#act").textContent = t("map.title");
+  $("#lvls").textContent = "";
+  const started = run.started ? new Date(run.started).getTime() : Date.now();
+  const secs = Math.max(0, Math.floor((Date.now() - started) / 1000));
+  const clock = `${String(Math.floor(secs / 60)).padStart(2, "0")}:${String(secs % 60).padStart(2, "0")}`;
+  const done = (run.checks || []).filter((c) => c.done).length;
+  const all = run.boss && (run.checks || []).length > 0 && done === run.checks.length;
+  $("#body").innerHTML = `
+    <div class="loc-head"><b>${esc(run.zone || "—")}</b><span class="mono">${clock}</span></div>
+    <div class="loc-row">
+      <span>${esc(t("map.rares"))}: <b>${run.rares}</b></span>
+      <button class="chip-btn" data-map="rare:1">+</button>
+      <button class="chip-btn" data-map="rare:-1">−</button>
+      <button class="chip-btn ${run.boss ? "on" : ""}" data-map="boss">${run.boss ? "✓" : "○"} ${esc(t("map.boss"))}</button>
+    </div>
+    <div class="loc-checks">${(run.checks || [])
+      .map((c) => `<button class="chip-btn ${c.done ? "on" : ""}" data-map="check:${esc(c.name)}">${c.done ? "✓" : "○"} ${esc(c.name)}</button>`)
+      .join("")}</div>
+    <div class="loc-hint ${all ? "ok" : ""}">${esc(all ? t("map.done") : t("map.hint"))}</div>
+    <div class="loc-foot"><button class="chip-btn" data-map="reset">${esc(t("map.reset"))}</button><button class="chip-btn" data-map="close">${esc(t("map.close"))}</button></div>`;
+  reportSize();
+  setTimeout(() => {
+    if (S && S.map_run && S.map_run.open) render();
+  }, 1000);
+}
+
 function itemToast() {
   const li = S.last_item;
   if (!li) return "";
@@ -81,6 +115,10 @@ function itemToast() {
 
 function render() {
   if (!S || !CAMP) return;
+  if (S.map_run && S.map_run.open) {
+    renderLocation();
+    return;
+  }
   if (S.regex_open) {
     renderRegex();
     return;
@@ -168,6 +206,16 @@ function reportSize() {
 new ResizeObserver(reportSize).observe($("#panel"));
 
 document.addEventListener("click", (e) => {
+  const mp = e.target.closest("[data-map]");
+  if (mp) {
+    const [kind, value] = mp.dataset.map.split(":");
+    if (kind === "rare") invoke("map_rare", { delta: Number(value) });
+    else if (kind === "boss") invoke("map_boss");
+    else if (kind === "check") invoke("map_toggle_check", { name: value });
+    else if (kind === "reset") invoke("map_reset");
+    else if (kind === "close") invoke("map_panel");
+    return;
+  }
   const rx = e.target.closest("[data-regex]");
   if (rx) {
     invoke("copy_regex", { value: rx.dataset.regex });

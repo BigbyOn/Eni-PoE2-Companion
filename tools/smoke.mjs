@@ -108,7 +108,7 @@ await sleep(1200);
 
 // 1. shell rendered
 const nav = await main.eval(`document.querySelectorAll('#nav-items button').length`);
-check("main: 7 sections in the sidebar", nav === 7, `got ${nav}`);
+check("main: 8 sections in the sidebar", nav === 8, `got ${nav}`);
 const title = await main.eval(`document.querySelector('#page-title').textContent`);
 check("main: page title rendered", title.length > 0, title);
 const boot = await main.eval(`JSON.stringify({ lang: S.saved.lang, steps: CAMP.steps.length, acts: CAMP.acts.length, builds: BUILDS.length, version: VERSION })`);
@@ -126,7 +126,7 @@ const langRes = await main.eval(`(async () => {
   s.lang = 'en';
   await window.__TAURI__.core.invoke('save_settings', { settings: {
     lang: s.lang, route: s.route, hotkeys: s.hotkeys, log: s.log, overlay: s.overlay,
-    shots_dir: s.shots_dir, zone_aliases: s.zone_aliases, regexes: s.regexes || [],
+    shots_dir: s.shots_dir, zone_aliases: s.zone_aliases, regexes: s.regexes || [], map_enabled: s.map?.enabled || false, map_mechanics: s.map?.mechanics || [],
     ai_provider: s.ai.provider, ai_model: s.ai.model, ai_reasoning: s.ai.reasoning || 'auto', ai_enabled: s.ai.enabled, ai_key: '', ai_clear_key: false } });
   await new Promise(r => setTimeout(r, 400));
   return document.documentElement.lang + '|' + document.querySelector('#nav-items button').textContent.trim();
@@ -139,7 +139,7 @@ await main.eval(`(async () => {
   s.lang = 'ru';
   await window.__TAURI__.core.invoke('save_settings', { settings: {
     lang: 'ru', route: s.route, hotkeys: s.hotkeys, log: s.log, overlay: s.overlay,
-    shots_dir: s.shots_dir, zone_aliases: s.zone_aliases, regexes: s.regexes || [],
+    shots_dir: s.shots_dir, zone_aliases: s.zone_aliases, regexes: s.regexes || [], map_enabled: s.map?.enabled || false, map_mechanics: s.map?.mechanics || [],
     ai_provider: s.ai.provider, ai_model: s.ai.model, ai_reasoning: s.ai.reasoning || 'auto', ai_enabled: s.ai.enabled, ai_key: '', ai_clear_key: false } });
   await new Promise(r => setTimeout(r, 300));
   return document.documentElement.lang;
@@ -154,7 +154,7 @@ await main.eval(`(async () => {
   await window.__TAURI__.core.invoke('save_settings', { settings: {
     lang: s.lang, route: s.route, hotkeys: s.hotkeys,
     log: { mode: 'manual', path: ${JSON.stringify(logPath)} },
-    overlay: s.overlay, shots_dir: ${JSON.stringify(shotsDir)}, zone_aliases: s.zone_aliases, regexes: s.regexes || [],
+    overlay: s.overlay, shots_dir: ${JSON.stringify(shotsDir)}, zone_aliases: s.zone_aliases, regexes: s.regexes || [], map_enabled: s.map?.enabled || false, map_mechanics: s.map?.mechanics || [],
     ai_provider: s.ai.provider, ai_model: s.ai.model, ai_reasoning: s.ai.reasoning || 'auto', ai_enabled: s.ai.enabled, ai_key: '', ai_clear_key: false } });
 })()`);
 await waitFor(main, "S.log_found && String(S.log_path).includes('_smoke') && S.saved.profiles[0].level === 6");
@@ -190,7 +190,7 @@ check("log: history written", a.history >= 3, String(a.history));
 w("[INFO Client 1] : Eni (Охотница) достигает 8 уровня\n");
 w("[INFO Client 1] : Игрок Eni получил +10% к сопротивлению [Resistances|холоду].\n");
 w("[INFO Client 1] : Вы получили 2 Passive Skill Points.\n");
-await waitFor(main, "S.saved.profiles[0].level === 8 && S.saved.profiles[0].rewards.some(r => r.kind === 'passive_points')");
+await waitFor(main, "S.saved.profiles[0].level === 9 && S.saved.profiles[0].rewards.some(r => r.kind === 'passive_points')");
 const ru = JSON.parse(await main.eval(`(async () => JSON.stringify({
   level: S.saved.profiles[0].level,
   class: S.saved.profiles[0].class,
@@ -304,6 +304,16 @@ const itemLinks = JSON.parse(await main.eval(`(async () => {
 })()`));
 check("items: wiki/poedb/craft links present", itemLinks.links >= 3, JSON.stringify(itemLinks));
 
+const tradeSection = JSON.parse(await main.eval(`(async () => {
+  go('trade');
+  await new Promise(r => setTimeout(r, 250));
+  return JSON.stringify({
+    navItems: document.querySelectorAll('#nav-items [data-nav]').length,
+    disabled: document.querySelector('#content .bad-text')?.textContent || '',
+  });
+})()`));
+check("trade: section and nav present", tradeSection.navItems === 8 && /выключена/.test(tradeSection.disabled), JSON.stringify(tradeSection));
+
 // 7e. PoB code import (the code is built in-page with CompressionStream)
 const pob = JSON.parse(await main.eval(`(async () => {
   const xml = '<?xml version="1.0" encoding="UTF-8"?><PathOfBuilding><Build level="42" className="Ranger" ascendClassName="Deadeye"/><Skills><Skill enabled="true" label="LA"><Gem nameSpec="Lightning Arrow" enabled="true"/><Gem nameSpec="Rapid Attacks" enabled="true"/></Skill></Skills><Tree><Spec nodes="1,2,3"/></Tree><Items><Item>' + 'Rarity: Unique' + String.fromCharCode(10) + 'Doom Loop' + String.fromCharCode(10) + 'Prismatic Ring' + String.fromCharCode(10) + '</Item></Items></PathOfBuilding>';
@@ -370,6 +380,27 @@ if (overlayTarget) {
     return JSON.stringify({ open: S.regex_open });
   })()`));
   check("overlay: regex click copies and closes", rxCopy.open === false, JSON.stringify(rxCopy));
+const mapPanel = JSON.parse(await ov.eval(`(async () => {
+  await window.__TAURI__.core.invoke('map_panel');
+  await new Promise(r => setTimeout(r, 500));
+  const checks = document.querySelectorAll('#panel .loc-checks .chip-btn').length;
+  const zone = document.querySelector('#panel .loc-head b')?.textContent || '';
+  await window.__TAURI__.core.invoke('map_rare', { delta: 1 });
+  await new Promise(r => setTimeout(r, 300));
+  return JSON.stringify({ checks, zone, rares: S.map_run.rares, open: S.map_run.open });
+})()`));
+check("location: checklist opens with mechanics", mapPanel.open === true && mapPanel.checks >= 5, JSON.stringify(mapPanel));
+const mapToggle = JSON.parse(await ov.eval(`(async () => {
+  const btn = document.querySelector('#panel .loc-checks .chip-btn');
+  btn.click();
+  await new Promise(r => setTimeout(r, 400));
+  const done = S.map_run.checks.filter(c => c.done).length;
+  await window.__TAURI__.core.invoke('map_panel');
+  await new Promise(r => setTimeout(r, 300));
+  return JSON.stringify({ done, open: S.map_run.open, rares: S.map_run.rares });
+})()`));
+check("location: mechanic toggles and panel closes", mapToggle.done === 1 && mapToggle.open === false && mapToggle.rares === 1, JSON.stringify(mapToggle));
+
   check("overlay: no page exceptions", ov.errors.length === 0, ov.errors.join("; "));
   ov.close();
 }

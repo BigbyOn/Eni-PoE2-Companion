@@ -80,6 +80,8 @@ pub struct Hotkeys {
     pub item: String,
     /// Show the vendor/stash regex list in the overlay.
     pub regex: String,
+    /// Toggle the map checklist in the overlay.
+    pub map: String,
 }
 
 impl Default for Hotkeys {
@@ -93,12 +95,13 @@ impl Default for Hotkeys {
             main: "Shift+Space".into(),
             item: "Ctrl+Alt+KeyI".into(),
             regex: "Ctrl+Alt+KeyR".into(),
+            map: "Ctrl+Alt+KeyJ".into(),
         }
     }
 }
 
 impl Hotkeys {
-    pub fn entries(&self) -> [(&'static str, &String); 8] {
+    pub fn entries(&self) -> [(&'static str, &String); 9] {
         [
             ("next", &self.next),
             ("prev", &self.prev),
@@ -108,6 +111,7 @@ impl Hotkeys {
             ("main", &self.main),
             ("item", &self.item),
             ("regex", &self.regex),
+            ("map", &self.map),
         ]
     }
 }
@@ -306,6 +310,29 @@ pub struct Shot {
     pub level: u32,
 }
 
+/// Checklist of the current location: what is left to clear before moving on.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(default)]
+pub struct MapCfg {
+    /// Open the checklist automatically when a new area is entered.
+    pub enabled: bool,
+    /// Mechanics to tick off (edited in the settings).
+    pub mechanics: Vec<String>,
+}
+
+impl Default for MapCfg {
+    fn default() -> Self {
+        MapCfg {
+            enabled: false,
+            mechanics: default_map_mechanics(),
+        }
+    }
+}
+
+pub fn default_map_mechanics() -> Vec<String> {
+    ["Breach", "Ritual", "Expedition", "Delirium", "Tower"].iter().map(|s| s.to_string()).collect()
+}
+
 /// Price check through the official trade API (opt-in, one click per request).
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(default)]
@@ -373,6 +400,8 @@ pub struct Saved {
     pub ai: AiCfg,
     #[serde(default)]
     pub trade: TradeCfg,
+    #[serde(default)]
+    pub map: MapCfg,
     #[serde(default = "default_aliases")]
     pub zone_aliases: Vec<ZoneAlias>,
 }
@@ -397,6 +426,7 @@ impl Default for Saved {
             shots_dir: None,
             ai: AiCfg::default(),
             trade: TradeCfg::default(),
+            map: MapCfg::default(),
             zone_aliases: default_aliases(),
         }
     }
@@ -596,6 +626,13 @@ mod tests {
         assert_eq!(s.regexes.len(), 4, "default regexes missing: {:?}", s.regexes);
         assert_eq!(s.hotkeys.item, "Ctrl+Alt+KeyI");
         assert!(Saved::default().regexes.len() == 4);
+    }
+
+    #[test]
+    fn missing_map_settings_get_defaults() {
+        let s: Saved = serde_json::from_str(r#"{"lang":"ru"}"#).unwrap();
+        assert_eq!(s.map.mechanics.len(), 5, "defaults: {:?}", s.map.mechanics);
+        assert_eq!(s.map.mechanics[0], "Breach");
     }
 
     #[test]
