@@ -23,6 +23,7 @@
 | `src/item.rs` | разбор текста предмета из буфера (EN/RU) и локальная оценка под билд |
 | `src/trade.rs` | проверка цены через официальный trade API (по кнопке, с лимитом частоты) |
 | `src/guide.rs` | импорт гайда с Mobalytics: Edge headless → `__PRELOADED_STATE__` → локальный билд |
+| `src/scout.rs` | poe2scout: текущая лига и 24h-цена Divine (курс валют) |
 | `src/pob.rs` | импорт PoB-кода (base64+zlib+XML) в локальный билд, с лимитами и валидацией |
 | `src/clip.rs` | запись в буфер обмена |
 | `ui/index.html`, `ui/app.js`, `ui/app.css`, `ui/i18n.js` | главное окно: 8 разделов, RU/EN |
@@ -46,7 +47,7 @@
 ## Проверка
 
 ```powershell
-cargo test                    # 89 юнит-тестов (журналы, локации, предметы, trade API с курсами, Mobalytics, чек-лист локации, PoB, ИИ-запросы, DPAPI)
+cargo test                    # 91 юнит-тест (журналы, локации, предметы, trade API с курсами, poe2scout, Mobalytics, чек-лист локации, PoB, ИИ-запросы, DPAPI)
 cargo build                   # debug
 npx --yes @tauri-apps/cli@2.12.1 build   # NSIS + MSI
 ```

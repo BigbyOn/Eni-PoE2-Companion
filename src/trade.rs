@@ -151,11 +151,14 @@ pub fn match_stats(item: &ParsedItem, stats: &[StatDef], limit: usize) -> Vec<St
         let Some(def) = stats.iter().find(|s| s.shape == target && s.kind == "explicit").or_else(|| stats.iter().find(|s| s.shape == target)) else {
             continue;
         };
+        // 10% headroom: the player compares with *similar* items, not only with
+        // rolls that are at least as good.
+        let min = (first * 0.9).floor().max(1.0);
         let max = if def.shape.matches('#').count() >= 2 && values.len() >= 2 { Some(values[1]) } else { None };
         found.push((
             is_defensive(&def.shape),
             index,
-            StatFilter { id: def.id.clone(), min: first, max, text: line.clone() },
+            StatFilter { id: def.id.clone(), min, max, text: line.clone() },
         ));
     }
     found.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
@@ -496,12 +499,12 @@ pub fn search_text(query_text: &str, league_pref: &str) -> Result<(Vec<ListingVi
     }
     let (id, _total, hashes) = parse_search(&text_body)?;
     if hashes.is_empty() {
-        return Ok((Vec::new(), build_text_url(&league, text)));
+        return Ok((Vec::new(), format!("{BASE}/trade2/search/poe2/{}/{}", encode(&league), id)));
     }
     let hashes: Vec<&str> = hashes.iter().take(10).map(|s| s.as_str()).collect();
     let fetch_url = format!("{BASE}/api/trade2/fetch/{}?query={}", hashes.join(","), encode(&id));
     let listings = parse_listings(&get_json(&fetch_url)?)?;
-    Ok((listings, build_text_url(&league, text)))
+    Ok((listings, format!("{BASE}/trade2/search/poe2/{}/{}", encode(&league), id)))
 }
 
 fn build_text_url(league: &str, text: &str) -> String {
@@ -534,7 +537,7 @@ pub fn search_raw(query_json: &str, league_pref: &str) -> Result<(Vec<ListingVie
         return Err(format!("Trade API HTTP {status}: {}", text.chars().take(200).collect::<String>()));
     }
     let (id, _total, hashes) = parse_search(&text)?;
-    let trade_url = format!("{BASE}/trade2/search/poe2/{}?q={}", encode(&league), encode(&body.to_string()));
+    let trade_url = format!("{BASE}/trade2/search/poe2/{}/{}", encode(&league), id);
     if hashes.is_empty() {
         return Ok((Vec::new(), trade_url));
     }
@@ -718,7 +721,13 @@ pub fn resolve_league(preferred: &str) -> Result<String, String> {
 pub fn check(item: &ParsedItem, league_pref: &str, stats: Option<&[StatDef]>, limit: usize) -> Result<PriceResult, String> {
     let league = resolve_league(league_pref)?;
     let filters = stats.map(|s| match_stats(item, s, limit.min(3))).unwrap_or_default();
-    let mut result = search(item, &league, &filters, stats.is_some())?;
+    let mut result = search(item, &league, &filters, !filters.is_empty())?;
+    if result.total == 0 && filters.len() > 2 {
+        result = search(item, &league, &filters[..2], true)?;
+        if result.total > 0 {
+            result.note = "Похожие: 2 главных мода с допуском 10%.".into();
+        }
+    }
     if result.total == 0 && !filters.is_empty() {
         result = search(item, &league, &[], false)?;
         result.note = "По модификаторам ничего не найдено — показаны цены по базе и редкости.".into();
@@ -750,7 +759,7 @@ fn search(item: &ParsedItem, league: &str, stat_filters: &[StatFilter], used_sta
     let mut result = PriceResult {
         league: league.to_string(),
         total,
-        trade_url: build_trade_url(league, &query),
+        trade_url: format!("{BASE}/trade2/search/poe2/{}/{}", encode(league), id),
         note: String::new(),
         ..Default::default()
     };
@@ -890,12 +899,12 @@ mod tests {
         let filters = match_stats(&item, &stats, 3);
         assert_eq!(filters.len(), 3);
         assert_eq!(filters[0].id, "explicit.stat_1", "life is defensive first");
-        assert_eq!(filters[0].min, 18.0);
-        assert!(filters.iter().any(|f| f.id == "explicit.stat_2" && f.min == 22.0));
+        assert_eq!(filters[0].min, 16.0);
+        assert!(filters.iter().any(|f| f.id == "explicit.stat_2" && f.min == 19.0));
         let q = build_query_with(&item, &filters);
         assert_eq!(q["stats"][0]["type"], "and");
         assert_eq!(q["stats"][0]["filters"].as_array().unwrap().len(), 3);
-        assert_eq!(q["stats"][0]["filters"][0]["value"]["min"], 18.0);
+        assert_eq!(q["stats"][0]["filters"][0]["value"]["min"], 16.0);
     }
 
     #[test]
@@ -905,7 +914,7 @@ mod tests {
         let item = ParsedItem { mods: vec!["Adds 5 to 10 Physical Damage".into()], ..Default::default() };
         let filters = match_stats(&item, &stats, 3);
         assert_eq!(filters.len(), 1);
-        assert_eq!((filters[0].min, filters[0].max), (5.0, Some(10.0)));
+        assert_eq!((filters[0].min, filters[0].max), (4.0, Some(10.0)));
     }
 
     #[test]

@@ -578,7 +578,11 @@ async function loadRate() {
   try {
     const r = await invoke("trade_rate");
     const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
-    line.innerHTML = `${esc(t("trade.rate_line").replace("{n}", money(r.exalted_per_divine)))} · ${esc(r.league)} · ${r.offers} ${esc(t("trade.rate_offers"))}${r.source === "listings" ? " · " + esc(t("trade.rate_listings")) : ""}`;
+    const parts = [esc(t("trade.rate_line").replace("{n}", money(r.exalted_per_divine)))];
+    if (r.league) parts.push(esc(r.league));
+    if (r.offers > 0) parts.push(`${r.offers} ${esc(t("trade.rate_offers"))}`);
+    if (r.source) parts.push(esc(r.source));
+    line.innerHTML = parts.join(" · ");
   } catch (e) {
     line.textContent = `${t("trade.rate_none")}: ${String(e)}`;
   }

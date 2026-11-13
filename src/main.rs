@@ -21,6 +21,7 @@ mod logparse;
 mod model;
 mod pob;
 mod screens;
+mod scout;
 mod tail;
 mod trade;
 
@@ -189,6 +190,8 @@ struct App {
     stats: Mutex<Option<Vec<trade::StatDef>>>,
     /// Currency rate, cached for a few minutes.
     rates: Mutex<Option<(std::time::Instant, trade::CurrencyRate)>>,
+    /// poe2scout league/divine price, cached for 15 minutes.
+    scout: Mutex<Option<(std::time::Instant, scout::Scout)>>,
 }
 
 fn action_label(action: &str) -> &'static str {
@@ -807,14 +810,15 @@ fn guide_for_build(state: State<App>, build_id: String) -> Option<GuideRecord> {
 
 #[tauri::command]
 async fn trade_search_guide(state: State<'_, App>, guide_id: String, slot: String) -> Result<TradeSearchView, String> {
-    let (query, enabled, league) = {
+    let league = state.preferred_league();
+    let (query, enabled) = {
         let s = state.snap.lock().unwrap();
         let guide = s.saved.guides.iter().find(|g| g.id == guide_id).ok_or("Гайд не найден")?;
         let item = guide.gear.iter().find(|g| g.slot == slot).ok_or("Предмет не найден в гайде")?;
         if item.trade_query.trim().is_empty() {
             return Err("Для этого предмета в гайде нет запроса — открой гайд в браузере.".into());
         }
-        (item.trade_query.clone(), s.saved.trade.enabled, s.saved.trade.league.clone())
+        (item.trade_query.clone(), s.saved.trade.enabled)
     };
     if !enabled {
         return Err("Торговля выключена: включи проверку цен в настройках.".into());
@@ -1571,7 +1575,7 @@ async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceRe
     let (parsed, enabled, league, filters) = {
         let s = state.snap.lock().unwrap();
         let rec = s.saved.items.iter().find(|x| x.id == id).ok_or("Предмет не найден")?;
-        (rec.parsed.clone(), s.saved.trade.enabled, s.saved.trade.league.clone(), s.saved.trade.filters as usize)
+        (rec.parsed.clone(), s.saved.trade.enabled, state.preferred_league(), s.saved.trade.filters as usize)
     };
     if !enabled {
         return Err("Проверка цен выключена: включи её в настройках (официальный trade API).".into());
@@ -1710,6 +1714,37 @@ struct TradeSearchView {
     url: String,
 }
 
+fn read_scout_cache(dir: &std::path::Path) -> Option<scout::Scout> {
+    let path = dir.join("scout.json");
+    let age = std::fs::metadata(&path).ok()?.modified().ok()?.elapsed().ok()?;
+    if age > std::time::Duration::from_secs(15 * 60) {
+        return None;
+    }
+    let text = std::fs::read_to_string(path).ok()?;
+    serde_json::from_str(&text).ok()
+}
+
+fn write_scout_cache(dir: &std::path::Path, value: &scout::Scout) {
+    if let Ok(text) = serde_json::to_string(value) {
+        let _ = std::fs::write(dir.join("scout.json"), text);
+    }
+}
+
+impl App {
+    /// League to price against: the setting, otherwise the current league from
+    /// poe2scout (it knows `IsCurrent` better than the raw trade league list).
+    fn preferred_league(&self) -> String {
+        let saved = self.snap.lock().unwrap().saved.trade.league.trim().to_string();
+        if !saved.is_empty() {
+            return saved;
+        }
+        if let Some((_, value)) = self.scout.lock().unwrap().as_ref() {
+            return value.league.clone();
+        }
+        String::new()
+    }
+}
+
 #[tauri::command]
 async fn trade_rate(state: State<'_, App>) -> Result<trade::CurrencyRate, String> {
     let (enabled, league) = {
@@ -1724,6 +1759,44 @@ async fn trade_rate(state: State<'_, App>) -> Result<trade::CurrencyRate, String
             return Ok(rate);
         }
     }
+    // 1) poe2scout: 24h average and the current league.
+    let cached = {
+        let memory = state.scout.lock().unwrap().clone();
+        match memory {
+            Some(pair) if pair.0.elapsed() < std::time::Duration::from_secs(15 * 60) => Some(pair.1),
+            _ => {
+                let disk = read_scout_cache(&state.dir);
+                if let Some(value) = &disk {
+                    *state.scout.lock().unwrap() = Some((std::time::Instant::now(), value.clone()));
+                }
+                disk
+            }
+        }
+    };
+    let scout_value = match cached {
+        Some(value) => Some(value),
+        None => {
+            let fetched = tauri::async_runtime::spawn_blocking(scout::fetch).await.ok().and_then(|r| r.ok());
+            if let Some(value) = &fetched {
+                write_scout_cache(&state.dir, value);
+                *state.scout.lock().unwrap() = Some((std::time::Instant::now(), value.clone()));
+            }
+            fetched
+        }
+    };
+    if let Some(value) = scout_value.filter(|v| v.divine_price > 0.0) {
+        let rate = trade::CurrencyRate {
+            league: value.league,
+            exalted_per_divine: value.divine_price,
+            offers: 0,
+            source: value.source,
+            updated: value.fetched,
+        };
+        *state.rates.lock().unwrap() = Some((std::time::Instant::now(), rate.clone()));
+        return Ok(rate);
+    }
+    // 2) Official exchange / priced listings.
+    let league = state.preferred_league();
     let rate = tauri::async_runtime::spawn_blocking(move || trade::currency_rate(&league))
         .await
         .map_err(|e| format!("Запрос прерван: {e}"))??;
@@ -1733,10 +1806,11 @@ async fn trade_rate(state: State<'_, App>) -> Result<trade::CurrencyRate, String
 
 #[tauri::command]
 async fn trade_search(state: State<'_, App>, query: String) -> Result<TradeSearchView, String> {
-    let (enabled, league) = {
+    let enabled = {
         let s = state.snap.lock().unwrap();
-        (s.saved.trade.enabled, s.saved.trade.league.clone())
+        s.saved.trade.enabled
     };
+    let league = state.preferred_league();
     if !enabled {
         return Err("Торговля выключена: включи проверку цен в настройках.".into());
     }
@@ -2093,6 +2167,7 @@ fn main() {    tauri::Builder::default()
                 last_trade: Mutex::new(None),
                 stats: Mutex::new(None),
                 rates: Mutex::new(None),
+                scout: Mutex::new(None),
             });
             // Windows are created only now ("create": false in tauri.conf.json):
             // their pages call commands right away, and those need the state above.
