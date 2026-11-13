@@ -192,6 +192,9 @@ struct App {
     rates: Mutex<Option<(std::time::Instant, trade::CurrencyRate)>>,
     /// poe2scout league/divine price, cached for 15 minutes.
     scout: Mutex<Option<(std::time::Instant, scout::Scout)>>,
+    /// Last rendered Mobalytics page, so a variant can be imported without
+    /// spawning Edge again.
+    guide_cache: Mutex<Option<(String, std::time::Instant, guide::GuideSet)>>,
 }
 
 fn action_label(action: &str) -> &'static str {
@@ -753,22 +756,65 @@ fn snapshot(state: State<App>) -> Snapshot {
     state.public()
 }
 
-/// Imports a Mobalytics build page: Edge renders it (Cloudflare), we keep only
-/// structural facts (gems, gear, trade queries) and link the source.
-#[tauri::command]
-async fn build_import_url(app: AppHandle, state: State<'_, App>, url: String) -> Result<builds::BuildDoc, String> {
-    if !guide::allowed_url(&url) {
+/// Renders (or reuses) the Mobalytics page for a URL.
+async fn load_guide_set(state: &App, url: &str) -> Result<guide::GuideSet, String> {
+    if !guide::allowed_url(url) {
         return Err("Разрешены только страницы билдов Mobalytics (https://mobalytics.gg/poe-2/...)".into());
     }
-    let fetch_url = url.clone();
+    {
+        let cache = state.guide_cache.lock().unwrap();
+        if let Some((cached_url, at, set)) = cache.as_ref() {
+            if cached_url == url && at.elapsed() < std::time::Duration::from_secs(600) {
+                return Ok(set.clone());
+            }
+        }
+    }
+    let fetch_url = url.to_string();
     let parsed = tauri::async_runtime::spawn_blocking(move || {
         let html = guide::fetch_html(&fetch_url)?;
         guide::parse(&html, &fetch_url)
     })
     .await
     .map_err(|e| format!("Импорт прерван: {e}"))??;
+    *state.guide_cache.lock().unwrap() = Some((url.to_string(), std::time::Instant::now(), parsed.clone()));
+    Ok(parsed)
+}
+
+#[derive(Serialize)]
+struct GuideVariantInfo {
+    index: usize,
+    label: String,
+    skills: usize,
+    gear: usize,
+}
+
+/// Lists the variants of a build page without importing anything.
+#[tauri::command]
+async fn guide_variants(state: State<'_, App>, url: String) -> Result<Vec<GuideVariantInfo>, String> {
+    let set = load_guide_set(&state, &url).await?;
+    Ok(set
+        .variants
+        .iter()
+        .map(|v| GuideVariantInfo { index: v.index, label: v.label.clone(), skills: v.skills.len(), gear: v.gear.len() })
+        .collect())
+}
+
+/// Imports a Mobalytics build page: Edge renders it (Cloudflare), we keep only
+/// structural facts (gems, gear, trade queries) and link the source.
+#[tauri::command]
+async fn build_import_url(
+    app: AppHandle,
+    state: State<'_, App>,
+    url: String,
+    variant: Option<usize>,
+) -> Result<builds::BuildDoc, String> {
+    let parsed = load_guide_set(&state, &url).await?;
+    let chosen = variant
+        .filter(|v| parsed.variants.iter().any(|x| x.index == *v))
+        .unwrap_or(parsed.variants[0].index);
+    let label = parsed.variants.iter().find(|v| v.index == chosen).map(|v| v.label.clone()).unwrap_or_default();
     let id = format!("guide-{}", new_id("b"));
-    let json = guide::to_build_json(&parsed, &id);
+    let json = guide::to_build_json(&parsed, chosen, &id);
     let text = serde_json::to_string_pretty(&json).map_err(|e| e.to_string())?;
     let doc = builds::BuildDoc::parse(&text).map_err(|e| format!("Импортированный билд не прошёл проверку: {e}"))?;
     let dir = state.dir.join("builds");
@@ -786,8 +832,9 @@ async fn build_import_url(app: AppHandle, state: State<'_, App>, url: String) ->
         title: parsed.title.clone(),
         class: parsed.class.clone(),
         ascendancy: parsed.ascendancy.clone(),
-        skills: parsed.skills.clone(),
-        gear: parsed.gear.clone(),
+        variant: label,
+        skills: parsed.variants.iter().find(|v| v.index == chosen).map(|v| v.skills.clone()).unwrap_or_default(),
+        gear: parsed.variants.iter().find(|v| v.index == chosen).map(|v| v.gear.clone()).unwrap_or_default(),
     };
     state.update(&app, |s, _| {
         if let Some(p) = s.saved.profile_mut() {
@@ -800,6 +847,86 @@ async fn build_import_url(app: AppHandle, state: State<'_, App>, url: String) ->
         push_event(s, "manual", format!("Импорт гайда: {}", parsed.title), "Mobalytics".to_string());
     });
     Ok(doc.clone())
+}
+
+#[derive(Serialize)]
+struct UpgradeRow {
+    slot: String,
+    name: String,
+    min: f64,
+    median: f64,
+    currency: String,
+    total: u64,
+    url: String,
+    error: Option<String>,
+}
+
+/// Prices the headline slots of the imported guide (5 slots, spaced requests).
+#[tauri::command]
+async fn guide_upgrade_list(state: State<'_, App>, guide_id: String) -> Result<Vec<UpgradeRow>, String> {
+    let enabled = { state.snap.lock().unwrap().saved.trade.enabled };
+    if !enabled {
+        return Err("Торговля выключена: включи проверку цен в настройках.".into());
+    }
+    let league = state.preferred_league();
+    let items: Vec<(String, String, String)> = {
+        let s = state.snap.lock().unwrap();
+        let guide = s.saved.guides.iter().find(|g| g.id == guide_id).ok_or("Гайд не найден")?;
+        let order = ["mainHand", "body", "helmet", "gloves", "boots", "amulet", "belt"];
+        order
+            .iter()
+            .filter_map(|slot| {
+                guide
+                    .gear
+                    .iter()
+                    .find(|x| x.slot == *slot && !x.trade_query.trim().is_empty())
+                    .map(|x| (x.slot.clone(), x.name.clone(), x.trade_query.clone()))
+            })
+            .take(5)
+            .collect()
+    };
+    if items.is_empty() {
+        return Err("В гайде нет предметов с готовыми запросами.".into());
+    }
+    let rows = tauri::async_runtime::spawn_blocking(move || {
+        let mut out = Vec::new();
+        for (index, (slot, name, query)) in items.into_iter().enumerate() {
+            if index > 0 {
+                std::thread::sleep(std::time::Duration::from_millis(1600));
+            }
+            let fallback = name.clone();
+            match trade::search_raw(&query, &league) {
+                Ok((listings, url)) if !listings.is_empty() => {
+                    let (currency, min, median) = trade::summarize_prices(&listings);
+                    out.push(UpgradeRow { slot, name, min, median, currency, total: listings.len() as u64, url, error: None });
+                }
+                Ok((_, url)) => out.push(UpgradeRow {
+                    slot,
+                    name,
+                    min: 0.0,
+                    median: 0.0,
+                    currency: String::new(),
+                    total: 0,
+                    url,
+                    error: Some("нет лотов".into()),
+                }),
+                Err(e) => out.push(UpgradeRow {
+                    slot,
+                    name: fallback,
+                    min: 0.0,
+                    median: 0.0,
+                    currency: String::new(),
+                    total: 0,
+                    url: String::new(),
+                    error: Some(e),
+                }),
+            }
+        }
+        out
+    })
+    .await
+    .map_err(|e| format!("Запрос прерван: {e}"))?;
+    Ok(rows)
 }
 
 #[tauri::command]
@@ -1747,10 +1874,7 @@ impl App {
 
 #[tauri::command]
 async fn trade_rate(state: State<'_, App>) -> Result<trade::CurrencyRate, String> {
-    let (enabled, league) = {
-        let s = state.snap.lock().unwrap();
-        (s.saved.trade.enabled, s.saved.trade.league.clone())
-    };
+    let enabled = { state.snap.lock().unwrap().saved.trade.enabled };
     if !enabled {
         return Err("Проверка цен выключена: включи её в настройках.".into());
     }
@@ -2047,6 +2171,8 @@ fn main() {    tauri::Builder::default()
             build_select,
             build_import_pob,
             build_import_url,
+            guide_variants,
+            guide_upgrade_list,
             guide_for_build,
             trade_search_guide,
             build_toggle,
@@ -2168,6 +2294,7 @@ fn main() {    tauri::Builder::default()
                 stats: Mutex::new(None),
                 rates: Mutex::new(None),
                 scout: Mutex::new(None),
+                guide_cache: Mutex::new(None),
             });
             // Windows are created only now ("create": false in tauri.conf.json):
             // their pages call commands right away, and those need the state above.

@@ -512,6 +512,13 @@ fn build_text_url(league: &str, text: &str) -> String {
     format!("{BASE}/trade2/search/poe2/{}?q={}", encode(league), encode(&body.to_string()))
 }
 
+/// Cheapest and median price of a listing set (most common currency).
+pub fn summarize_prices(listings: &[ListingView]) -> (String, f64, f64) {
+    let pairs: Vec<(f64, String)> = listings.iter().map(|l| (l.price, l.currency.clone())).collect();
+    let (currency, min, median, _) = summarize_listings(&pairs);
+    (currency, min, median)
+}
+
 /// Runs a ready-made request from a build guide (Mobalytics stores the whole
 /// search body, we only add the league).
 pub fn search_raw(query_json: &str, league_pref: &str) -> Result<(Vec<ListingView>, String), String> {

@@ -1,6 +1,6 @@
 [package]
 name = "eni-poe2-companion"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2021"
 description = "Eni-PoE2-Companion — помощник и оверлей для Path of Exile 2 (RU/EN)"
 license = "MIT"
@@ -21,6 +21,7 @@ chrono = "0.4"
 ureq = "=3.4.2"
 flate2 = "1"
 quick-xml = "0.38"
+tungstenite = "0.24"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [

@@ -612,7 +612,7 @@ async function runTradeSearch(q) {
             <td>${esc(l.name || l.base)}<div class="small">${esc(l.base)}${l.rarity ? " · " + esc(l.rarity) : ""}</div></td>
             <td class="small"><span class="dot-online ${l.online ? "on" : "off"}"></span> ${esc(l.account)}</td>
             <td><div class="row">
-              <button class="btn sm ghost" data-act="trade-copy" data-text="${esc(l.whisper)}">${esc(t("trade.copy"))}</button>
+              ${l.whisper ? `<button class="btn sm ghost" data-act="trade-copy" data-text="${esc(l.whisper)}">${esc(t("trade.copy"))}</button>` : ""}
               <button class="btn sm ghost" data-act="trade-open" data-url="${esc(res.url)}">${esc(t("trade.open"))}</button>
             </div></td>
           </tr>`
@@ -856,12 +856,40 @@ function openGuideImport() {
     <div class="small" style="margin-bottom:8px">${esc(t("build.import_url_hint"))}</div>
     <input type="text" id="guide-url" style="width:100%" placeholder="https://mobalytics.gg/poe-2/builds/...">
     <div class="row" style="margin-top:10px">
+      <button class="btn ghost" data-act="guide-variants">${esc(t("build.import_check"))}</button>
       <button class="btn primary" data-act="guide-run">${esc(t("build.import_url_run"))}</button>
       <button class="btn ghost" data-act="modal-close">${esc(t("common.close"))}</button>
       <span class="small bad-text" id="guide-error"></span>
     </div>
+    <div class="field" id="guide-variant-wrap" hidden style="margin-top:8px">
+      <label>${esc(t("build.import_variant"))}</label>
+      <select id="guide-variant"></select>
+    </div>
     <div class="small" id="guide-wait" hidden style="margin-top:8px">${esc(t("build.import_url_wait"))}</div>`;
   $("#modal").hidden = false;
+}
+
+async function loadGuideVariants() {
+  const url = $("#guide-url")?.value.trim() || "";
+  const err = $("#guide-error");
+  if (err) err.textContent = "";
+  const wait = $("#guide-wait");
+  if (wait) wait.hidden = false;
+  try {
+    const variants = await invoke("guide_variants", { url });
+    const select = $("#guide-variant");
+    const wrap = $("#guide-variant-wrap");
+    if (select && wrap) {
+      select.innerHTML = variants
+        .map((v) => `<option value="${v.index}">${esc(v.label)} — ${v.skills} ${esc(t("guide.skills"))}, ${v.gear} ${esc(t("guide.gear"))}</option>`)
+        .join("");
+      wrap.hidden = false;
+    }
+  } catch (e) {
+    if (err) err.textContent = String(e);
+  } finally {
+    if (wait) wait.hidden = true;
+  }
 }
 
 async function runGuideImport() {
@@ -871,7 +899,9 @@ async function runGuideImport() {
   if (err) err.textContent = "";
   if (wait) wait.hidden = false;
   try {
-    const doc = await invoke("build_import_url", { url });
+    const variantSelect = $("#guide-variant");
+    const variant = variantSelect && !$("#guide-variant-wrap")?.hidden ? Number(variantSelect.value) : null;
+    const doc = await invoke("build_import_url", { url, variant });
     BUILDS = BUILDS.filter((b) => b.id !== doc.id);
     BUILDS.push(doc);
     await invoke("build_select", { id: doc.id });
@@ -899,7 +929,11 @@ function renderGuide(g) {
       <h2>${esc(t("guide.title"))}</h2>
       <button class="link" data-act="link" data-url="${esc(g.url)}">${esc(g.url)}</button>
     </div>
-    <div class="small">${esc(g.class || "")}${g.ascendancy ? " · " + esc(g.ascendancy) : ""}</div>
+    <div class="small">${esc(g.class || "")}${g.ascendancy ? " · " + esc(g.ascendancy) : ""}${g.variant ? " · " + esc(g.variant) : ""}</div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn sm ghost" data-act="guide-upgrades" data-guide="${esc(g.id)}">${esc(t("guide.upgrades"))}</button>
+    </div>
+    <div id="guide-upgrades"></div>
     <h3 style="margin-top:10px">${esc(t("guide.skills"))}</h3>
     <div class="chips">${(g.skills || [])
       .map((s) => `<span class="tag gem" title="${esc(s.supports.join(", "))}">${esc(s.main)}${s.supports.length ? " + " + esc(s.supports.join(", ")) : ""}</span>`)
@@ -1584,6 +1618,37 @@ async function act(name, el) {
     case "guide-run":
       await runGuideImport();
       break;
+    case "guide-variants":
+      await loadGuideVariants();
+      break;
+    case "guide-upgrades": {
+      const box = $("#guide-upgrades");
+      if (box) box.innerHTML = `<div class="small">${esc(t("guide.upgrade_hint"))}</div>`;
+      el.disabled = true;
+      try {
+        const rows = await invoke("guide_upgrade_list", { guideId: el.dataset.guide });
+        if (box) {
+          const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+          box.innerHTML = `<h3 style="margin-top:10px">${esc(t("guide.upgrades"))}</h3>
+            <table class="table"><thead><tr><th>${esc(t("guide.slot"))}</th><th>${esc(t("trade.item"))}</th><th>${esc(t("guide.price_range"))}</th><th></th></tr></thead>
+            <tbody>${rows
+              .map(
+                (r) => `<tr>
+                  <td class="small">${esc(slotLabel(r.slot))}</td>
+                  <td><b>${esc(r.name)}</b></td>
+                  <td class="small">${r.error ? `<span class="bad-text">${esc(r.error)}</span>` : `${money(r.min)} / ${money(r.median)} ${esc(r.currency)} <span class="small">(${r.total})</span>`}</td>
+                  <td>${r.url ? `<button class="link" data-act="link" data-url="${esc(r.url)}">${esc(t("items.price_open"))}</button>` : ""}</td>
+                </tr>`
+              )
+              .join("")}</tbody></table>`;
+        }
+      } catch (e) {
+        if (box) box.innerHTML = `<div class="small bad-text">${esc(String(e))}</div>`;
+      } finally {
+        el.disabled = false;
+      }
+      break;
+    }
     case "guide-find": {
       const out = el.closest("tr")?.querySelector(".guide-out");
       if (out) out.textContent = t("guide.wait");
@@ -1598,7 +1663,7 @@ async function act(name, el) {
             .slice(0, 3)
             .map(
               (l) =>
-                `<div><span class="dot-online ${l.online ? "on" : "off"}"></span> ${esc(String(l.price))} ${esc(l.currency)} · ${esc(l.account)} <button class="link" data-act="trade-copy" data-text="${esc(l.whisper)}">whisper</button></div>`
+                `<div><span class="dot-online ${l.online ? "on" : "off"}"></span> ${esc(String(l.price))} ${esc(l.currency)} · ${esc(l.account)}${l.whisper ? ` <button class="link" data-act="trade-copy" data-text="${esc(l.whisper)}">whisper</button>` : ""}</div>`
             )
             .join("");
         }

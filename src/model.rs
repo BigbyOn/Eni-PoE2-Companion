@@ -300,6 +300,9 @@ pub struct GuideRecord {
     pub title: String,
     pub class: String,
     pub ascendancy: String,
+    /// Which variant of the page was imported ("Вариант 2").
+    #[serde(default)]
+    pub variant: String,
     pub skills: Vec<GuideSkill>,
     pub gear: Vec<GuideGear>,
 }
