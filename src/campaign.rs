@@ -119,6 +119,35 @@ pub struct Step {
     pub tags: Vec<String>,
 }
 
+/// One objective of a location: a boss, a quest step or a town conversation.
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct ZoneObjective {
+    pub id: String,
+    pub kind: String,
+    pub goal: L10n,
+    pub level: Option<String>,
+    pub rewards: Vec<String>,
+    pub done: bool,
+    pub optional: bool,
+}
+
+/// Progress of the current location, built from the route and the user's marks.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, Default)]
+pub struct ZoneProgress {
+    pub zone: String,
+    pub zone_ru: String,
+    pub known: bool,
+    pub bosses_done: usize,
+    pub bosses_total: usize,
+    pub quests_done: usize,
+    pub quests_total: usize,
+    pub objectives: Vec<ZoneObjective>,
+    /// Next unfinished objective in this location.
+    pub next_goal: Option<String>,
+    /// Where to go once everything is marked.
+    pub next_zone: Option<String>,
+}
+
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Campaign {
     pub version: String,
@@ -241,11 +270,89 @@ impl Campaign {
     /// canonical English name the route uses.
     pub fn resolve(&self, raw: &str, aliases: &[ZoneAlias]) -> String {
         let z = normalize(raw);
-        aliases
+        if let Some(alias) = aliases.iter().find(|a| normalize(&a.alias) == z) {
+            return normalize(&alias.zone);
+        }
+        // Localized clients write translated zone names; the route data already
+        // carries Russian display names, so use them before asking the user.
+        if let Some(zone) = self.zones.iter().find(|zone| {
+            zone.names.iter().chain(zone.ru.iter()).any(|name| normalize(name) == z)
+        }) {
+            return normalize(&zone.names[0]);
+        }
+        z
+    }
+
+    /// Objectives of one location (bosses, quests, town talks) with progress.
+    pub fn zone_progress(
+        &self,
+        zone_raw: &str,
+        done: &[String],
+        cur: usize,
+        mode: &str,
+        aliases: &[ZoneAlias],
+    ) -> ZoneProgress {
+        let canonical = self.resolve(zone_raw, aliases);
+        let zone = self
+            .zones
             .iter()
-            .find(|a| normalize(&a.alias) == z)
-            .map(|a| normalize(&a.zone))
-            .unwrap_or(z)
+            .find(|zone| zone.names.iter().any(|name| normalize(name) == canonical));
+        let zone_id = zone.map(|z| z.id.clone()).unwrap_or_default();
+        let zone_en = zone.and_then(|z| z.names.first().cloned()).unwrap_or_else(|| canonical.clone());
+        let zone_ru = zone.and_then(|z| z.ru.first().cloned()).unwrap_or_default();
+        let mut objectives = Vec::new();
+        for step in &self.steps {
+            if !zone_id.is_empty() && step.zone_id != zone_id {
+                continue;
+            }
+            if zone_id.is_empty() {
+                break;
+            }
+            let is_done = done.iter().any(|id| id == &step.id);
+            objectives.push(ZoneObjective {
+                id: step.id.clone(),
+                kind: step.kind.clone(),
+                goal: step.goal.clone(),
+                level: step.level.clone(),
+                rewards: step.rewards.iter().map(|r| r.kind.clone()).collect(),
+                done: is_done,
+                optional: step.optional,
+            });
+        }
+        let bosses_total = objectives.iter().filter(|o| o.kind == "boss").count();
+        let quests_total = objectives.iter().filter(|o| o.kind == "quest").count();
+        let bosses_done = objectives.iter().filter(|o| o.kind == "boss" && o.done).count();
+        let quests_done = objectives.iter().filter(|o| o.kind == "quest" && o.done).count();
+        let next = objectives
+            .iter()
+            .find(|o| !o.done && o.kind == "boss")
+            .or_else(|| objectives.iter().find(|o| !o.done));
+        let next_goal = next.map(|o| o.goal.ru.clone()).or_else(|| {
+            if objectives.is_empty() {
+                self.step(cur).map(|s| s.goal.ru.clone())
+            } else {
+                None
+            }
+        });
+        let next_zone = if next.is_none() {
+            self.next_destination(cur, mode).map(|s| {
+                if s.zone_label.ru.is_empty() { s.zone_label.en.clone() } else { s.zone_label.ru.clone() }
+            })
+        } else {
+            None
+        };
+        ZoneProgress {
+            zone: zone_en,
+            zone_ru,
+            known: !zone_id.is_empty(),
+            bosses_done,
+            bosses_total,
+            quests_done,
+            quests_total,
+            objectives,
+            next_goal,
+            next_zone,
+        }
     }
 
     /// Resolves a zone the log just reported.
@@ -478,6 +585,31 @@ mod tests {
         assert_eq!(c.zone_display(next), "Clearfell Encampment");
         let (pos, total) = c.progress(0, "all");
         assert_eq!((pos, total), (1, c.len()));
+    }
+
+    #[test]
+    fn zone_progress_lists_bosses_and_recommends_next() {
+        let c = campaign();
+        let aliases = vec![ZoneAlias { alias: "Замок Огам".into(), zone: "Ogham Manor".into() }];
+        let idx = c.steps.iter().position(|s| s.id == "a1-18").unwrap();
+        let zp = c.zone_progress("Замок Огам", &[], idx, "all", &aliases);
+        assert!(zp.known, "alias maps the client zone");
+        assert_eq!(zp.bosses_total, 1);
+        assert_eq!(zp.bosses_done, 0);
+        assert!(zp.next_goal.as_deref().unwrap_or("").contains("Geonor"), "{:?}", zp.next_goal);
+
+        let done = vec!["a1-18".to_string()];
+        let zp2 = c.zone_progress("Замок Огам", &done, idx, "all", &aliases);
+        assert_eq!(zp2.bosses_done, 1);
+        assert!(zp2.next_goal.is_none());
+        assert!(zp2.next_zone.is_some(), "after the boss the route moves on");
+    }
+
+    #[test]
+    fn russian_zone_names_resolve_from_the_route_data() {
+        let c = campaign();
+        assert_eq!(c.resolve("Деревня Огама", &[]), "ogham village");
+        assert_eq!(c.resolve("Поместье Огама", &[]), "ogham manor");
     }
 
     #[test]

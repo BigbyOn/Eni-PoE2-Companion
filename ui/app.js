@@ -170,6 +170,41 @@ function renderSection() {
 }
 
 // ---------------------------------------------------------------- home
+function zoneCard() {
+  const zp = S.zone_progress;
+  if (!zp) return "";
+  const label = zp.zone_ru || zp.zone || t("common.unknown");
+  const en = zp.zone && zp.zone !== zp.zone_ru ? ` (${zp.zone})` : "";
+  const kind = (o) => (o.kind === "boss" ? t("zone.boss") : o.kind === "quest" ? t("zone.quest") : t("zone.town"));
+  const objectives = (zp.objectives || [])
+    .map(
+      (o) => `<label class="check-item ${o.done ? "done" : ""}">
+        <input type="checkbox" data-act="zone-obj" data-id="${esc(o.id)}" ${o.done ? "checked" : ""}>
+        <span>${esc(l10n(o.goal))} <span class="tag">${esc(kind(o))}</span>${o.level ? ` <span class="small">${esc(t("char.level"))} ${esc(o.level)}</span>` : ""}${(o.rewards || []).length ? ` <span class="tag gem">${esc(o.rewards.join(", "))}</span>` : ""}</span>
+      </label>`
+    )
+    .join("");
+  const next = zp.next_goal
+    ? `${esc(t("zone.next"))}: ${esc(zp.next_goal)}`
+    : zp.next_zone
+      ? `${esc(t("zone.all_done"))} → ${esc(zp.next_zone)}`
+      : "";
+  return `<div class="card">
+    <div class="row between">
+      <h2>${esc(t("zone.title"))}</h2>
+      <span class="small">${esc(label)}${esc(en)}</span>
+    </div>
+    <div class="row small" style="gap:12px;margin:6px 0 10px">
+      <span>${esc(t("zone.bosses"))}: <b>${zp.bosses_done}/${zp.bosses_total}</b></span>
+      <span>${esc(t("zone.quests"))}: <b>${zp.quests_done}/${zp.quests_total}</b></span>
+      ${zp.known ? "" : `<span class="tag">${esc(t("zone.unknown"))}</span>`}
+    </div>
+    <div>${objectives || `<div class="small">${esc(t("zone.empty"))}</div>`}</div>
+    ${next ? `<div class="small" style="margin-top:8px">${next}</div>` : ""}
+    ${zp.known ? "" : `<div class="row" style="margin-top:8px"><button class="btn sm ghost" data-act="go-campaign">${esc(t("zone.map_hint"))}</button></div>`}
+  </div>`;
+}
+
 function renderHome() {
   const p = profile();
   const step = stepAt(p?.step ?? 0);
@@ -195,6 +230,7 @@ function renderHome() {
 
   $("#content").innerHTML = `
     ${warnings.join("")}
+    ${zoneCard()}
     <div class="card">
       <div class="row between">
         <h2>${esc(t("home.next"))}</h2>
@@ -1590,6 +1626,12 @@ async function act(name, el) {
     case "item-delete":
       await invoke("item_delete", { id: el.dataset.id });
       await loadItems();
+      break;
+    case "zone-obj":
+      await invoke("zone_toggle_objective", { id: el.dataset.id });
+      break;
+    case "go-campaign":
+      go("campaign");
       break;
     case "trade-run":
       await runTradeSearch($("#trade-q")?.value || "");

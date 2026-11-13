@@ -481,6 +481,9 @@ pub fn default_aliases() -> Vec<ZoneAlias> {
         ZoneAlias { alias: "Лагерь Клирфелл".into(), zone: "Clearfell Encampment".into() },
         ZoneAlias { alias: "Клирфелл".into(), zone: "Clearfell".into() },
         ZoneAlias { alias: "Красная Долина".into(), zone: "The Red Vale".into() },
+        // The 0.5 client calls Ogham Manor "Замок Огам"; the route calls it
+        // "Ogham Manor"/"Поместье Огама".
+        ZoneAlias { alias: "Замок Огам".into(), zone: "Ogham Manor".into() },
         ZoneAlias { alias: "G1_1".into(), zone: "The Riverbank".into() },
         ZoneAlias { alias: "G1_town".into(), zone: "Clearfell Encampment".into() },
     ]

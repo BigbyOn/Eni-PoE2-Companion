@@ -73,6 +73,8 @@ struct Snapshot {
     quick_price: Option<QuickPrice>,
     /// Current map checklist (runtime, reset on area change).
     map_run: MapRun,
+    /// Objectives of the current location from the route.
+    zone_progress: campaign::ZoneProgress,
     /// Session counters, reset when the app starts.
     session_started: String,
     session_deaths: u32,
@@ -296,6 +298,12 @@ impl App {
             zone_unknown = !p.zone.is_empty() && campaign.step_for_zone(&p.zone, &aliases).is_none();
         }
         s.zone_unknown = zone_unknown;
+        let (zone, done, cur) = match s.saved.profile() {
+            Some(p) => (p.zone.clone(), p.done.clone(), p.step),
+            None => (String::new(), Vec::new(), 0),
+        };
+        let aliases = s.saved.zone_aliases.clone();
+        s.zone_progress = campaign.zone_progress(&zone, &done, cur, &mode, &aliases);
         s.campaign_len = len;
         s.campaign_version = campaign.version.clone();
         s.campaign_act = s.saved.profile().map(|p| p.act).unwrap_or(1);
@@ -602,7 +610,14 @@ impl App {
                     {
                         let Some(p) = s.saved.profile_mut() else { return };
                         p.zone = zone.clone();
-                        if let Some(i) = c.advance(p.step, &resolved, &mode, &[]) {
+                        // Entering a location moves the pointer to its first step:
+                        // the recommendation must match where the player actually is.
+                        if let Some(target) = c.step_for_zone(&resolved, &aliases) {
+                            if target > p.step {
+                                p.step = target;
+                            }
+                        }
+                        if let Some(i) = c.advance(p.step, &resolved, &mode, &aliases) {
                             p.step = i;
                         }
                     }
@@ -1247,6 +1262,18 @@ fn campaign_manual_zone(app: AppHandle, state: State<App>, zone: String) {
     });
 }
 
+#[tauri::command]
+fn zone_toggle_objective(app: AppHandle, state: State<App>, id: String) {
+    state.update(&app, |s, _| {
+        let Some(p) = s.saved.profile_mut() else { return };
+        if let Some(index) = p.done.iter().position(|x| x == &id) {
+            p.done.remove(index);
+        } else {
+            p.done.push(id.clone());
+        }
+    });
+}
+
 /// Maps the zone name the log reports (and its area id) to a route zone, then
 /// moves the pointer. This is how a localized client becomes complete over time.
 #[tauri::command]
@@ -1699,14 +1726,16 @@ fn write_stats_cache(dir: &std::path::Path, stats: &[trade::StatDef]) {
 /// Price check for an imported item through the official trade API.
 #[tauri::command]
 async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceResult, String> {
-    let (parsed, enabled, league, filters) = {
+    let (parsed, enabled, filters) = {
         let s = state.snap.lock().unwrap();
         let rec = s.saved.items.iter().find(|x| x.id == id).ok_or("Предмет не найден")?;
-        (rec.parsed.clone(), s.saved.trade.enabled, state.preferred_league(), s.saved.trade.filters as usize)
+        (rec.parsed.clone(), s.saved.trade.enabled, s.saved.trade.filters as usize)
     };
     if !enabled {
         return Err("Проверка цен выключена: включи её в настройках (официальный trade API).".into());
     }
+    // Outside the snapshot lock: preferred_league() takes it again.
+    let league = state.preferred_league();
     {
         let mut last = state.last_trade.lock().unwrap();
         if let Some(at) = *last {
@@ -2168,6 +2197,7 @@ fn main() {    tauri::Builder::default()
             campaign_complete,
             campaign_manual_zone,
             zone_map,
+            zone_toggle_objective,
             build_select,
             build_import_pob,
             build_import_url,
@@ -2232,7 +2262,9 @@ fn main() {    tauri::Builder::default()
         })
         .setup(|tauri_app| {
             let handle = tauri_app.handle().clone();
-            let dir = handle.path().app_data_dir()?;
+            let dir = std::env::var_os("ENI_COMPANION_DATA_DIR")
+                .map(PathBuf::from)
+                .unwrap_or(handle.path().app_data_dir()?);
             std::fs::create_dir_all(&dir)?;
             let saved = model::load_state(&dir.join("state.json"));
             let shots_dir = saved.shots_dir.clone().unwrap_or_else(screens::default_shots_dir);
@@ -2275,6 +2307,7 @@ fn main() {    tauri::Builder::default()
                     last_item: None,
                     quick_price: None,
                     map_run: MapRun::default(),
+                    zone_progress: campaign::ZoneProgress::default(),
                     session_started: now_iso(),
                     session_deaths: 0,
                     session_zones: 0,

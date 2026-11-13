@@ -314,6 +314,27 @@ const tradeSection = JSON.parse(await main.eval(`(async () => {
 })()`));
 check("trade: section and nav present", tradeSection.navItems === 8 && /выключена/.test(tradeSection.disabled), JSON.stringify(tradeSection));
 
+const zoneProgress = JSON.parse(await main.eval(`(async () => {
+  go('home');
+  await new Promise(r => setTimeout(r, 300));
+  const text = document.querySelector('#content')?.innerText || '';
+  const zp = S.zone_progress || {};
+  const toggleId = (zp.objectives || [])[0]?.id || '';
+  return JSON.stringify({ known: zp.known, bosses: zp.bosses_total, objectives: (zp.objectives || []).length, text: text.includes('Боссы') && text.includes('Квесты'), toggleId });
+})()`));
+check("zone: progress card for the current location", zoneProgress.known === true && zoneProgress.objectives >= 1 && zoneProgress.text === true, JSON.stringify(zoneProgress));
+const zoneToggle = JSON.parse(await main.eval(`(async () => {
+  const id = ${JSON.stringify(zoneProgress.toggleId)};
+  await window.__TAURI__.core.invoke('zone_toggle_objective', { id });
+  await new Promise(r => setTimeout(r, 300));
+  const done = (S.saved.profiles[0].done || []).includes(id);
+  await window.__TAURI__.core.invoke('zone_toggle_objective', { id });
+  await new Promise(r => setTimeout(r, 300));
+  const undone = !(S.saved.profiles[0].done || []).includes(id);
+  return JSON.stringify({ done, undone });
+})()`));
+check("zone: objective checkbox persists", zoneToggle.done === true && zoneToggle.undone === true, JSON.stringify(zoneToggle));
+
 const rate = JSON.parse(await main.eval(`(async () => {
   const err = await window.__TAURI__.core.invoke('trade_rate').then(() => 'ok').catch((e) => String(e));
   return JSON.stringify({ err });

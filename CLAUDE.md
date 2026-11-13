@@ -47,7 +47,7 @@
 ## Проверка
 
 ```powershell
-cargo test                    # 92 юнит-теста (журналы, локации, предметы, trade API с курсами, poe2scout, Mobalytics-варианты, чек-лист локации, PoB, ИИ-запросы, DPAPI)
+cargo test                    # 94 юнит-теста (журналы, локации, прогресс локации, предметы, trade API с курсами, poe2scout, Mobalytics-варианты, PoB, ИИ-запросы, DPAPI)
 cargo build                   # debug
 npx --yes @tauri-apps/cli@2.12.1 build   # NSIS + MSI
 ```
@@ -57,6 +57,7 @@ npx --yes @tauri-apps/cli@2.12.1 build   # NSIS + MSI
 ```powershell
 $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS='--remote-debugging-port=9333'
 $env:ENI_COMPANION_GAME_TITLE='EniTestWindow'   # изолирует от настоящей игры
+$env:ENI_COMPANION_DATA_DIR='E:\tmp\eni-test-data'   # ОБЯЗАТЕЛЬНО: иначе тест затрёт state.json игрока
 node tools/smoke.mjs <временная папка>
 ```
 
