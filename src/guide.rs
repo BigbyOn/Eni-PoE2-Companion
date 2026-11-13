@@ -26,6 +26,11 @@ pub struct GuideSkill {
 pub struct GuideGear {
     pub slot: String,
     pub name: String,
+    /// Base type for the trade query (may equal the name for Mobalytics data).
+    #[serde(default)]
+    pub base: String,
+    #[serde(default)]
+    pub rarity: String,
     pub mods: Vec<String>,
     pub must_have: Vec<String>,
     /// Trade API request prepared by Mobalytics for this item.
@@ -336,7 +341,16 @@ fn gear_from_variant(variant: &Value) -> Vec<GuideGear> {
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
-        out.push(GuideGear { slot: slot.clone(), name, mods, must_have: must, trade_query: query });
+        let unique = item.get("isUnique").and_then(|v| v.as_bool()).unwrap_or(false);
+        out.push(GuideGear {
+            slot: slot.clone(),
+            name: name.clone(),
+            base: name,
+            rarity: if unique { "Unique".into() } else { "Rare".into() },
+            mods,
+            must_have: must,
+            trade_query: query,
+        });
     }
     out
 }

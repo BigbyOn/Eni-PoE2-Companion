@@ -925,8 +925,9 @@ const SLOT_EN = {
 };
 
 function slotLabel(slot) {
-  if (S.saved.lang === "ru") return SLOT_RU[slot] || slot;
-  return SLOT_EN[slot] || slot;
+  const key = String(slot).replace(/-\d+$/, "");
+  if (S.saved.lang === "ru") return SLOT_RU[key] || key;
+  return SLOT_EN[key] || key;
 }
 
 function openGuideImport() {
@@ -1053,7 +1054,10 @@ function renderGuide(g) {
   card.innerHTML = `
     <div class="row between">
       <h2>${esc(t("guide.title"))}</h2>
-      <button class="link" data-act="link" data-url="${esc(g.url)}">${esc(g.url)}</button>
+      <div class="row">
+        ${g.url ? `<button class="btn sm ghost" data-act="guide-refresh" data-guide="${esc(g.id)}" title="${esc(t("guide.refresh_hint"))}">${esc(t("guide.refresh"))}</button>
+        <button class="link" data-act="link" data-url="${esc(g.url)}">${esc(g.url)}</button>` : ""}
+      </div>
     </div>
     <div class="small">${esc(g.class || "")}${g.ascendancy ? " · " + esc(g.ascendancy) : ""}${g.variant ? " · " + esc(g.variant) : ""}</div>
     <div class="row between" style="margin-top:6px">
@@ -1796,6 +1800,19 @@ async function act(name, el) {
     case "guide-upgrades":
       await runUpgrades(el.dataset.guide);
       break;
+    case "guide-refresh": {
+      el.disabled = true;
+      try {
+        await invoke("guide_refresh", { guideId: el.dataset.guide });
+        toast(t("guide.refreshed"));
+        renderSection();
+      } catch (e) {
+        toast(`${t("guide.refresh_failed")}: ${String(e)}`, true);
+      } finally {
+        el.disabled = false;
+      }
+      break;
+    }
     case "guide-owned":
       await invoke("guide_toggle_owned", { guideId: el.dataset.guide, key: el.dataset.key });
       break;

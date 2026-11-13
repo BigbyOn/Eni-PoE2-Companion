@@ -27,6 +27,8 @@ pub struct PobItem {
     pub base: String,
     pub rarity: String,
     pub slot: String,
+    /// Modifier lines, used to build a trade query for the item.
+    pub mods: Vec<String>,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq, Default)]
@@ -170,6 +172,7 @@ pub fn parse_xml(xml: &str) -> Result<PobBuild, String> {
                             base: parsed.base,
                             rarity: parsed.rarity,
                             slot: parsed.slot,
+                            mods: parsed.mods,
                         });
                     }
                 }

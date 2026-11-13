@@ -788,13 +788,7 @@ async fn load_guide_set(state: &App, url: &str) -> Result<guide::GuideSet, Strin
             }
         }
     }
-    let fetch_url = url.to_string();
-    let parsed = tauri::async_runtime::spawn_blocking(move || {
-        let html = guide::fetch_html(&fetch_url)?;
-        guide::parse(&html, &fetch_url)
-    })
-    .await
-    .map_err(|e| format!("Импорт прерван: {e}"))??;
+    let parsed = fetch_guide_set(url.to_string()).await?;
     *state.guide_cache.lock().unwrap() = Some((url.to_string(), std::time::Instant::now(), parsed.clone()));
     Ok(parsed)
 }
@@ -859,6 +853,7 @@ async fn build_import_url(
         class: parsed.class.clone(),
         ascendancy: parsed.ascendancy.clone(),
         variant: label,
+        variant_index: chosen,
         skills: parsed.variants.iter().find(|v| v.index == chosen).map(|v| v.skills.clone()).unwrap_or_default(),
         gear: parsed.variants.iter().find(|v| v.index == chosen).map(|v| v.gear.clone()).unwrap_or_default(),
         owned: Vec::new(),
@@ -1033,14 +1028,11 @@ fn guide_for_build(state: State<App>, build_id: String) -> Option<GuideRecord> {
 #[tauri::command]
 async fn trade_search_guide(state: State<'_, App>, guide_id: String, slot: String) -> Result<TradeSearchView, String> {
     let league = state.preferred_league();
-    let (query, enabled) = {
+    let (query, item, enabled, limit, headroom) = {
         let s = state.snap.lock().unwrap();
         let guide = s.saved.guides.iter().find(|g| g.id == guide_id).ok_or("Гайд не найден")?;
-        let item = guide.gear.iter().find(|g| g.slot == slot).ok_or("Предмет не найден в гайде")?;
-        if item.trade_query.trim().is_empty() {
-            return Err("Для этого предмета в гайде нет запроса — открой гайд в браузере.".into());
-        }
-        (item.trade_query.clone(), s.saved.trade.enabled)
+        let item = guide.gear.iter().find(|g| g.slot == slot).ok_or("Предмет не найден в гайде")?.clone();
+        (item.trade_query.clone(), item, s.saved.trade.enabled, s.saved.trade.filters as usize, s.saved.trade.headroom)
     };
     if !enabled {
         return Err("Торговля выключена: включи проверку цен в настройках.".into());
@@ -1055,10 +1047,94 @@ async fn trade_search_guide(state: State<'_, App>, guide_id: String, slot: Strin
         }
         *last = Some(std::time::Instant::now());
     }
+    // Mobalytics stores a ready trade query; PoB items only have text, so build
+    // the same query from their modifiers and the stat catalogue.
+    let query = if query.trim().is_empty() {
+        if item.mods.is_empty() {
+            return Err("У предмета нет модов для поиска — открой гайд в браузере.".into());
+        }
+        let stats = ensure_stats(&state).await;
+        let parsed = item::ParsedItem {
+            base: item.base.clone(),
+            rarity: item.rarity.clone(),
+            mods: item.mods.clone(),
+            ..Default::default()
+        };
+        let (filters, _unmatched) = stats
+            .as_deref()
+            .map(|s| trade::match_stats(&parsed, s, limit, headroom))
+            .unwrap_or_default();
+        let body = serde_json::json!({
+            "query": trade::build_query_with(&parsed, &filters),
+            "sort": { "price": "asc" }
+        });
+        body.to_string()
+    } else {
+        query
+    };
     tauri::async_runtime::spawn_blocking(move || trade::search_raw(&query, &league))
         .await
         .map_err(|e| format!("Запрос прерван: {e}"))?
         .map(|(listings, url)| TradeSearchView { listings, url })
+}
+
+/// Fetches a guide page without the 10-minute cache (used by "refresh").
+async fn fetch_guide_set(url: String) -> Result<guide::GuideSet, String> {
+    if !guide::allowed_url(&url) {
+        return Err("Разрешены только страницы билдов Mobalytics (https://mobalytics.gg/poe-2/...)".into());
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let html = guide::fetch_html(&url)?;
+        guide::parse(&html, &url)
+    })
+    .await
+    .map_err(|e| format!("Импорт прерван: {e}"))?
+}
+
+/// Re-fetches the guide page and rewrites the same local build in place.
+#[tauri::command]
+async fn guide_refresh(app: AppHandle, state: State<'_, App>, guide_id: String) -> Result<builds::BuildDoc, String> {
+    let (url, build_id, variant_index, lang) = {
+        let s = state.snap.lock().unwrap();
+        let guide = s.saved.guides.iter().find(|g| g.id == guide_id).ok_or("Гайд не найден")?;
+        if guide.url.trim().is_empty() {
+            return Err("PoB-билд обновляется повторным импортом кода.".into());
+        }
+        (guide.url.clone(), guide.build_id.clone(), guide.variant_index, s.saved.lang.clone())
+    };
+    let set = fetch_guide_set(url.clone()).await?;
+    let chosen = set
+        .variants
+        .iter()
+        .find(|v| v.index == variant_index)
+        .map(|v| v.index)
+        .unwrap_or(set.variants[0].index);
+    let label = guide::variant_label(chosen, &lang);
+    let json = guide::to_build_json(&set, chosen, &build_id, &lang);
+    let text = serde_json::to_string_pretty(&json).map_err(|e| e.to_string())?;
+    let doc = builds::BuildDoc::parse(&text).map_err(|e| format!("Обновлённый билд не прошёл проверку: {e}"))?;
+    let dir = state.dir.join("builds");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Папка билдов: {e}"))?;
+    std::fs::write(dir.join(format!("{build_id}.json")), &text).map_err(|e| format!("Запись билда: {e}"))?;
+    let library = builds::load_library(Some(&dir));
+    if let Ok(mut guard) = state.builds.write() {
+        *guard = library;
+    }
+    *state.guide_cache.lock().unwrap() = Some((url, std::time::Instant::now(), set.clone()));
+    state.update(&app, |s, _| {
+        if let Some(record) = s.saved.guides.iter_mut().find(|g| g.id == guide_id) {
+            record.title = set.title.clone();
+            record.class = set.class.clone();
+            record.ascendancy = set.ascendancy.clone();
+            record.variant = label.clone();
+            record.variant_index = chosen;
+            record.skills = set.variants.iter().find(|v| v.index == chosen).map(|v| v.skills.clone()).unwrap_or_default();
+            record.gear = set.variants.iter().find(|v| v.index == chosen).map(|v| v.gear.clone()).unwrap_or_default();
+            record.ts = now_iso();
+        }
+        push_event(s, "manual", format!("Гайд обновлён: {}", set.title), String::new());
+    });
+    Ok(doc.clone())
 }
 
 #[tauri::command]
@@ -1456,9 +1532,56 @@ fn build_import_pob(app: AppHandle, state: State<App>, code: String) -> Result<b
     if let Ok(mut guard) = state.builds.write() {
         *guard = library;
     }
+    // PoB items carry full modifier text: keep it as a guide record so the same
+    // checklist and "Find" flow as Mobalytics works for PoB builds.
+    let mut slot_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let gear: Vec<guide::GuideGear> = parsed
+        .items
+        .iter()
+        .take(24)
+        .map(|item| {
+            let base_slot = if item.slot.is_empty() { "item".to_string() } else { item.slot.clone() };
+            let count = slot_counts.entry(base_slot.clone()).or_insert(0);
+            *count += 1;
+            let slot = if *count > 1 { format!("{base_slot}-{}", *count) } else { base_slot };
+            guide::GuideGear {
+                slot,
+                name: item.name.clone(),
+                base: item.base.clone(),
+                rarity: item.rarity.clone(),
+                mods: item.mods.clone(),
+                must_have: Vec::new(),
+                trade_query: String::new(),
+            }
+        })
+        .collect();
+    let skills: Vec<guide::GuideSkill> = parsed
+        .skills
+        .iter()
+        .take(10)
+        .map(|skill| guide::GuideSkill { main: skill.main.clone(), supports: skill.supports.clone() })
+        .collect();
+    let record = GuideRecord {
+        id: new_id("g"),
+        build_id: id.clone(),
+        ts: now_iso(),
+        url: String::new(),
+        title: doc.name.ru.clone(),
+        class: doc.class.clone(),
+        ascendancy: doc.ascendancy.clone(),
+        variant: "PoB".into(),
+        variant_index: 0,
+        skills,
+        gear,
+        owned: Vec::new(),
+    };
     state.update(&app, |s, _| {
         if let Some(p) = s.saved.profile_mut() {
             p.build_id = id.clone();
+        }
+        s.saved.guides.push(record.clone());
+        if s.saved.guides.len() > 20 {
+            s.saved.guides.remove(0);
         }
         push_event(s, "manual", format!("Импорт PoB: {}", doc.name.ru), format!("{} · {} уровень", doc.class, parsed.level));
     });
@@ -1856,6 +1979,27 @@ fn write_stats_cache(dir: &std::path::Path, stats: &[trade::StatDef]) {
     }
 }
 
+/// Trade stat dataset: memory, then the disk cache, then one request.
+async fn ensure_stats(state: &App) -> Option<Vec<trade::StatDef>> {
+    let cached = state.stats.lock().unwrap().clone();
+    if cached.is_some() {
+        return cached;
+    }
+    if let Some(disk) = read_stats_cache(&state.dir) {
+        *state.stats.lock().unwrap() = Some(disk.clone());
+        return Some(disk);
+    }
+    let fetched = tauri::async_runtime::spawn_blocking(trade::fetch_stats)
+        .await
+        .ok()
+        .and_then(|result| result.ok());
+    if let Some(stats) = &fetched {
+        write_stats_cache(&state.dir, stats);
+        *state.stats.lock().unwrap() = Some(stats.clone());
+    }
+    fetched
+}
+
 /// Price check for an imported item through the official trade API.
 #[tauri::command]
 async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceResult, String> {
@@ -1880,32 +2024,7 @@ async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceRe
         *last = Some(std::time::Instant::now());
     }
     // Stat filters need the dataset: memory, then the disk cache, then one request.
-    let stats = {
-        let cached = state.stats.lock().unwrap().clone();
-        if cached.is_some() {
-            cached
-        } else {
-            let disk = read_stats_cache(&state.dir);
-            if disk.is_some() {
-                *state.stats.lock().unwrap() = disk.clone();
-            }
-            disk
-        }
-    };
-    let stats = match stats {
-        Some(s) => Some(s),
-        None => {
-            let fetched = tauri::async_runtime::spawn_blocking(trade::fetch_stats)
-                .await
-                .ok()
-                .and_then(|r| r.ok());
-            if let Some(s) = &fetched {
-                write_stats_cache(&state.dir, s);
-                *state.stats.lock().unwrap() = Some(s.clone());
-            }
-            fetched
-        }
-    };
+    let stats = ensure_stats(&state).await;
     tauri::async_runtime::spawn_blocking(move || trade::check(&parsed, &league, stats.as_deref(), filters, headroom))
         .await
         .map_err(|e| format!("Запрос прерван: {e}"))?
@@ -2339,6 +2458,7 @@ fn main() {    tauri::Builder::default()
             build_import_pob,
             build_import_url,
             guide_variants,
+            guide_refresh,
             guide_upgrade_list,
             guide_for_build,
             guide_toggle_owned,

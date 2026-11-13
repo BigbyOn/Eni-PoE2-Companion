@@ -315,6 +315,9 @@ pub struct GuideRecord {
     /// Which variant of the page was imported ("Вариант 2").
     #[serde(default)]
     pub variant: String,
+    /// Index of that variant in the page (for refresh).
+    #[serde(default)]
+    pub variant_index: usize,
     pub skills: Vec<GuideSkill>,
     pub gear: Vec<GuideGear>,
     /// Keys of gems/items the player already has ("gem:Name", "gear:slot").
