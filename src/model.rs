@@ -4,6 +4,7 @@
 //! atomic (temp file + rename) and a file that does not parse is kept as
 //! `state.corrupt-<timestamp>.json` instead of being silently overwritten.
 
+use crate::guide::{GuideGear, GuideSkill};
 use crate::item::{Analysis, ParsedItem};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -82,6 +83,8 @@ pub struct Hotkeys {
     pub regex: String,
     /// Toggle the map checklist in the overlay.
     pub map: String,
+    /// Price the item in the clipboard right away.
+    pub price: String,
 }
 
 impl Default for Hotkeys {
@@ -96,12 +99,13 @@ impl Default for Hotkeys {
             item: "Ctrl+Alt+KeyI".into(),
             regex: "Ctrl+Alt+KeyR".into(),
             map: "Ctrl+Alt+KeyJ".into(),
+            price: "Ctrl+Alt+KeyP".into(),
         }
     }
 }
 
 impl Hotkeys {
-    pub fn entries(&self) -> [(&'static str, &String); 9] {
+    pub fn entries(&self) -> [(&'static str, &String); 10] {
         [
             ("next", &self.next),
             ("prev", &self.prev),
@@ -112,6 +116,7 @@ impl Hotkeys {
             ("item", &self.item),
             ("regex", &self.regex),
             ("map", &self.map),
+            ("price", &self.price),
         ]
     }
 }
@@ -284,6 +289,21 @@ pub struct ItemRecord {
     pub ai: Option<String>,
 }
 
+/// A build guide imported from Mobalytics: structural facts only.
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(default)]
+pub struct GuideRecord {
+    pub id: String,
+    pub build_id: String,
+    pub ts: String,
+    pub url: String,
+    pub title: String,
+    pub class: String,
+    pub ascendancy: String,
+    pub skills: Vec<GuideSkill>,
+    pub gear: Vec<GuideGear>,
+}
+
 /// A vendor/stash search regex the player keeps at hand.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 #[serde(default)]
@@ -395,6 +415,9 @@ pub struct Saved {
     /// Vendor/stash regexes shown by the regex hotkey.
     #[serde(default = "default_regexes")]
     pub regexes: Vec<RegexItem>,
+    /// Imported build guides (Mobalytics).
+    #[serde(default)]
+    pub guides: Vec<GuideRecord>,
     pub buildings_dir: Option<PathBuf>,
     pub shots_dir: Option<PathBuf>,
     pub ai: AiCfg,
@@ -422,6 +445,7 @@ impl Default for Saved {
             shots: Vec::new(),
             items: Vec::new(),
             regexes: default_regexes(),
+            guides: Vec::new(),
             buildings_dir: None,
             shots_dir: None,
             ai: AiCfg::default(),
@@ -518,6 +542,20 @@ impl Saved {
         if self.regexes.len() > 100 {
             self.regexes.truncate(100);
         }
+        for g in &mut self.guides {
+            g.title = g.title.chars().take(120).collect();
+            g.skills.truncate(12);
+            g.gear.truncate(24);
+            for skill in &mut g.skills {
+                skill.supports.truncate(12);
+            }
+            for item in &mut g.gear {
+                item.mods.truncate(10);
+                item.must_have.truncate(10);
+                item.trade_query = item.trade_query.chars().take(4000).collect();
+            }
+        }
+        self.guides.truncate(20);
         self
     }
 

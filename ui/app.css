@@ -226,3 +226,6 @@ a:hover{color:var(--gold2)}
 .item b{color:var(--gold2);font-weight:600}
 .item .tag.boss{color:#e0a79e;border-color:#5a3630}
 .item summary{cursor:pointer;color:var(--ink3)}
+
+.dot-online{display:inline-block;width:7px;height:7px;border-radius:50%;background:#6b4a3a;margin-right:4px;vertical-align:middle}
+.dot-online.on{background:#5fae6b}

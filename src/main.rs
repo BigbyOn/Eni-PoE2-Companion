@@ -15,6 +15,7 @@ mod capture;
 mod clip;
 mod discover;
 mod game;
+mod guide;
 mod item;
 mod logparse;
 mod model;
@@ -67,6 +68,8 @@ struct Snapshot {
     regex_open: bool,
     /// Short confirmation shown in the overlay after an import.
     last_item: Option<ItemToast>,
+    /// Quick price from the hotkey (overlay banner).
+    quick_price: Option<QuickPrice>,
     /// Current map checklist (runtime, reset on area change).
     map_run: MapRun,
     /// Session counters, reset when the app starts.
@@ -122,6 +125,19 @@ impl MapRun {
             self.checks.len()
         )
     }
+}
+
+/// Result of the quick price hotkey (shown in the overlay for a few seconds).
+#[derive(Serialize, Clone, Debug, Default)]
+struct QuickPrice {
+    name: String,
+    total: u64,
+    min: f64,
+    median: f64,
+    currency: String,
+    note: String,
+    error: Option<String>,
+    ts: String,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -183,6 +199,7 @@ fn action_label(action: &str) -> &'static str {
         "item" => "импорт предмета",
         "regex" => "regex-список",
         "map" => "чек-лист карты",
+        "price" => "быстрая цена",
         _ => "главное окно",
     }
 }
@@ -400,6 +417,68 @@ impl App {
         Ok(record)
     }
 
+    /// Prices whatever item text is in the clipboard, without touching the game.
+    fn quick_price(&self, app: &AppHandle) {
+        let (enabled, league, filters) = {
+            let s = self.snap.lock().unwrap();
+            (s.saved.trade.enabled, s.saved.trade.league.clone(), s.saved.trade.filters as usize)
+        };
+        let text = clip::read().unwrap_or_default();
+        let parsed = item::parse(&text);
+        if !enabled {
+            self.update(app, |s, _| {
+                s.quick_price = Some(QuickPrice {
+                    error: Some("Проверка цен выключена: включи её в настройках.".into()),
+                    ts: now_iso(),
+                    ..Default::default()
+                })
+            });
+            return;
+        }
+        let Some(parsed) = parsed else {
+            self.update(app, |s, _| {
+                s.quick_price = Some(QuickPrice {
+                    error: Some("В буфере нет предмета: наведи курсор в игре и нажми Ctrl+C.".into()),
+                    ts: now_iso(),
+                    ..Default::default()
+                })
+            });
+            return;
+        };
+        self.update(app, |s, _| {
+            s.quick_price = Some(QuickPrice {
+                name: parsed.name.clone(),
+                note: "Смотрю цены…".into(),
+                ts: now_iso(),
+                ..Default::default()
+            })
+        });
+        let app = app.clone();
+        let dir = self.dir.clone();
+        std::thread::spawn(move || {
+            let stats = read_stats_cache(&dir).or_else(|| trade::fetch_stats().ok());
+            if let Some(stats) = &stats {
+                write_stats_cache(&dir, stats);
+            }
+            let result = trade::check(&parsed, &league, stats.as_deref(), filters);
+            let quick = match result {
+                Ok(r) => QuickPrice {
+                    name: parsed.name.clone(),
+                    total: r.total,
+                    min: r.min,
+                    median: r.median,
+                    currency: r.currency,
+                    note: r.note,
+                    error: None,
+                    ts: now_iso(),
+                },
+                Err(e) => QuickPrice { name: parsed.name.clone(), error: Some(e), ts: now_iso(), ..Default::default() },
+            };
+            let state = app.state::<App>();
+            state.update(&app, |s, _| s.quick_price = Some(quick));
+        });
+    }
+
     fn toggle_regex(&self, app: &AppHandle) {
         let open = {
             let mut r = self.regex_open.lock().unwrap();
@@ -428,6 +507,7 @@ impl App {
             }
             "regex" => self.toggle_regex(app),
             "map" => self.update(app, |s, _| s.map_run.open = !s.map_run.open),
+            "price" => self.quick_price(app),
             _ => toggle_main(app),
         }
     }
@@ -666,6 +746,91 @@ fn bootstrap(app: AppHandle, state: State<App>) -> Bootstrap {
 #[tauri::command]
 fn snapshot(state: State<App>) -> Snapshot {
     state.public()
+}
+
+/// Imports a Mobalytics build page: Edge renders it (Cloudflare), we keep only
+/// structural facts (gems, gear, trade queries) and link the source.
+#[tauri::command]
+async fn build_import_url(app: AppHandle, state: State<'_, App>, url: String) -> Result<builds::BuildDoc, String> {
+    if !guide::allowed_url(&url) {
+        return Err("Разрешены только страницы билдов Mobalytics (https://mobalytics.gg/poe-2/...)".into());
+    }
+    let fetch_url = url.clone();
+    let parsed = tauri::async_runtime::spawn_blocking(move || {
+        let html = guide::fetch_html(&fetch_url)?;
+        guide::parse(&html, &fetch_url)
+    })
+    .await
+    .map_err(|e| format!("Импорт прерван: {e}"))??;
+    let id = format!("guide-{}", new_id("b"));
+    let json = guide::to_build_json(&parsed, &id);
+    let text = serde_json::to_string_pretty(&json).map_err(|e| e.to_string())?;
+    let doc = builds::BuildDoc::parse(&text).map_err(|e| format!("Импортированный билд не прошёл проверку: {e}"))?;
+    let dir = state.dir.join("builds");
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Папка билдов: {e}"))?;
+    std::fs::write(dir.join(format!("{id}.json")), &text).map_err(|e| format!("Запись билда: {e}"))?;
+    let library = builds::load_library(Some(&dir));
+    if let Ok(mut guard) = state.builds.write() {
+        *guard = library;
+    }
+    let record = GuideRecord {
+        id: new_id("g"),
+        build_id: id.clone(),
+        ts: now_iso(),
+        url: parsed.url.clone(),
+        title: parsed.title.clone(),
+        class: parsed.class.clone(),
+        ascendancy: parsed.ascendancy.clone(),
+        skills: parsed.skills.clone(),
+        gear: parsed.gear.clone(),
+    };
+    state.update(&app, |s, _| {
+        if let Some(p) = s.saved.profile_mut() {
+            p.build_id = id.clone();
+        }
+        s.saved.guides.push(record.clone());
+        if s.saved.guides.len() > 20 {
+            s.saved.guides.remove(0);
+        }
+        push_event(s, "manual", format!("Импорт гайда: {}", parsed.title), "Mobalytics".to_string());
+    });
+    Ok(doc.clone())
+}
+
+#[tauri::command]
+fn guide_for_build(state: State<App>, build_id: String) -> Option<GuideRecord> {
+    let s = state.snap.lock().unwrap();
+    s.saved.guides.iter().rev().find(|g| g.build_id == build_id).cloned()
+}
+
+#[tauri::command]
+async fn trade_search_guide(state: State<'_, App>, guide_id: String, slot: String) -> Result<TradeSearchView, String> {
+    let (query, enabled, league) = {
+        let s = state.snap.lock().unwrap();
+        let guide = s.saved.guides.iter().find(|g| g.id == guide_id).ok_or("Гайд не найден")?;
+        let item = guide.gear.iter().find(|g| g.slot == slot).ok_or("Предмет не найден в гайде")?;
+        if item.trade_query.trim().is_empty() {
+            return Err("Для этого предмета в гайде нет запроса — открой гайд в браузере.".into());
+        }
+        (item.trade_query.clone(), s.saved.trade.enabled, s.saved.trade.league.clone())
+    };
+    if !enabled {
+        return Err("Торговля выключена: включи проверку цен в настройках.".into());
+    }
+    {
+        let mut last = state.last_trade.lock().unwrap();
+        if let Some(at) = *last {
+            let elapsed = at.elapsed();
+            if elapsed < std::time::Duration::from_secs(3) {
+                return Err(format!("Не чаще раза в 3 секунды: подожди {} с.", 3 - elapsed.as_secs()));
+            }
+        }
+        *last = Some(std::time::Instant::now());
+    }
+    tauri::async_runtime::spawn_blocking(move || trade::search_raw(&query, &league))
+        .await
+        .map_err(|e| format!("Запрос прерван: {e}"))?
+        .map(|(listings, url)| TradeSearchView { listings, url })
 }
 
 #[tauri::command]
@@ -1493,6 +1658,11 @@ async fn item_ai(app: AppHandle, state: State<'_, App>, id: String, question: St
 }
 
 #[tauri::command]
+fn quick_price_now(app: AppHandle, state: State<App>) {
+    state.quick_price(&app);
+}
+
+#[tauri::command]
 fn map_toggle_check(app: AppHandle, state: State<App>, name: String) {
     state.update(&app, |s, _| {
         if let Some(check) = s.map_run.checks.iter_mut().find(|c| c.name == name) {
@@ -1779,6 +1949,9 @@ fn main() {    tauri::Builder::default()
             zone_map,
             build_select,
             build_import_pob,
+            build_import_url,
+            guide_for_build,
+            trade_search_guide,
             build_toggle,
             history_list,
             history_export,
@@ -1811,6 +1984,7 @@ fn main() {    tauri::Builder::default()
             map_boss,
             map_reset,
             map_panel,
+            quick_price_now,
             trade_search,
             diagnostics,
             reveal_data_dir,
@@ -1875,6 +2049,7 @@ fn main() {    tauri::Builder::default()
                     regexes: Vec::new(),
                     regex_open: false,
                     last_item: None,
+                    quick_price: None,
                     map_run: MapRun::default(),
                     session_started: now_iso(),
                     session_deaths: 0,
@@ -1977,13 +2152,13 @@ mod tests {
     #[test]
     fn hotkeys_parse_and_reject_duplicates() {
         let mut h = Hotkeys::default();
-        assert_eq!(parse_hotkeys(&h).unwrap().len(), 9);
+        assert_eq!(parse_hotkeys(&h).unwrap().len(), 10);
         h.screenshot = h.next.clone();
         assert!(parse_hotkeys(&h).unwrap_err().contains("занято"));
         h.screenshot = "Ctrl+Nonsense".into();
         assert!(parse_hotkeys(&h).is_err());
         h.screenshot = String::new();
-        assert_eq!(parse_hotkeys(&h).unwrap().len(), 8, "an empty field is simply unused");
+        assert_eq!(parse_hotkeys(&h).unwrap().len(), 9, "an empty field is simply unused");
     }
 
     #[test]

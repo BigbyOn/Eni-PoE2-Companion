@@ -314,6 +314,13 @@ const tradeSection = JSON.parse(await main.eval(`(async () => {
 })()`));
 check("trade: section and nav present", tradeSection.navItems === 8 && /выключена/.test(tradeSection.disabled), JSON.stringify(tradeSection));
 
+const quick = JSON.parse(await main.eval(`(async () => {
+  await window.__TAURI__.core.invoke('quick_price_now');
+  await new Promise(r => setTimeout(r, 500));
+  return JSON.stringify({ error: S.quick_price?.error || "", name: S.quick_price?.name || "" });
+})()`));
+check("quick price: disabled trade refuses", /выключена/.test(quick.error), JSON.stringify(quick));
+
 // 7e. PoB code import (the code is built in-page with CompressionStream)
 const pob = JSON.parse(await main.eval(`(async () => {
   const xml = '<?xml version="1.0" encoding="UTF-8"?><PathOfBuilding><Build level="42" className="Ranger" ascendClassName="Deadeye"/><Skills><Skill enabled="true" label="LA"><Gem nameSpec="Lightning Arrow" enabled="true"/><Gem nameSpec="Rapid Attacks" enabled="true"/></Skill></Skills><Tree><Spec nodes="1,2,3"/></Tree><Items><Item>' + 'Rarity: Unique' + String.fromCharCode(10) + 'Doom Loop' + String.fromCharCode(10) + 'Prismatic Ring' + String.fromCharCode(10) + '</Item></Items></PathOfBuilding>';
@@ -401,6 +408,15 @@ const mapToggle = JSON.parse(await ov.eval(`(async () => {
 })()`));
 check("location: mechanic toggles and panel closes", mapToggle.done === 1 && mapToggle.open === false && mapToggle.rares === 1, JSON.stringify(mapToggle));
 
+  const quickPanel = JSON.parse(await ov.eval(`(async () => {
+    await window.__TAURI__.core.invoke('quick_price_now');
+    await new Promise(r => setTimeout(r, 700));
+    return JSON.stringify({
+      name: document.querySelector('#panel .quick-name')?.textContent || '',
+      bad: document.querySelector('#panel .bad-text')?.textContent || '',
+    });
+  })()`));
+  check("overlay: quick price banner", /выключена/.test(quickPanel.bad), JSON.stringify(quickPanel));
   check("overlay: no page exceptions", ov.errors.length === 0, ov.errors.join("; "));
   ov.close();
 }

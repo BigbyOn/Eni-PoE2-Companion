@@ -241,6 +241,8 @@ struct Listing {
 struct Account {
     #[serde(default)]
     name: String,
+    #[serde(default)]
+    online: Option<serde_json::Value>,
 }
 
 #[derive(Default, Deserialize)]
@@ -262,6 +264,8 @@ pub struct ListingView {
     pub base: String,
     pub rarity: String,
     pub account: String,
+    /// The seller is online right now.
+    pub online: bool,
     pub whisper: String,
 }
 
@@ -395,6 +399,7 @@ pub fn parse_listings(json: &str) -> Result<Vec<ListingView>, String> {
                 name: x.item.name,
                 base: x.item.type_line,
                 rarity: x.item.rarity,
+                online: x.listing.account.online.is_some(),
                 account: x.listing.account.name,
                 whisper: x.listing.whisper,
             })
@@ -487,6 +492,41 @@ pub fn search_text(query_text: &str, league_pref: &str) -> Result<(Vec<ListingVi
 fn build_text_url(league: &str, text: &str) -> String {
     let body = serde_json::json!({ "query": { "status": { "option": "online" }, "type": text }, "sort": { "price": "asc" } });
     format!("{BASE}/trade2/search/poe2/{}?q={}", encode(league), encode(&body.to_string()))
+}
+
+/// Runs a ready-made request from a build guide (Mobalytics stores the whole
+/// search body, we only add the league).
+pub fn search_raw(query_json: &str, league_pref: &str) -> Result<(Vec<ListingView>, String), String> {
+    let body: serde_json::Value = serde_json::from_str(query_json).map_err(|e| format!("Запрос гайда не разобран: {e}"))?;
+    if body.get("query").is_none() {
+        return Err("В запросе гайда нет поля query".into());
+    }
+    let league = resolve_league(league_pref)?;
+    let url = format!("{BASE}/api/trade2/search/poe2/{}", encode(&league));
+    let mut res = agent()
+        .post(&url)
+        .header("User-Agent", &ua())
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
+        .send(body.to_string().as_bytes())
+        .map_err(|e| format!("Сеть: {e}"))?;
+    let status = res.status().as_u16();
+    let text = res.body_mut().read_to_string().map_err(|e| format!("Чтение ответа: {e}"))?;
+    if status == 429 {
+        return Err("Слишком часто: trade API просит подождать.".into());
+    }
+    if !(200..300).contains(&status) {
+        return Err(format!("Trade API HTTP {status}: {}", text.chars().take(200).collect::<String>()));
+    }
+    let (id, _total, hashes) = parse_search(&text)?;
+    let trade_url = format!("{BASE}/trade2/search/poe2/{}?q={}", encode(&league), encode(&body.to_string()));
+    if hashes.is_empty() {
+        return Ok((Vec::new(), trade_url));
+    }
+    let hashes: Vec<&str> = hashes.iter().take(10).map(|s| s.as_str()).collect();
+    let fetch_url = format!("{BASE}/api/trade2/fetch/{}?query={}", hashes.join(","), encode(&id));
+    let listings = parse_listings(&get_json(&fetch_url)?)?;
+    Ok((listings, trade_url))
 }
 
 /// Downloads the stat dataset (one request, cached by the caller).

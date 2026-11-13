@@ -70,6 +70,32 @@ function renderRegex() {
   reportSize();
 }
 
+function renderQuick(q) {
+  const panel = $("#panel");
+  const look = preview || S.saved.overlay;
+  panel.hidden = false;
+  panel.className = "quick";
+  panel.style.setProperty("--panel", `rgba(12,11,9,${(look.opacity ?? 88) / 100})`);
+  panel.style.zoom = `${(look.scale ?? 100) / 100}`;
+  $("#act").textContent = t("quick.title");
+  $("#lvls").textContent = "";
+  let line;
+  if (q.error) {
+    line = `<div class="bad-text">${esc(q.error)}</div>`;
+  } else if (q.total === 0) {
+    line = `<div class="small">${esc(q.note || t("guide.empty"))}</div>`;
+  } else {
+    const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+    line = `<div class="quick-price">${money(q.min)}–${money(q.median)} <span>${esc(q.currency)}</span></div>
+      <div class="small">${q.total} ${esc(t("items.price_lots"))}${q.note ? " · " + esc(q.note) : ""}</div>`;
+  }
+  $("#body").innerHTML = `<div class="quick-name">${esc(q.name || "—")}</div>${line}`;
+  reportSize();
+  setTimeout(() => {
+    if (S && S.quick_price) render();
+  }, 1000);
+}
+
 function renderLocation() {
   const run = S.map_run || { zone: "", rares: 0, boss: false, checks: [], started: "" };
   const panel = $("#panel");
@@ -122,6 +148,14 @@ function render() {
   if (S.regex_open) {
     renderRegex();
     return;
+  }
+  const qp = S.quick_price;
+  if (qp) {
+    const age = Date.now() - new Date(qp.ts || 0).getTime();
+    if (age >= 0 && age < 20000) {
+      renderQuick(qp);
+      return;
+    }
   }
   const p = profile();
   const s = step();

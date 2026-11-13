@@ -403,6 +403,7 @@ function renderBuild() {
             <select id="build-select">${BUILDS.map((x) => `<option value="${esc(x.id)}" ${x.id === b.id ? "selected" : ""}>${esc(l10n(x.name))}</option>`).join("")}</select>
           </div>
           <button class="btn sm ghost" data-act="pob-import">${esc(t("build.import_pob"))}</button>
+          <button class="btn sm ghost" data-act="guide-import">${esc(t("build.import_url"))}</button>
         </div>
       </div>
       <p class="muted" style="margin:8px 0 0">${esc(l10n(b.summary))}</p>
@@ -455,6 +456,7 @@ function renderBuild() {
     </div>`;
 
   loadItems();
+  loadGuide(b.id);
 }
 
 // ---------------------------------------------------------------- campaign
@@ -585,7 +587,7 @@ async function runTradeSearch(q) {
           (l) => `<tr>
             <td><b>${esc(String(l.price))} ${esc(l.currency)}</b></td>
             <td>${esc(l.name || l.base)}<div class="small">${esc(l.base)}${l.rarity ? " · " + esc(l.rarity) : ""}</div></td>
-            <td class="small">${esc(l.account)}</td>
+            <td class="small"><span class="dot-online ${l.online ? "on" : "off"}"></span> ${esc(l.account)}</td>
             <td><div class="row">
               <button class="btn sm ghost" data-act="trade-copy" data-text="${esc(l.whisper)}">${esc(t("trade.copy"))}</button>
               <button class="btn sm ghost" data-act="trade-open" data-url="${esc(res.url)}">${esc(t("trade.open"))}</button>
@@ -802,6 +804,106 @@ async function runAi(task) {
   }
 }
 
+const SLOT_RU = {
+  amulet: "Амулет",
+  belt: "Пояс",
+  body: "Нагрудник",
+  boots: "Ботинки",
+  gloves: "Перчатки",
+  helmet: "Шлем",
+  leftRing: "Кольцо",
+  rightRing: "Кольцо",
+  extraRing: "Кольцо",
+  mainHand: "Оружие",
+  offHand: "Оффхенд",
+  flask1: "Флакон",
+  flask2: "Флакон",
+  charm1: "Талисман",
+  charm2: "Талисман",
+  charm3: "Талисман",
+};
+
+function slotLabel(slot) {
+  return (S.saved.lang === "ru" && SLOT_RU[slot]) || slot;
+}
+
+function openGuideImport() {
+  $("#modal-title").textContent = t("build.import_url_title");
+  $("#modal-body").innerHTML = `
+    <div class="small" style="margin-bottom:8px">${esc(t("build.import_url_hint"))}</div>
+    <input type="text" id="guide-url" style="width:100%" placeholder="https://mobalytics.gg/poe-2/builds/...">
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" data-act="guide-run">${esc(t("build.import_url_run"))}</button>
+      <button class="btn ghost" data-act="modal-close">${esc(t("common.close"))}</button>
+      <span class="small bad-text" id="guide-error"></span>
+    </div>
+    <div class="small" id="guide-wait" hidden style="margin-top:8px">${esc(t("build.import_url_wait"))}</div>`;
+  $("#modal").hidden = false;
+}
+
+async function runGuideImport() {
+  const url = $("#guide-url")?.value.trim() || "";
+  const err = $("#guide-error");
+  const wait = $("#guide-wait");
+  if (err) err.textContent = "";
+  if (wait) wait.hidden = false;
+  try {
+    const doc = await invoke("build_import_url", { url });
+    BUILDS = BUILDS.filter((b) => b.id !== doc.id);
+    BUILDS.push(doc);
+    await invoke("build_select", { id: doc.id });
+    $("#modal").hidden = true;
+    toast(`${t("build.import_url_done")}: ${l10n(doc.name)}`);
+    renderSection();
+  } catch (e) {
+    if (err) err.textContent = String(e);
+  } finally {
+    if (wait) wait.hidden = true;
+  }
+}
+
+function renderGuide(g) {
+  let card = $("#guide-card");
+  if (!card) {
+    card = document.createElement("div");
+    card.id = "guide-card";
+    card.className = "card";
+    $("#content").appendChild(card);
+  }
+  card.hidden = false;
+  card.innerHTML = `
+    <div class="row between">
+      <h2>${esc(t("guide.title"))}</h2>
+      <button class="link" data-act="link" data-url="${esc(g.url)}">${esc(g.url)}</button>
+    </div>
+    <div class="small">${esc(g.class || "")}${g.ascendancy ? " · " + esc(g.ascendancy) : ""}</div>
+    <h3 style="margin-top:10px">${esc(t("guide.skills"))}</h3>
+    <div class="chips">${(g.skills || [])
+      .map((s) => `<span class="tag gem" title="${esc(s.supports.join(", "))}">${esc(s.main)}${s.supports.length ? " + " + esc(s.supports.join(", ")) : ""}</span>`)
+      .join("")}</div>
+    <h3 style="margin-top:12px">${esc(t("guide.gear"))}</h3>
+    <table class="table">
+      <thead><tr><th>${esc(t("guide.slot"))}</th><th>${esc(t("trade.item"))}</th><th></th></tr></thead>
+      <tbody>${(g.gear || [])
+        .map(
+          (it) => `<tr>
+            <td class="small">${esc(slotLabel(it.slot))}</td>
+            <td><b>${esc(it.name)}</b><div class="small">${esc((it.mods || []).slice(0, 3).join(" · "))}</div></td>
+            <td><button class="btn sm ghost" data-act="guide-find" data-guide="${esc(g.id)}" data-slot="${esc(it.slot)}">${esc(t("guide.buy"))}</button>
+              <div class="guide-out small" style="margin-top:4px"></div></td>
+          </tr>`
+        )
+        .join("")}</tbody>
+    </table>`;
+}
+
+async function loadGuide(buildId) {
+  try {
+    const g = await invoke("guide_for_build", { buildId });
+    if (g) renderGuide(g);
+  } catch {}
+}
+
 function openPobImport() {
   $("#modal-title").textContent = t("build.import_pob_title");
   $("#modal-body").innerHTML = `
@@ -858,6 +960,7 @@ function renderSettings() {
     ["item", "set.hk_item"],
     ["regex", "set.hk_regex"],
     ["map", "set.hk_map"],
+    ["price", "set.hk_price"],
   ];
   const providerOptions = [{ id: "disabled", label: t("common.none") }, ...(S.ai_providers || [])]
     .map((p) => `<option value="${esc(p.id)}" ${p.id === (S.saved.ai.provider || "disabled") ? "selected" : ""}>${esc(p.label)}</option>`)
@@ -1449,6 +1552,37 @@ async function act(name, el) {
     case "trade-open":
       await invoke("link_open", { url: el.dataset.url || "" });
       break;
+    case "guide-import":
+      openGuideImport();
+      break;
+    case "guide-run":
+      await runGuideImport();
+      break;
+    case "guide-find": {
+      const out = el.closest("tr")?.querySelector(".guide-out");
+      if (out) out.textContent = t("guide.wait");
+      el.disabled = true;
+      try {
+        const res = await invoke("trade_search_guide", { guideId: el.dataset.guide, slot: el.dataset.slot });
+        if (!out) break;
+        if (!res.listings.length) {
+          out.textContent = t("guide.empty");
+        } else {
+          out.innerHTML = res.listings
+            .slice(0, 3)
+            .map(
+              (l) =>
+                `<div><span class="dot-online ${l.online ? "on" : "off"}"></span> ${esc(String(l.price))} ${esc(l.currency)} · ${esc(l.account)} <button class="link" data-act="trade-copy" data-text="${esc(l.whisper)}">whisper</button></div>`
+            )
+            .join("");
+        }
+      } catch (e) {
+        if (out) out.innerHTML = `<span class="bad-text">${esc(String(e))}</span>`;
+      } finally {
+        el.disabled = false;
+      }
+      break;
+    }
     case "pob-import":
       openPobImport();
       break;
