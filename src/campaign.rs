@@ -170,6 +170,34 @@ fn contains(haystack: &[String], needle: &str) -> bool {
     haystack.iter().any(|z| normalize(z) == needle)
 }
 
+/// Edit distance, used to forgive transliteration drift ("Мавдун"/"Маудун").
+fn levenshtein(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let mut prev: Vec<usize> = (0..=b.len()).collect();
+    let mut cur = vec![0usize; b.len() + 1];
+    for (i, ca) in a.iter().enumerate() {
+        cur[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cost = usize::from(ca != cb);
+            cur[j + 1] = (prev[j + 1] + 1).min(cur[j] + 1).min(prev[j] + cost);
+        }
+        std::mem::swap(&mut prev, &mut cur);
+    }
+    prev[b.len()]
+}
+
+/// Client translations often differ by one or two letters; accept that, but
+/// only for reasonably long names so short words do not collide.
+fn close_name(a: &str, b: &str) -> bool {
+    let (a, b) = (normalize(a), normalize(b));
+    let min_len = a.chars().count().min(b.chars().count());
+    if min_len < 6 || a.chars().count().abs_diff(b.chars().count()) > 2 {
+        return false;
+    }
+    levenshtein(&a, &b) <= 2
+}
+
 impl Campaign {
     pub fn parse(json: &str) -> Result<Campaign, String> {
         let raw: RawCampaign = serde_json::from_str(json).map_err(|e| format!("JSON кампании повреждён: {e}"))?;
@@ -278,6 +306,21 @@ impl Campaign {
         if let Some(zone) = self.zones.iter().find(|zone| {
             zone.names.iter().chain(zone.ru.iter()).any(|name| normalize(name) == z)
         }) {
+            return normalize(&zone.names[0]);
+        }
+        // Transliteration drift ("Маудун" vs "Мавдун"): pick the closest zone.
+        let mut best: Option<(usize, &Zone)> = None;
+        for zone in &self.zones {
+            for name in zone.names.iter().chain(zone.ru.iter()) {
+                if close_name(&z, name) {
+                    let distance = levenshtein(&z, &normalize(name));
+                    if best.map(|(d, _)| distance < d).unwrap_or(true) {
+                        best = Some((distance, zone));
+                    }
+                }
+            }
+        }
+        if let Some((_, zone)) = best {
             return normalize(&zone.names[0]);
         }
         z
@@ -585,6 +628,15 @@ mod tests {
         assert_eq!(c.zone_display(next), "Clearfell Encampment");
         let (pos, total) = c.progress(0, "all");
         assert_eq!((pos, total), (1, c.len()));
+    }
+
+    #[test]
+    fn fuzzy_zone_names_forgive_transliteration_drift() {
+        let c = campaign();
+        assert_eq!(c.resolve("Каменоломня Маудун", &[]), "mawdun quarry");
+        assert_eq!(c.resolve("Каменоломня Мавдун", &[]), "mawdun quarry");
+        // Short names must not collide.
+        assert_ne!(c.resolve("Акт", &[]), "ogham manor");
     }
 
     #[test]
