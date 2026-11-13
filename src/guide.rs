@@ -397,11 +397,21 @@ fn l10n(ru: impl Into<String>, en: impl Into<String>) -> Value {
     serde_json::json!({ "ru": ru.into(), "en": en.into() })
 }
 
+/// "Вариант 2" / "Variant 2" depending on the UI language.
+pub fn variant_label(index: usize, lang: &str) -> String {
+    if lang == "en" {
+        format!("Variant {}", index + 1)
+    } else {
+        format!("Вариант {}", index + 1)
+    }
+}
+
 /// Builds a local build document (same schema as the bundled builds) for one variant.
-pub fn to_build_json(set: &GuideSet, variant_index: usize, id: &str) -> Value {
+pub fn to_build_json(set: &GuideSet, variant_index: usize, id: &str, lang: &str) -> Value {
     let variant = set.variants.iter().find(|v| v.index == variant_index).unwrap_or(&set.variants[0]);
     let title = if set.title.is_empty() { "Гайд Mobalytics".to_string() } else { set.title.clone() };
-    let suffix = if set.variants.len() > 1 { format!(" · {}", variant.label) } else { String::new() };
+    let label = variant_label(variant.index, lang);
+    let suffix = if set.variants.len() > 1 { format!(" · {label}") } else { String::new() };
     let full_title = format!("{title}{suffix}");
     let class = if set.class.is_empty() { "Unknown" } else { set.class.as_str() };
     let skills: Vec<Value> = variant
@@ -446,7 +456,7 @@ pub fn to_build_json(set: &GuideSet, variant_index: usize, id: &str) -> Value {
         "stages": [{
             "id": "guide-import",
             "levels": [1, 100],
-            "title": l10n(format!("План из гайда ({})", variant.label), format!("Plan from the guide ({})", variant.label)),
+            "title": l10n(format!("План из гайда ({label})"), format!("Plan from the guide ({label})")),
             "focus": l10n(
                 "Сверяй камни и снаряжение; кнопка «Найти» у предмета ищет его в торговле с фильтрами из гайда.",
                 "Check gems and gear; the “Find” button searches the item with the guide's filters."
@@ -544,7 +554,7 @@ mod tests {
     #[test]
     fn build_document_uses_the_selected_variant() {
         let g = parse(&fixture(true), "https://mobalytics.gg/poe-2/builds/x").unwrap();
-        let doc = to_build_json(&g, 1, "guide-test");
+        let doc = to_build_json(&g, 1, "guide-test", "ru");
         let text = serde_json::to_string(&doc).unwrap();
         let parsed = crate::builds::BuildDoc::parse(&text).expect("guide build must validate");
         assert!(parsed.name.ru.contains("Вариант 2"));

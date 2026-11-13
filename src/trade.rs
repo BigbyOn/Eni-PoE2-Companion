@@ -138,8 +138,10 @@ fn is_defensive(shape: &str) -> bool {
 ///
 /// Defensive lines (life/resistances) come first, because they define the price
 /// of a rare item much more than a small damage roll.
-pub fn match_stats(item: &ParsedItem, stats: &[StatDef], limit: usize) -> Vec<StatFilter> {
+pub fn match_stats(item: &ParsedItem, stats: &[StatDef], limit: usize, headroom: u8) -> (Vec<StatFilter>, Vec<String>) {
+    let factor = 1.0 - f64::from(headroom.min(50)) / 100.0;
     let mut found: Vec<(bool, usize, StatFilter)> = Vec::new();
+    let mut unmatched: Vec<String> = Vec::new();
     for (index, line) in item.mods.iter().enumerate() {
         let values: Vec<f64> = numbers(line);
         let Some(first) = values.first().copied() else { continue };
@@ -149,11 +151,12 @@ pub fn match_stats(item: &ParsedItem, stats: &[StatDef], limit: usize) -> Vec<St
         }
         let target = shape(line);
         let Some(def) = stats.iter().find(|s| s.shape == target && s.kind == "explicit").or_else(|| stats.iter().find(|s| s.shape == target)) else {
+            unmatched.push(line.clone());
             continue;
         };
         // 10% headroom: the player compares with *similar* items, not only with
         // rolls that are at least as good.
-        let min = (first * 0.9).floor().max(1.0);
+        let min = (first * factor).floor().max(1.0);
         let max = if def.shape.matches('#').count() >= 2 && values.len() >= 2 { Some(values[1]) } else { None };
         found.push((
             is_defensive(&def.shape),
@@ -162,7 +165,7 @@ pub fn match_stats(item: &ParsedItem, stats: &[StatDef], limit: usize) -> Vec<St
         ));
     }
     found.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
-    found.into_iter().take(limit).map(|(_, _, f)| f).collect()
+    (found.into_iter().take(limit).map(|(_, _, f)| f).collect(), unmatched)
 }
 
 
@@ -183,6 +186,12 @@ pub struct PriceResult {
     pub median: f64,
     pub samples: Vec<String>,
     pub trade_url: String,
+    /// Modifiers that did not match the stat catalogue.
+    #[serde(default)]
+    pub unmatched: Vec<String>,
+    /// How many modifiers were used as filters.
+    #[serde(default)]
+    pub matched: usize,
     /// Human-readable caveat for the UI (e.g. rare items without stat filters).
     pub note: String,
 }
@@ -267,6 +276,9 @@ struct FetchedItem {
 pub struct CurrencyRate {
     pub league: String,
     pub exalted_per_divine: f64,
+    /// Chaos per divine, when the source knows it.
+    #[serde(default)]
+    pub chaos_per_divine: Option<f64>,
     pub offers: usize,
     /// "exchange" (bulk offers) or "listings" (priced Divine Orb listings).
     pub source: String,
@@ -629,6 +641,7 @@ fn rate_for(league: &str) -> Option<CurrencyRate> {
                     return Some(CurrencyRate {
                         league: league.to_string(),
                         exalted_per_divine: median(ratios.clone()),
+                        chaos_per_divine: None,
                         offers: ratios.len(),
                         source: "exchange".into(),
                         updated: now_iso(),
@@ -671,6 +684,7 @@ fn rate_for(league: &str) -> Option<CurrencyRate> {
     Some(CurrencyRate {
         league: league.to_string(),
         exalted_per_divine: median(prices.clone()),
+        chaos_per_divine: None,
         offers: prices.len(),
         source: "listings".into(),
         updated: now_iso(),
@@ -725,10 +739,14 @@ pub fn resolve_league(preferred: &str) -> Result<String, String> {
 ///
 /// With `stats` the item's modifiers become filters; if that leaves no results,
 /// the search is repeated without them and the note says so.
-pub fn check(item: &ParsedItem, league_pref: &str, stats: Option<&[StatDef]>, limit: usize) -> Result<PriceResult, String> {
+pub fn check(item: &ParsedItem, league_pref: &str, stats: Option<&[StatDef]>, limit: usize, headroom: u8) -> Result<PriceResult, String> {
     let league = resolve_league(league_pref)?;
-    let filters = stats.map(|s| match_stats(item, s, limit.min(3))).unwrap_or_default();
+    let (filters, unmatched) = stats
+        .map(|s| match_stats(item, s, limit.min(3), headroom))
+        .unwrap_or_default();
     let mut result = search(item, &league, &filters, !filters.is_empty())?;
+    result.unmatched = unmatched;
+    result.matched = filters.len();
     if result.total == 0 && filters.len() > 2 {
         result = search(item, &league, &filters[..2], true)?;
         if result.total > 0 {
@@ -738,6 +756,14 @@ pub fn check(item: &ParsedItem, league_pref: &str, stats: Option<&[StatDef]>, li
     if result.total == 0 && !filters.is_empty() {
         result = search(item, &league, &[], false)?;
         result.note = "По модификаторам ничего не найдено — показаны цены по базе и редкости.".into();
+    }
+    if !result.unmatched.is_empty() {
+        let base = result.note.trim().to_string();
+        result.note = if base.is_empty() {
+            format!("Не распознано модов: {}.", result.unmatched.len())
+        } else {
+            format!("{base} Не распознано модов: {}.", result.unmatched.len())
+        };
     }
     Ok(result)
 }
@@ -903,7 +929,7 @@ mod tests {
             ],
             ..Default::default()
         };
-        let filters = match_stats(&item, &stats, 3);
+        let (filters, _unmatched) = match_stats(&item, &stats, 3, 10);
         assert_eq!(filters.len(), 3);
         assert_eq!(filters[0].id, "explicit.stat_1", "life is defensive first");
         assert_eq!(filters[0].min, 16.0);
@@ -919,7 +945,7 @@ mod tests {
         let json = r##"{"result":[{"id":"explicit","entries":[{"id":"explicit.stat_3","text":"Adds # to # Physical Damage","type":"explicit"}]}]}"##;
         let stats = parse_stats(json).unwrap();
         let item = ParsedItem { mods: vec!["Adds 5 to 10 Physical Damage".into()], ..Default::default() };
-        let filters = match_stats(&item, &stats, 3);
+        let (filters, _unmatched) = match_stats(&item, &stats, 3, 10);
         assert_eq!(filters.len(), 1);
         assert_eq!((filters[0].min, filters[0].max), (4.0, Some(10.0)));
     }

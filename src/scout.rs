@@ -16,6 +16,9 @@ pub struct Scout {
     pub league: String,
     /// Exalted per divine, 24h average.
     pub divine_price: f64,
+    /// Chaos per divine, 24h average (when the API provides it).
+    #[serde(default)]
+    pub chaos_per_divine: f64,
     /// Base currency of the league (usually Exalted Orb).
     pub base_currency: String,
     pub fetched: String,
@@ -30,6 +33,8 @@ struct League {
     is_current: bool,
     #[serde(rename = "DivinePrice", default)]
     divine_price: f64,
+    #[serde(rename = "ChaosDivinePrice", default)]
+    chaos_divine_price: f64,
     #[serde(rename = "BaseCurrencyText", default)]
     base_currency: String,
 }
@@ -62,6 +67,7 @@ pub fn parse(json: &str) -> Result<Scout, String> {
     Ok(Scout {
         league: current.value.clone(),
         divine_price: current.divine_price,
+        chaos_per_divine: current.chaos_divine_price,
         base_currency: current.base_currency.clone(),
         fetched: now_iso(),
         source: "poe2scout 24h".into(),

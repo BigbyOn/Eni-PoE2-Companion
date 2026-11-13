@@ -171,37 +171,27 @@ function renderSection() {
 
 // ---------------------------------------------------------------- home
 function zoneCard() {
-  const zp = S.zone_progress;
-  if (!zp) return "";
-  const label = zp.zone_ru || zp.zone || t("common.unknown");
-  const en = zp.zone && zp.zone !== zp.zone_ru ? ` (${zp.zone})` : "";
-  const kind = (o) => (o.kind === "boss" ? t("zone.boss") : o.kind === "quest" ? t("zone.quest") : t("zone.town"));
-  const objectives = (zp.objectives || [])
-    .map(
-      (o) => `<label class="check-item ${o.done ? "done" : ""}">
-        <input type="checkbox" data-act="zone-obj" data-id="${esc(o.id)}" ${o.done ? "checked" : ""}>
-        <span>${esc(l10n(o.goal))} <span class="tag">${esc(kind(o))}</span>${o.level ? ` <span class="small">${esc(t("char.level"))} ${esc(o.level)}</span>` : ""}${(o.rewards || []).length ? ` <span class="tag gem">${esc(o.rewards.join(", "))}</span>` : ""}</span>
-      </label>`
-    )
-    .join("");
-  const next = zp.next_goal
-    ? `${esc(t("zone.next"))}: ${esc(zp.next_goal)}`
-    : zp.next_zone
-      ? `${esc(t("zone.all_done"))} → ${esc(zp.next_zone)}`
-      : "";
+  const todos = S.zone_todos || [];
+  const pending = todos.filter((t) => !t.done);
+  const done = todos.filter((t) => t.done);
+  const zone = S.zone_progress?.zone_ru || S.saved.profiles?.[0]?.zone || "";
+  const row = (item, isDone) => `<div class="check-item ${isDone ? "done" : ""}">
+      <input type="checkbox" data-act="zone-todo-toggle" data-id="${esc(item.id)}" ${isDone ? "checked" : ""}>
+      <span>${esc(item.text)}</span>
+      <button class="icon" data-act="zone-todo-remove" data-id="${esc(item.id)}" title="${esc(t("zone.remove"))}">✕</button>
+    </div>`;
   return `<div class="card">
     <div class="row between">
       <h2>${esc(t("zone.title"))}</h2>
-      <span class="small">${esc(label)}${esc(en)}</span>
+      <span class="small">${esc(zone)}</span>
     </div>
-    <div class="row small" style="gap:12px;margin:6px 0 10px">
-      <span>${esc(t("zone.bosses"))}: <b>${zp.bosses_done}/${zp.bosses_total}</b></span>
-      <span>${esc(t("zone.quests"))}: <b>${zp.quests_done}/${zp.quests_total}</b></span>
-      ${zp.known ? "" : `<span class="tag">${esc(t("zone.unknown"))}</span>`}
+    <div class="small" style="margin:4px 0 8px">${esc(t("zone.pending"))}: <b>${pending.length}</b>${done.length ? ` · ${esc(t("zone.done_count"))}: ${done.length}` : ""}</div>
+    <div>${pending.length ? pending.map((item) => row(item, false)).join("") : `<div class="small">${esc(t("zone.none"))}</div>`}</div>
+    ${done.length ? `<details style="margin-top:6px"><summary class="small">${esc(t("zone.done_count"))}: ${done.length}</summary>${done.map((item) => row(item, true)).join("")}</details>` : ""}
+    <div class="row" style="margin-top:8px">
+      <input id="zt-input" style="flex:1;min-width:200px" placeholder="${esc(t("zone.placeholder"))}">
+      <button class="btn sm primary" data-act="zone-todo-add">${esc(t("zone.add"))}</button>
     </div>
-    <div>${objectives || `<div class="small">${esc(t("zone.empty"))}</div>`}</div>
-    ${next ? `<div class="small" style="margin-top:8px">${next}</div>` : ""}
-    ${zp.known ? "" : `<div class="row" style="margin-top:8px"><button class="btn sm ghost" data-act="go-campaign">${esc(t("zone.map_hint"))}</button></div>`}
   </div>`;
 }
 
@@ -616,6 +606,7 @@ async function loadRate() {
     const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
     const parts = [esc(t("trade.rate_line").replace("{n}", money(r.exalted_per_divine)))];
     if (r.league) parts.push(esc(r.league));
+    if (r.chaos_per_divine) parts.push(`1 Divine ≈ ${money(r.chaos_per_divine)} Chaos`);
     if (r.offers > 0) parts.push(`${r.offers} ${esc(t("trade.rate_offers"))}`);
     if (r.source) parts.push(esc(r.source));
     line.innerHTML = parts.join(" · ");
@@ -882,8 +873,28 @@ const SLOT_RU = {
   charm3: "Талисман",
 };
 
+const SLOT_EN = {
+  amulet: "Amulet",
+  belt: "Belt",
+  body: "Body armour",
+  boots: "Boots",
+  gloves: "Gloves",
+  helmet: "Helmet",
+  leftRing: "Ring",
+  rightRing: "Ring",
+  extraRing: "Ring",
+  mainHand: "Weapon",
+  offHand: "Off-hand",
+  flask1: "Flask",
+  flask2: "Flask",
+  charm1: "Charm",
+  charm2: "Charm",
+  charm3: "Charm",
+};
+
 function slotLabel(slot) {
-  return (S.saved.lang === "ru" && SLOT_RU[slot]) || slot;
+  if (S.saved.lang === "ru") return SLOT_RU[slot] || slot;
+  return SLOT_EN[slot] || slot;
 }
 
 function openGuideImport() {
@@ -1176,6 +1187,9 @@ function renderSettings() {
           <select id="st-trade-filters">${[0, 1, 2, 3].map((n) => `<option value="${n}" ${n === (S.saved.trade?.filters ?? 2) ? "selected" : ""}>${n}</option>`).join("")}</select>
           <div class="small">${esc(t("set.trade_filters_hint"))}</div>
         </div>
+        <div class="field"><label>${esc(t("set.trade_headroom"))}</label>
+          <select id="st-trade-headroom">${[0, 5, 10, 15, 20].map((n) => `<option value="${n}" ${n === (S.saved.trade?.headroom ?? 10) ? "selected" : ""}>${n}%</option>`).join("")}</select>
+        </div>
       </div>
     </div>
 
@@ -1431,6 +1445,7 @@ function baseSettings() {
     trade_enabled: Boolean(S.saved.trade?.enabled),
     trade_league: S.saved.trade?.league || "",
     trade_filters: S.saved.trade?.filters ?? 2,
+    trade_headroom: S.saved.trade?.headroom ?? 10,
     map_enabled: Boolean(S.saved.map?.enabled),
     map_mechanics: S.saved.map?.mechanics || [],
   };
@@ -1469,6 +1484,7 @@ function collectSettings({ keepKey = false } = {}) {
     trade_enabled: $("#st-trade-enabled")?.checked ?? false,
     trade_league: $("#st-trade-league")?.value.trim() || "",
     trade_filters: Number($("#st-trade-filters")?.value ?? 2),
+    trade_headroom: Number($("#st-trade-headroom")?.value ?? 10),
     map_enabled: $("#st-map-enabled")?.checked ?? false,
     map_mechanics: ($("#st-map-mechanics")?.value || "")
       .split(",")
@@ -1627,8 +1643,17 @@ async function act(name, el) {
       await invoke("item_delete", { id: el.dataset.id });
       await loadItems();
       break;
-    case "zone-obj":
-      await invoke("zone_toggle_objective", { id: el.dataset.id });
+    case "zone-todo-add": {
+      const input = $("#zt-input");
+      const text = input?.value.trim() || "";
+      if (text) await invoke("zone_todo_add", { text });
+      break;
+    }
+    case "zone-todo-toggle":
+      await invoke("zone_todo_toggle", { id: el.dataset.id });
+      break;
+    case "zone-todo-remove":
+      await invoke("zone_todo_remove", { id: el.dataset.id });
       break;
     case "go-campaign":
       go("campaign");
@@ -1860,6 +1885,13 @@ async function act(name, el) {
 }
 
 // ---------------------------------------------------------------- events
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target?.id === "zt-input") {
+    e.preventDefault();
+    $("#content [data-act='zone-todo-add']")?.click();
+  }
+});
+
 document.addEventListener("click", (e) => {
   const nav = e.target.closest("[data-nav]");
   if (nav) return go(nav.dataset.nav);

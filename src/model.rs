@@ -289,6 +289,18 @@ pub struct ItemRecord {
     pub ai: Option<String>,
 }
 
+/// A manual note "what is left in this location" (chest, mini-boss, event).
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct ZoneTodo {
+    pub id: String,
+    /// Canonical route zone name, so the note survives log spelling changes.
+    pub zone: String,
+    pub text: String,
+    pub done: bool,
+    pub created: String,
+}
+
 /// A build guide imported from Mobalytics: structural facts only.
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 #[serde(default)]
@@ -366,6 +378,13 @@ pub struct TradeCfg {
     /// How many modifiers to use as filters (0-3); 2 is a good default.
     #[serde(default = "default_trade_filters")]
     pub filters: u8,
+    /// Percent subtracted from modifier values to find "similar" items.
+    #[serde(default = "default_trade_headroom")]
+    pub headroom: u8,
+}
+
+pub fn default_trade_headroom() -> u8 {
+    10
 }
 
 pub fn default_trade_filters() -> u8 {
@@ -374,7 +393,7 @@ pub fn default_trade_filters() -> u8 {
 
 impl Default for TradeCfg {
     fn default() -> Self {
-        TradeCfg { enabled: false, league: String::new(), filters: 2 }
+        TradeCfg { enabled: false, league: String::new(), filters: 2, headroom: 10 }
     }
 }
 
@@ -421,6 +440,9 @@ pub struct Saved {
     /// Imported build guides (Mobalytics).
     #[serde(default)]
     pub guides: Vec<GuideRecord>,
+    /// Manual location checklists ("chest not looted", "mini-boss left").
+    #[serde(default)]
+    pub zone_todos: Vec<ZoneTodo>,
     pub buildings_dir: Option<PathBuf>,
     pub shots_dir: Option<PathBuf>,
     pub ai: AiCfg,
@@ -449,6 +471,7 @@ impl Default for Saved {
             items: Vec::new(),
             regexes: default_regexes(),
             guides: Vec::new(),
+            zone_todos: Vec::new(),
             buildings_dir: None,
             shots_dir: None,
             ai: AiCfg::default(),
@@ -562,6 +585,14 @@ impl Saved {
             }
         }
         self.guides.truncate(20);
+        self.zone_todos.retain(|t| !t.text.trim().is_empty() && !t.zone.trim().is_empty());
+        for todo in &mut self.zone_todos {
+            todo.text = todo.text.chars().take(120).collect();
+        }
+        if self.zone_todos.len() > 500 {
+            let drop = self.zone_todos.len() - 500;
+            self.zone_todos.drain(..drop);
+        }
         self
     }
 

@@ -314,26 +314,22 @@ const tradeSection = JSON.parse(await main.eval(`(async () => {
 })()`));
 check("trade: section and nav present", tradeSection.navItems === 8 && /выключена/.test(tradeSection.disabled), JSON.stringify(tradeSection));
 
-const zoneProgress = JSON.parse(await main.eval(`(async () => {
+const zoneTodos = JSON.parse(await main.eval(`(async () => {
   go('home');
   await new Promise(r => setTimeout(r, 300));
   const text = document.querySelector('#content')?.innerText || '';
-  const zp = S.zone_progress || {};
-  const toggleId = (zp.objectives || [])[0]?.id || '';
-  return JSON.stringify({ known: zp.known, bosses: zp.bosses_total, objectives: (zp.objectives || []).length, text: text.includes('Боссы') && text.includes('Квесты'), toggleId });
-})()`));
-check("zone: progress card for the current location", zoneProgress.known === true && zoneProgress.objectives >= 1 && zoneProgress.text === true, JSON.stringify(zoneProgress));
-const zoneToggle = JSON.parse(await main.eval(`(async () => {
-  const id = ${JSON.stringify(zoneProgress.toggleId)};
-  await window.__TAURI__.core.invoke('zone_toggle_objective', { id });
+  await window.__TAURI__.core.invoke('zone_todo_add', { text: 'Тестовый сундук' });
   await new Promise(r => setTimeout(r, 300));
-  const done = (S.saved.profiles[0].done || []).includes(id);
-  await window.__TAURI__.core.invoke('zone_toggle_objective', { id });
+  const added = (S.zone_todos || []).find((t) => t.text === 'Тестовый сундук');
+  if (added) await window.__TAURI__.core.invoke('zone_todo_toggle', { id: added.id });
   await new Promise(r => setTimeout(r, 300));
-  const undone = !(S.saved.profiles[0].done || []).includes(id);
-  return JSON.stringify({ done, undone });
+  const done = (S.zone_todos || []).find((t) => t.text === 'Тестовый сундук')?.done;
+  if (added) await window.__TAURI__.core.invoke('zone_todo_remove', { id: added.id });
+  await new Promise(r => setTimeout(r, 300));
+  const removed = !(S.zone_todos || []).some((t) => t.text === 'Тестовый сундук');
+  return JSON.stringify({ card: text.includes('Осталось сделать'), added: Boolean(added), done, removed });
 })()`));
-check("zone: objective checkbox persists", zoneToggle.done === true && zoneToggle.undone === true, JSON.stringify(zoneToggle));
+check("zone: manual 'left to do' list works", zoneTodos.card === true && zoneTodos.added === true && zoneTodos.done === true && zoneTodos.removed === true, JSON.stringify(zoneTodos));
 
 const rate = JSON.parse(await main.eval(`(async () => {
   const err = await window.__TAURI__.core.invoke('trade_rate').then(() => 'ok').catch((e) => String(e));
@@ -477,7 +473,8 @@ const diag = await main.eval(`(async () => await window.__TAURI__.core.invoke('d
 check("diagnostics: report contains the log path", diag.includes("Client.txt") && diag.includes("campaign"), diag.split("\n").slice(0, 3).join(" / "));
 
 // 12. state file on disk
-const statePath = join(process.env.APPDATA, "io.github.bigbyon.enipoe2companion", "state.json");
+const dataDir = await main.eval("S.data_dir");
+const statePath = join(dataDir, "state.json");
 check("state: state.json written", existsSync(statePath), statePath);
 if (existsSync(statePath)) {
   const state = JSON.parse(readFileSync(statePath, "utf8"));

@@ -75,6 +75,8 @@ struct Snapshot {
     map_run: MapRun,
     /// Objectives of the current location from the route.
     zone_progress: campaign::ZoneProgress,
+    /// Manual "what is left here" notes for the current location.
+    zone_todos: Vec<ZoneTodo>,
     /// Session counters, reset when the app starts.
     session_started: String,
     session_deaths: u32,
@@ -304,6 +306,8 @@ impl App {
         };
         let aliases = s.saved.zone_aliases.clone();
         s.zone_progress = campaign.zone_progress(&zone, &done, cur, &mode, &aliases);
+        let canonical = campaign.resolve(&zone, &aliases);
+        s.zone_todos = s.saved.zone_todos.iter().filter(|t| t.zone == canonical).cloned().collect();
         s.campaign_len = len;
         s.campaign_version = campaign.version.clone();
         s.campaign_act = s.saved.profile().map(|p| p.act).unwrap_or(1);
@@ -435,9 +439,9 @@ impl App {
 
     /// Prices whatever item text is in the clipboard, without touching the game.
     fn quick_price(&self, app: &AppHandle) {
-        let (enabled, league, filters) = {
+        let (enabled, league, filters, headroom) = {
             let s = self.snap.lock().unwrap();
-            (s.saved.trade.enabled, s.saved.trade.league.clone(), s.saved.trade.filters as usize)
+            (s.saved.trade.enabled, s.saved.trade.league.clone(), s.saved.trade.filters as usize, s.saved.trade.headroom)
         };
         let text = clip::read().unwrap_or_default();
         let parsed = item::parse(&text);
@@ -476,7 +480,7 @@ impl App {
             if let Some(stats) = &stats {
                 write_stats_cache(&dir, stats);
             }
-            let result = trade::check(&parsed, &league, stats.as_deref(), filters);
+            let result = trade::check(&parsed, &league, stats.as_deref(), filters, headroom);
             let quick = match result {
                 Ok(r) => QuickPrice {
                     name: parsed.name.clone(),
@@ -807,10 +811,16 @@ struct GuideVariantInfo {
 #[tauri::command]
 async fn guide_variants(state: State<'_, App>, url: String) -> Result<Vec<GuideVariantInfo>, String> {
     let set = load_guide_set(&state, &url).await?;
+    let lang = { state.snap.lock().unwrap().saved.lang.clone() };
     Ok(set
         .variants
         .iter()
-        .map(|v| GuideVariantInfo { index: v.index, label: v.label.clone(), skills: v.skills.len(), gear: v.gear.len() })
+        .map(|v| GuideVariantInfo {
+            index: v.index,
+            label: guide::variant_label(v.index, &lang),
+            skills: v.skills.len(),
+            gear: v.gear.len(),
+        })
         .collect())
 }
 
@@ -827,9 +837,10 @@ async fn build_import_url(
     let chosen = variant
         .filter(|v| parsed.variants.iter().any(|x| x.index == *v))
         .unwrap_or(parsed.variants[0].index);
-    let label = parsed.variants.iter().find(|v| v.index == chosen).map(|v| v.label.clone()).unwrap_or_default();
+    let lang = { state.snap.lock().unwrap().saved.lang.clone() };
+    let label = guide::variant_label(chosen, &lang);
     let id = format!("guide-{}", new_id("b"));
-    let json = guide::to_build_json(&parsed, chosen, &id);
+    let json = guide::to_build_json(&parsed, chosen, &id, &lang);
     let text = serde_json::to_string_pretty(&json).map_err(|e| e.to_string())?;
     let doc = builds::BuildDoc::parse(&text).map_err(|e| format!("Импортированный билд не прошёл проверку: {e}"))?;
     let dir = state.dir.join("builds");
@@ -1011,6 +1022,8 @@ struct SettingsIn {
     trade_league: String,
     #[serde(default = "crate::model::default_trade_filters")]
     trade_filters: u8,
+    #[serde(default = "crate::model::default_trade_headroom")]
+    trade_headroom: u8,
     #[serde(default)]
     map_enabled: bool,
     #[serde(default)]
@@ -1078,6 +1091,7 @@ fn save_settings(app: AppHandle, state: State<App>, settings: SettingsIn) -> Res
             enabled: settings.trade_enabled,
             league: settings.trade_league.trim().chars().take(60).collect(),
             filters: settings.trade_filters.min(3),
+            headroom: settings.trade_headroom.min(30),
         };
         s.saved.ai = AiCfg {
             enabled: settings.ai_enabled,
@@ -1260,6 +1274,56 @@ fn campaign_manual_zone(app: AppHandle, state: State<App>, zone: String) {
         }
         push_event(s, "zone", zone, String::from("указано вручную"));
     });
+}
+
+fn current_zone_canonical(state: &App) -> String {
+    let campaign = state.campaign.read().unwrap();
+    let (zone, aliases) = {
+        let s = state.snap.lock().unwrap();
+        (
+            s.saved.profile().map(|p| p.zone.clone()).unwrap_or_default(),
+            s.saved.zone_aliases.clone(),
+        )
+    };
+    campaign.resolve(&zone, &aliases)
+}
+
+#[tauri::command]
+fn zone_todo_add(app: AppHandle, state: State<App>, text: String) {
+    let text: String = text.trim().chars().take(120).collect();
+    if text.is_empty() {
+        return;
+    }
+    let zone = current_zone_canonical(&state);
+    if zone.is_empty() {
+        return;
+    }
+    state.update(&app, |s, _| {
+        s.saved.zone_todos.push(ZoneTodo {
+            id: new_id("zt"),
+            zone: zone.clone(),
+            text: text.clone(),
+            done: false,
+            created: now_iso(),
+        });
+        if s.saved.zone_todos.len() > 500 {
+            s.saved.zone_todos.remove(0);
+        }
+    });
+}
+
+#[tauri::command]
+fn zone_todo_toggle(app: AppHandle, state: State<App>, id: String) {
+    state.update(&app, |s, _| {
+        if let Some(todo) = s.saved.zone_todos.iter_mut().find(|t| t.id == id) {
+            todo.done = !todo.done;
+        }
+    });
+}
+
+#[tauri::command]
+fn zone_todo_remove(app: AppHandle, state: State<App>, id: String) {
+    state.update(&app, |s, _| s.saved.zone_todos.retain(|t| t.id != id));
 }
 
 #[tauri::command]
@@ -1726,10 +1790,10 @@ fn write_stats_cache(dir: &std::path::Path, stats: &[trade::StatDef]) {
 /// Price check for an imported item through the official trade API.
 #[tauri::command]
 async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceResult, String> {
-    let (parsed, enabled, filters) = {
+    let (parsed, enabled, filters, headroom) = {
         let s = state.snap.lock().unwrap();
         let rec = s.saved.items.iter().find(|x| x.id == id).ok_or("Предмет не найден")?;
-        (rec.parsed.clone(), s.saved.trade.enabled, s.saved.trade.filters as usize)
+        (rec.parsed.clone(), s.saved.trade.enabled, s.saved.trade.filters as usize, s.saved.trade.headroom)
     };
     if !enabled {
         return Err("Проверка цен выключена: включи её в настройках (официальный trade API).".into());
@@ -1773,7 +1837,7 @@ async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceRe
             fetched
         }
     };
-    tauri::async_runtime::spawn_blocking(move || trade::check(&parsed, &league, stats.as_deref(), filters))
+    tauri::async_runtime::spawn_blocking(move || trade::check(&parsed, &league, stats.as_deref(), filters, headroom))
         .await
         .map_err(|e| format!("Запрос прерван: {e}"))?
 }
@@ -1941,6 +2005,7 @@ async fn trade_rate(state: State<'_, App>) -> Result<trade::CurrencyRate, String
         let rate = trade::CurrencyRate {
             league: value.league,
             exalted_per_divine: value.divine_price,
+            chaos_per_divine: (value.chaos_per_divine > 0.0).then_some(value.chaos_per_divine),
             offers: 0,
             source: value.source,
             updated: value.fetched,
@@ -2198,6 +2263,9 @@ fn main() {    tauri::Builder::default()
             campaign_manual_zone,
             zone_map,
             zone_toggle_objective,
+            zone_todo_add,
+            zone_todo_toggle,
+            zone_todo_remove,
             build_select,
             build_import_pob,
             build_import_url,
@@ -2308,6 +2376,7 @@ fn main() {    tauri::Builder::default()
                     quick_price: None,
                     map_run: MapRun::default(),
                     zone_progress: campaign::ZoneProgress::default(),
+                    zone_todos: Vec::new(),
                     session_started: now_iso(),
                     session_deaths: 0,
                     session_zones: 0,

@@ -204,9 +204,9 @@ function render() {
   }
 
   let html = toast;
-  const zp = S.zone_progress;
-  if (zp && m === "extended") {
-    html += `<div class="zone-progress">${esc(t("zone.bosses"))}: <b>${zp.bosses_done}/${zp.bosses_total}</b> · ${esc(t("zone.quests"))}: <b>${zp.quests_done}/${zp.quests_total}</b>${zp.next_goal ? " · " + esc(zp.next_goal) : ""}</div>`;
+  const pendingTodos = (S.zone_todos || []).filter((x) => !x.done);
+  if (m === "extended" && pendingTodos.length) {
+    html += `<div class="zone-progress">${esc(t("zone.pending"))}: <b>${pendingTodos.length}</b> · ${esc(pendingTodos[0].text)}</div>`;
   }
   if (go) html += `<div class="go">${esc(t("overlay.go_to"))} <span class="dest">${esc(zoneLabel(s))}</span> <span class="pct">· ${esc(p.zone)}</span></div>`;
   html += `<div class="zone">${esc(zoneLabel(s))}${S.zone_unknown ? ` · <span class="warn">${esc(t("overlay.zone_unknown"))}</span>` : ""}</div>`;
