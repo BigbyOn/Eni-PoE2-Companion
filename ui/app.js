@@ -589,12 +589,14 @@ function renderTrade() {
         enabled
           ? `<div class="row"><input type="text" id="trade-q" style="flex:1;min-width:240px" placeholder="${esc(t("trade.placeholder"))}">
              <button class="btn primary" data-act="trade-run">${esc(t("trade.search"))}</button></div>
-             <div id="trade-out" style="margin-top:10px"></div>`
+             <div id="trade-recent" class="chips" style="margin-top:8px"></div>
+        <div id="trade-out" style="margin-top:10px"></div>`
           : `<div class="small bad-text">${esc(t("trade.disabled"))}</div>`
       }
     </div>`;
 
   if (enabled) loadRate();
+  renderRecent();
 }
 
 async function loadRate() {
@@ -615,6 +617,34 @@ async function loadRate() {
   }
 }
 
+const RECENT_KEY = "eni-trade-recent";
+
+function recentSearches() {
+  try {
+    const value = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+    return Array.isArray(value) ? value.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberSearch(query) {
+  const list = recentSearches().filter((x) => x !== query);
+  list.unshift(query);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 8)));
+}
+
+function renderRecent() {
+  const box = $("#trade-recent");
+  if (!box) return;
+  const list = recentSearches();
+  box.innerHTML = list.length
+    ? `<span class="small">${esc(t("trade.recent"))}:</span> ` +
+      list.map((q) => `<button class="tag" data-act="trade-recent" data-q="${esc(q)}">${esc(q)}</button>`).join(" ") +
+      ` <button class="link" data-act="trade-recent-clear">${esc(t("trade.recent_clear"))}</button>`
+    : "";
+}
+
 async function runTradeSearch(q) {
   const out = $("#trade-out");
   if (!out) return;
@@ -626,6 +656,8 @@ async function runTradeSearch(q) {
   out.innerHTML = `<div class="small">${esc(t("trade.wait"))}</div>`;
   try {
     const res = await invoke("trade_search", { query });
+    rememberSearch(query);
+    renderRecent();
     if (!res.listings.length) {
       out.innerHTML = `<div class="small">${esc(t("trade.empty"))}</div>`;
       return;
@@ -962,6 +994,45 @@ async function runGuideImport() {
   }
 }
 
+let UPGRADE_UNLISTEN = null;
+
+async function runUpgrades(gid) {
+  const box = $("#guide-upgrades");
+  if (!box) return;
+  const budget = Number($("#upg-budget")?.value || 0) || null;
+  box.innerHTML = `<div class="small" id="upg-progress">${esc(t("guide.upgrade_hint"))}</div>`;
+  if (!UPGRADE_UNLISTEN) {
+    UPGRADE_UNLISTEN = await listen("upgrade-progress", (e) => {
+      const p = e.payload || {};
+      const line = $("#upg-progress");
+      if (line) line.textContent = `${t("guide.upgrade_progress")} ${p.done}/${p.total}${p.slot ? " · " + slotLabel(p.slot) : ""}`;
+    });
+  }
+  try {
+    const rows = await invoke("guide_upgrade_list", { guideId: gid, maxDivine: budget });
+    rows.sort((a, b) => (a.divine ?? 1e9) - (b.divine ?? 1e9) || a.min - b.min);
+    const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+    const total = rows.reduce((sum, r) => sum + (r.divine ?? 0), 0);
+    const withDivine = rows.filter((r) => r.divine != null).length;
+    box.innerHTML = `<h3 style="margin-top:10px">${esc(t("guide.upgrades"))}</h3>
+      <table class="table"><thead><tr><th>${esc(t("guide.slot"))}</th><th>${esc(t("trade.item"))}</th><th>${esc(t("guide.price_range"))}</th><th>divine</th><th></th></tr></thead>
+      <tbody>${rows
+        .map(
+          (r) => `<tr>
+            <td class="small">${esc(slotLabel(r.slot))}</td>
+            <td><b>${esc(r.name)}</b>${r.over_budget ? ` <span class="tag boss">${esc(t("guide.over"))}</span>` : ""}</td>
+            <td class="small">${r.error ? `<span class="bad-text">${esc(r.error)}</span>` : `${money(r.min)} / ${money(r.median)} ${esc(r.currency)} <span class="small">(${r.total})</span>`}</td>
+            <td class="small">${r.divine != null ? "≈ " + money(r.divine) : "—"}</td>
+            <td>${r.url ? `<button class="link" data-act="link" data-url="${esc(r.url)}">${esc(t("items.price_open"))}</button>` : ""}</td>
+          </tr>`
+        )
+        .join("")}</tbody></table>
+      <div class="small" style="margin-top:6px">${esc(t("guide.total"))}: <b>≈ ${money(total)} divine</b>${withDivine < rows.length ? ` (${withDivine}/${rows.length})` : ""}${budget ? ` · ${esc(t("guide.budget"))}: ${money(budget)}` : ""}</div>`;
+  } catch (e) {
+    if (box) box.innerHTML = `<div class="small bad-text">${esc(String(e))}</div>`;
+  }
+}
+
 function renderGuide(g) {
   let card = $("#guide-card");
   if (!card) {
@@ -970,6 +1041,14 @@ function renderGuide(g) {
     card.className = "card";
     $("#content").appendChild(card);
   }
+  const owned = new Set(g.owned || []);
+  const missingGems = (g.skills || []).filter((s) => !owned.has("gem:" + s.main)).length;
+  const missingGear = (g.gear || []).filter((it) => !owned.has("gear:" + it.slot)).length;
+  const summary =
+    missingGems + missingGear === 0
+      ? `<span class="good-text">${esc(t("guide.all_have"))}</span>`
+      : `${esc(t("guide.missing"))}: <b>${missingGems}</b> ${esc(t("guide.missing_gems"))} · <b>${missingGear}</b> ${esc(t("guide.missing_items"))}`;
+
   card.hidden = false;
   card.innerHTML = `
     <div class="row between">
@@ -977,26 +1056,41 @@ function renderGuide(g) {
       <button class="link" data-act="link" data-url="${esc(g.url)}">${esc(g.url)}</button>
     </div>
     <div class="small">${esc(g.class || "")}${g.ascendancy ? " · " + esc(g.ascendancy) : ""}${g.variant ? " · " + esc(g.variant) : ""}</div>
+    <div class="row between" style="margin-top:6px">
+      <span class="small">${summary}</span>
+      <span class="small">${esc(t("guide.owned_hint"))}</span>
+    </div>
     <div class="row" style="margin-top:8px">
       <button class="btn sm ghost" data-act="guide-upgrades" data-guide="${esc(g.id)}">${esc(t("guide.upgrades"))}</button>
+      <input id="upg-budget" type="number" min="0" step="1" placeholder="${esc(t("guide.budget"))}" style="width:150px">
     </div>
     <div id="guide-upgrades"></div>
     <h3 style="margin-top:10px">${esc(t("guide.skills"))}</h3>
-    <div class="chips">${(g.skills || [])
-      .map((s) => `<span class="tag gem" title="${esc(s.supports.join(", "))}">${esc(s.main)}${s.supports.length ? " + " + esc(s.supports.join(", ")) : ""}</span>`)
+    <div>${(g.skills || [])
+      .map((s) => {
+        const key = "gem:" + s.main;
+        const has = owned.has(key);
+        return `<label class="check-item ${has ? "done" : ""}">
+          <input type="checkbox" data-act="guide-owned" data-guide="${esc(g.id)}" data-key="${esc(key)}" ${has ? "checked" : ""}>
+          <span><b>${esc(s.main)}</b>${s.supports.length ? " + " + esc(s.supports.join(", ")) : ""}</span>
+        </label>`;
+      })
       .join("")}</div>
     <h3 style="margin-top:12px">${esc(t("guide.gear"))}</h3>
     <table class="table">
-      <thead><tr><th>${esc(t("guide.slot"))}</th><th>${esc(t("trade.item"))}</th><th></th></tr></thead>
+      <thead><tr><th>${esc(t("guide.have"))}</th><th>${esc(t("guide.slot"))}</th><th>${esc(t("trade.item"))}</th><th></th></tr></thead>
       <tbody>${(g.gear || [])
-        .map(
-          (it) => `<tr>
+        .map((it) => {
+          const key = "gear:" + it.slot;
+          const has = owned.has(key);
+          return `<tr class="${has ? "done" : ""}">
+            <td><input type="checkbox" data-act="guide-owned" data-guide="${esc(g.id)}" data-key="${esc(key)}" ${has ? "checked" : ""}></td>
             <td class="small">${esc(slotLabel(it.slot))}</td>
             <td><b>${esc(it.name)}</b><div class="small">${esc((it.mods || []).slice(0, 3).join(" · "))}</div></td>
             <td><button class="btn sm ghost" data-act="guide-find" data-guide="${esc(g.id)}" data-slot="${esc(it.slot)}">${esc(t("guide.buy"))}</button>
               <div class="guide-out small" style="margin-top:4px"></div></td>
-          </tr>`
-        )
+          </tr>`;
+        })
         .join("")}</tbody>
     </table>`;
 }
@@ -1661,6 +1755,17 @@ async function act(name, el) {
     case "trade-run":
       await runTradeSearch($("#trade-q")?.value || "");
       break;
+    case "trade-recent": {
+      const q = el.dataset.q || "";
+      const input = $("#trade-q");
+      if (input) input.value = q;
+      await runTradeSearch(q);
+      break;
+    }
+    case "trade-recent-clear":
+      localStorage.removeItem(RECENT_KEY);
+      renderRecent();
+      break;
     case "rate-refresh":
       await loadRate();
       break;
@@ -1688,34 +1793,12 @@ async function act(name, el) {
     case "guide-variants":
       await loadGuideVariants();
       break;
-    case "guide-upgrades": {
-      const box = $("#guide-upgrades");
-      if (box) box.innerHTML = `<div class="small">${esc(t("guide.upgrade_hint"))}</div>`;
-      el.disabled = true;
-      try {
-        const rows = await invoke("guide_upgrade_list", { guideId: el.dataset.guide });
-        if (box) {
-          const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
-          box.innerHTML = `<h3 style="margin-top:10px">${esc(t("guide.upgrades"))}</h3>
-            <table class="table"><thead><tr><th>${esc(t("guide.slot"))}</th><th>${esc(t("trade.item"))}</th><th>${esc(t("guide.price_range"))}</th><th></th></tr></thead>
-            <tbody>${rows
-              .map(
-                (r) => `<tr>
-                  <td class="small">${esc(slotLabel(r.slot))}</td>
-                  <td><b>${esc(r.name)}</b></td>
-                  <td class="small">${r.error ? `<span class="bad-text">${esc(r.error)}</span>` : `${money(r.min)} / ${money(r.median)} ${esc(r.currency)} <span class="small">(${r.total})</span>`}</td>
-                  <td>${r.url ? `<button class="link" data-act="link" data-url="${esc(r.url)}">${esc(t("items.price_open"))}</button>` : ""}</td>
-                </tr>`
-              )
-              .join("")}</tbody></table>`;
-        }
-      } catch (e) {
-        if (box) box.innerHTML = `<div class="small bad-text">${esc(String(e))}</div>`;
-      } finally {
-        el.disabled = false;
-      }
+    case "guide-upgrades":
+      await runUpgrades(el.dataset.guide);
       break;
-    }
+    case "guide-owned":
+      await invoke("guide_toggle_owned", { guideId: el.dataset.guide, key: el.dataset.key });
+      break;
     case "guide-find": {
       const out = el.closest("tr")?.querySelector(".guide-out");
       if (out) out.textContent = t("guide.wait");

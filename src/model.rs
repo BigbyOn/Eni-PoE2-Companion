@@ -317,6 +317,9 @@ pub struct GuideRecord {
     pub variant: String,
     pub skills: Vec<GuideSkill>,
     pub gear: Vec<GuideGear>,
+    /// Keys of gems/items the player already has ("gem:Name", "gear:slot").
+    #[serde(default)]
+    pub owned: Vec<String>,
 }
 
 /// A vendor/stash search regex the player keeps at hand.
@@ -573,6 +576,8 @@ impl Saved {
         }
         for g in &mut self.guides {
             g.title = g.title.chars().take(120).collect();
+            g.owned.retain(|k| k.starts_with("gem:") || k.starts_with("gear:"));
+            g.owned.truncate(200);
             g.skills.truncate(12);
             g.gear.truncate(24);
             for skill in &mut g.skills {

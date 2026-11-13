@@ -861,6 +861,7 @@ async fn build_import_url(
         variant: label,
         skills: parsed.variants.iter().find(|v| v.index == chosen).map(|v| v.skills.clone()).unwrap_or_default(),
         gear: parsed.variants.iter().find(|v| v.index == chosen).map(|v| v.gear.clone()).unwrap_or_default(),
+        owned: Vec::new(),
     };
     state.update(&app, |s, _| {
         if let Some(p) = s.saved.profile_mut() {
@@ -885,48 +886,97 @@ struct UpgradeRow {
     total: u64,
     url: String,
     error: Option<String>,
+    /// Cheapest listing converted to divine (when the rate is known).
+    divine: Option<f64>,
+    over_budget: bool,
 }
 
-/// Prices the headline slots of the imported guide (5 slots, spaced requests).
+fn to_divine(min: f64, currency: &str, divine_price: Option<f64>, chaos_per_divine: Option<f64>) -> Option<f64> {
+    match currency {
+        "divine" => Some(min),
+        "exalted" => divine_price.filter(|p| *p > 0.0).map(|p| min / p),
+        "chaos" => chaos_per_divine.filter(|p| *p > 0.0).map(|p| min / p),
+        _ => None,
+    }
+}
+
+/// Prices every guide slot that has a trade query, with budget and divine totals.
 #[tauri::command]
-async fn guide_upgrade_list(state: State<'_, App>, guide_id: String) -> Result<Vec<UpgradeRow>, String> {
+async fn guide_upgrade_list(
+    app: AppHandle,
+    state: State<'_, App>,
+    guide_id: String,
+    max_divine: Option<f64>,
+) -> Result<Vec<UpgradeRow>, String> {
     let enabled = { state.snap.lock().unwrap().saved.trade.enabled };
     if !enabled {
         return Err("Торговля выключена: включи проверку цен в настройках.".into());
     }
     let league = state.preferred_league();
+    let (divine_price, chaos_per_divine) = {
+        if let Some((_, rate)) = state.rates.lock().unwrap().clone() {
+            (Some(rate.exalted_per_divine), rate.chaos_per_divine)
+        } else if let Some((_, scout)) = state.scout.lock().unwrap().clone() {
+            (Some(scout.divine_price), Some(scout.chaos_per_divine).filter(|v| *v > 0.0))
+        } else {
+            (None, None)
+        }
+    };
     let items: Vec<(String, String, String)> = {
         let s = state.snap.lock().unwrap();
         let guide = s.saved.guides.iter().find(|g| g.id == guide_id).ok_or("Гайд не найден")?;
-        let order = ["mainHand", "body", "helmet", "gloves", "boots", "amulet", "belt"];
-        order
-            .iter()
-            .filter_map(|slot| {
-                guide
-                    .gear
-                    .iter()
-                    .find(|x| x.slot == *slot && !x.trade_query.trim().is_empty())
-                    .map(|x| (x.slot.clone(), x.name.clone(), x.trade_query.clone()))
-            })
-            .take(5)
-            .collect()
+        let order = ["mainHand", "body", "helmet", "gloves", "boots", "amulet", "belt", "leftRing", "rightRing", "offHand"];
+        let mut picked: Vec<(String, String, String)> = Vec::new();
+        for slot in order {
+            if let Some(item) = guide.gear.iter().find(|x| x.slot == slot && !x.trade_query.trim().is_empty()) {
+                picked.push((item.slot.clone(), item.name.clone(), item.trade_query.clone()));
+            }
+        }
+        for item in &guide.gear {
+            if picked.len() >= 10 {
+                break;
+            }
+            if !item.trade_query.trim().is_empty() && !picked.iter().any(|(slot, _, _)| *slot == item.slot) {
+                picked.push((item.slot.clone(), item.name.clone(), item.trade_query.clone()));
+            }
+        }
+        picked.truncate(10);
+        picked
     };
     if items.is_empty() {
         return Err("В гайде нет предметов с готовыми запросами.".into());
     }
+    let total_items = items.len();
     let rows = tauri::async_runtime::spawn_blocking(move || {
         let mut out = Vec::new();
         for (index, (slot, name, query)) in items.into_iter().enumerate() {
             if index > 0 {
                 std::thread::sleep(std::time::Duration::from_millis(1600));
             }
+            let _ = app.emit(
+                "upgrade-progress",
+                serde_json::json!({ "done": index, "total": total_items, "slot": slot, "name": name }),
+            );
             let fallback = name.clone();
-            match trade::search_raw(&query, &league) {
+            let row = match trade::search_raw(&query, &league) {
                 Ok((listings, url)) if !listings.is_empty() => {
                     let (currency, min, median) = trade::summarize_prices(&listings);
-                    out.push(UpgradeRow { slot, name, min, median, currency, total: listings.len() as u64, url, error: None });
+                    let divine = to_divine(min, &currency, divine_price, chaos_per_divine);
+                    let over = max_divine.map(|budget| divine.map(|d| d > budget).unwrap_or(false)).unwrap_or(false);
+                    UpgradeRow {
+                        slot,
+                        name,
+                        min,
+                        median,
+                        currency,
+                        total: listings.len() as u64,
+                        url,
+                        error: None,
+                        divine,
+                        over_budget: over,
+                    }
                 }
-                Ok((_, url)) => out.push(UpgradeRow {
+                Ok((_, url)) => UpgradeRow {
                     slot,
                     name,
                     min: 0.0,
@@ -935,8 +985,10 @@ async fn guide_upgrade_list(state: State<'_, App>, guide_id: String) -> Result<V
                     total: 0,
                     url,
                     error: Some("нет лотов".into()),
-                }),
-                Err(e) => out.push(UpgradeRow {
+                    divine: None,
+                    over_budget: false,
+                },
+                Err(e) => UpgradeRow {
                     slot,
                     name: fallback,
                     min: 0.0,
@@ -945,14 +997,31 @@ async fn guide_upgrade_list(state: State<'_, App>, guide_id: String) -> Result<V
                     total: 0,
                     url: String::new(),
                     error: Some(e),
-                }),
-            }
+                    divine: None,
+                    over_budget: false,
+                },
+            };
+            out.push(row);
         }
+        let _ = app.emit("upgrade-progress", serde_json::json!({ "done": total_items, "total": total_items }));
         out
     })
     .await
     .map_err(|e| format!("Запрос прерван: {e}"))?;
     Ok(rows)
+}
+
+#[tauri::command]
+fn guide_toggle_owned(app: AppHandle, state: State<App>, guide_id: String, key: String) {
+    state.update(&app, |s, _| {
+        if let Some(guide) = s.saved.guides.iter_mut().find(|g| g.id == guide_id) {
+            if let Some(index) = guide.owned.iter().position(|k| k == &key) {
+                guide.owned.remove(index);
+            } else {
+                guide.owned.push(key);
+            }
+        }
+    });
 }
 
 #[tauri::command]
@@ -2272,6 +2341,7 @@ fn main() {    tauri::Builder::default()
             guide_variants,
             guide_upgrade_list,
             guide_for_build,
+            guide_toggle_owned,
             trade_search_guide,
             build_toggle,
             history_list,
