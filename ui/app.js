@@ -555,6 +555,10 @@ function renderTrade() {
         <span class="small">${esc(t("trade.league"))}: ${esc(S.saved.trade?.league || t("trade.auto"))}</span>
       </div>
       <div class="small" style="margin:4px 0 10px">${esc(t("trade.hint"))}</div>
+      ${enabled ? `<div class="card tight" style="margin-bottom:10px"><div class="row between">
+        <span class="small" id="rate-line">${esc(t("trade.rate_wait"))}</span>
+        <button class="btn sm ghost" data-act="rate-refresh">${esc(t("trade.refresh"))}</button>
+      </div></div>` : ""}
       ${
         enabled
           ? `<div class="row"><input type="text" id="trade-q" style="flex:1;min-width:240px" placeholder="${esc(t("trade.placeholder"))}">
@@ -563,6 +567,21 @@ function renderTrade() {
           : `<div class="small bad-text">${esc(t("trade.disabled"))}</div>`
       }
     </div>`;
+
+  if (enabled) loadRate();
+}
+
+async function loadRate() {
+  const line = $("#rate-line");
+  if (!line) return;
+  line.textContent = t("trade.rate_wait");
+  try {
+    const r = await invoke("trade_rate");
+    const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+    line.innerHTML = `${esc(t("trade.rate_line").replace("{n}", money(r.exalted_per_divine)))} · ${esc(r.league)} · ${r.offers} ${esc(t("trade.rate_offers"))}${r.source === "listings" ? " · " + esc(t("trade.rate_listings")) : ""}`;
+  } catch (e) {
+    line.textContent = `${t("trade.rate_none")}: ${String(e)}`;
+  }
 }
 
 async function runTradeSearch(q) {
@@ -1536,6 +1555,9 @@ async function act(name, el) {
       break;
     case "trade-run":
       await runTradeSearch($("#trade-q")?.value || "");
+      break;
+    case "rate-refresh":
+      await loadRate();
       break;
     case "find-item": {
       const q = el.dataset.q || "";

@@ -314,6 +314,12 @@ const tradeSection = JSON.parse(await main.eval(`(async () => {
 })()`));
 check("trade: section and nav present", tradeSection.navItems === 8 && /выключена/.test(tradeSection.disabled), JSON.stringify(tradeSection));
 
+const rate = JSON.parse(await main.eval(`(async () => {
+  const err = await window.__TAURI__.core.invoke('trade_rate').then(() => 'ok').catch((e) => String(e));
+  return JSON.stringify({ err });
+})()`));
+check("trade: currency rate refuses when disabled", /выключена/.test(rate.err), JSON.stringify(rate));
+
 const quick = JSON.parse(await main.eval(`(async () => {
   await window.__TAURI__.core.invoke('quick_price_now');
   await new Promise(r => setTimeout(r, 500));

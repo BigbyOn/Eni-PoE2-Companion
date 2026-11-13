@@ -164,6 +164,10 @@ pub fn match_stats(item: &ParsedItem, stats: &[StatDef], limit: usize) -> Vec<St
 
 
 const BASE: &str = "https://www.pathofexile.com";
+
+fn now_iso() -> String {
+    chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+}
 /// GGG asks tools to identify themselves; keep the repository in the string.
 const CONTACT: &str = "github.com/BigbyOn/Eni-PoE2-Companion";
 
@@ -253,6 +257,17 @@ struct FetchedItem {
     type_line: String,
     #[serde(default)]
     rarity: String,
+}
+
+/// Divine price in exalted, as shown on the trade page.
+#[derive(Serialize, Clone, Debug, Default, PartialEq)]
+pub struct CurrencyRate {
+    pub league: String,
+    pub exalted_per_divine: f64,
+    pub offers: usize,
+    /// "exchange" (bulk offers) or "listings" (priced Divine Orb listings).
+    pub source: String,
+    pub updated: String,
 }
 
 /// One listing of a text search, ready for the UI.
@@ -529,6 +544,153 @@ pub fn search_raw(query_json: &str, league_pref: &str) -> Result<(Vec<ListingVie
     Ok((listings, trade_url))
 }
 
+fn poe2_leagues() -> Result<Vec<String>, String> {
+    let text = get_json(&format!("{BASE}/api/trade2/data/leagues"))?;
+    let leagues: Leagues = serde_json::from_str(&text).map_err(|e| format!("Список лиг не разобран: {e}"))?;
+    Ok(leagues
+        .result
+        .iter()
+        .filter(|l| l.realm == "poe2" || l.realm.is_empty())
+        .map(|l| l.id.clone())
+        .filter(|id| !id.starts_with("HC"))
+        .collect())
+}
+
+/// Ratios from bulk-exchange offers: `exchange` is what the seller wants,
+/// `item` is what they give (1 divine for N exalted).
+pub fn parse_exchange_ratios(json: &str) -> Vec<f64> {
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(json) else { return Vec::new() };
+    let Some(result) = value.get("result").and_then(|v| v.as_object()) else { return Vec::new() };
+    let mut ratios = Vec::new();
+    for listing in result.values() {
+        let Some(offers) = listing.get("listing").and_then(|l| l.get("offers")).and_then(|o| o.as_array()) else { continue };
+        for offer in offers {
+            let want = offer.get("exchange").map(|e| (e.get("amount").and_then(|a| a.as_f64()).unwrap_or(0.0), e.get("currency").and_then(|c| c.as_str()).unwrap_or("")));
+            let give = offer.get("item").map(|i| (i.get("amount").and_then(|a| a.as_f64()).unwrap_or(0.0), i.get("currency").and_then(|c| c.as_str()).unwrap_or("")));
+            let (Some((want_amount, want_currency)), Some((give_amount, give_currency))) = (want, give) else { continue };
+            if want_currency == "exalted" && give_currency == "divine" && want_amount > 0.0 && give_amount > 0.0 {
+                ratios.push(want_amount / give_amount);
+            }
+        }
+    }
+    ratios
+}
+
+/// Prices of Divine Orb listings that are priced in exalted.
+pub fn parse_divine_prices(json: &str) -> Vec<f64> {
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(json) else { return Vec::new() };
+    let Some(result) = value.get("result").and_then(|v| v.as_array()) else { return Vec::new() };
+    let mut prices = Vec::new();
+    for entry in result {
+        let Some(price) = entry.get("listing").and_then(|l| l.get("price")) else { continue };
+        if price.get("currency").and_then(|c| c.as_str()) == Some("exalted") {
+            if let Some(amount) = price.get("amount").and_then(|a| a.as_f64()) {
+                if amount > 0.0 {
+                    prices.push(amount);
+                }
+            }
+        }
+    }
+    prices
+}
+
+fn median(mut values: Vec<f64>) -> f64 {
+    values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    values[values.len() / 2]
+}
+
+fn rate_for(league: &str) -> Option<CurrencyRate> {
+    // 1) Bulk exchange: buy divine with exalted.
+    let body = serde_json::json!({
+        "exchange": { "status": { "option": "online" }, "have": ["exalted"], "want": ["divine"], "minimum": 1 }
+    });
+    if let Ok(res) = agent()
+        .post(&format!("{BASE}/api/trade2/exchange/poe2/{}", encode(league)))
+        .header("User-Agent", &ua())
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
+        .send(body.to_string().as_bytes())
+    {
+        let mut res = res;
+        if (200..300).contains(&res.status().as_u16()) {
+            if let Ok(text) = res.body_mut().read_to_string() {
+                let ratios = parse_exchange_ratios(&text);
+                if !ratios.is_empty() {
+                    return Some(CurrencyRate {
+                        league: league.to_string(),
+                        exalted_per_divine: median(ratios.clone()),
+                        offers: ratios.len(),
+                        source: "exchange".into(),
+                        updated: now_iso(),
+                    });
+                }
+            }
+        }
+    }
+    // 2) Fallback: priced Divine Orb listings.
+    let query = serde_json::json!({
+        "query": {
+            "status": { "option": "online" },
+            "type": "Divine Orb",
+            "filters": { "trade_filters": { "filters": { "price": { "option": "exalted" } } } }
+        },
+        "sort": { "price": "asc" }
+    });
+    let res = agent()
+        .post(&format!("{BASE}/api/trade2/search/poe2/{}", encode(league)))
+        .header("User-Agent", &ua())
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
+        .send(query.to_string().as_bytes())
+        .ok()?;
+    let mut res = res;
+    if !(200..300).contains(&res.status().as_u16()) {
+        return None;
+    }
+    let text = res.body_mut().read_to_string().ok()?;
+    let (id, _total, hashes) = parse_search(&text).ok()?;
+    if hashes.is_empty() {
+        return None;
+    }
+    let hashes: Vec<&str> = hashes.iter().take(10).map(|s| s.as_str()).collect();
+    let fetch_url = format!("{BASE}/api/trade2/fetch/{}?query={}", hashes.join(","), encode(&id));
+    let prices = parse_divine_prices(&get_json(&fetch_url).ok()?);
+    if prices.is_empty() {
+        return None;
+    }
+    Some(CurrencyRate {
+        league: league.to_string(),
+        exalted_per_divine: median(prices.clone()),
+        offers: prices.len(),
+        source: "listings".into(),
+        updated: now_iso(),
+    })
+}
+
+/// Divine price for the configured league, then for Standard.
+pub fn currency_rate(league_pref: &str) -> Result<CurrencyRate, String> {
+    let mut candidates: Vec<String> = Vec::new();
+    if !league_pref.trim().is_empty() {
+        candidates.push(league_pref.trim().to_string());
+    } else if let Ok(league) = resolve_league("") {
+        candidates.push(league);
+    }
+    if let Ok(leagues) = poe2_leagues() {
+        for league in leagues {
+            if !candidates.contains(&league) {
+                candidates.push(league);
+            }
+        }
+    }
+    candidates.truncate(3);
+    for league in candidates {
+        if let Some(rate) = rate_for(&league) {
+            return Ok(rate);
+        }
+    }
+    Err("Официальный API не отдал ни одного предложения обмена — попробуй позже.".into())
+}
+
 /// Downloads the stat dataset (one request, cached by the caller).
 pub fn fetch_stats() -> Result<Vec<StatDef>, String> {
     let text = get_json(&format!("{BASE}/api/trade2/data/stats"))?;
@@ -761,6 +923,28 @@ mod tests {
         let url = build_text_url("Standard", "Prismatic Ring");
         assert!(url.starts_with("https://www.pathofexile.com/trade2/search/poe2/Standard?q="));
         assert!(url.contains("Prismatic%20Ring"));
+    }
+
+    #[test]
+    fn exchange_ratios_are_parsed() {
+        let json = r#"{"result":{"a":{"listing":{"offers":[
+            {"exchange":{"currency":"exalted","amount":499},"item":{"currency":"divine","amount":1}},
+            {"exchange":{"currency":"exalted","amount":510},"item":{"currency":"divine","amount":1}},
+            {"exchange":{"currency":"divine","amount":1},"item":{"currency":"exalted","amount":1}}
+        ]}}},"total":1}"#;
+        let ratios = parse_exchange_ratios(json);
+        assert_eq!(ratios, vec![499.0, 510.0]);
+    }
+
+    #[test]
+    fn divine_listing_prices_are_parsed() {
+        let json = r#"{"result":[
+            {"listing":{"price":{"amount":499,"currency":"exalted"}}},
+            {"listing":{"price":{"amount":1,"currency":"divine"}}},
+            {"listing":{"price":{"amount":505,"currency":"exalted"}}}
+        ]}"#;
+        assert_eq!(parse_divine_prices(json), vec![499.0, 505.0]);
+        assert_eq!(median(vec![505.0, 499.0, 510.0]), 505.0);
     }
 
     #[test]

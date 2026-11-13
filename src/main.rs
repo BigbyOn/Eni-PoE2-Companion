@@ -187,6 +187,8 @@ struct App {
     last_trade: Mutex<Option<std::time::Instant>>,
     /// Trade stat dataset, loaded once per session (and cached on disk).
     stats: Mutex<Option<Vec<trade::StatDef>>>,
+    /// Currency rate, cached for a few minutes.
+    rates: Mutex<Option<(std::time::Instant, trade::CurrencyRate)>>,
 }
 
 fn action_label(action: &str) -> &'static str {
@@ -1709,6 +1711,27 @@ struct TradeSearchView {
 }
 
 #[tauri::command]
+async fn trade_rate(state: State<'_, App>) -> Result<trade::CurrencyRate, String> {
+    let (enabled, league) = {
+        let s = state.snap.lock().unwrap();
+        (s.saved.trade.enabled, s.saved.trade.league.clone())
+    };
+    if !enabled {
+        return Err("Проверка цен выключена: включи её в настройках.".into());
+    }
+    if let Some((at, rate)) = state.rates.lock().unwrap().clone() {
+        if at.elapsed() < std::time::Duration::from_secs(300) {
+            return Ok(rate);
+        }
+    }
+    let rate = tauri::async_runtime::spawn_blocking(move || trade::currency_rate(&league))
+        .await
+        .map_err(|e| format!("Запрос прерван: {e}"))??;
+    *state.rates.lock().unwrap() = Some((std::time::Instant::now(), rate.clone()));
+    Ok(rate)
+}
+
+#[tauri::command]
 async fn trade_search(state: State<'_, App>, query: String) -> Result<TradeSearchView, String> {
     let (enabled, league) = {
         let s = state.snap.lock().unwrap();
@@ -1986,6 +2009,7 @@ fn main() {    tauri::Builder::default()
             map_panel,
             quick_price_now,
             trade_search,
+            trade_rate,
             diagnostics,
             reveal_data_dir,
             show_main_window,
@@ -2068,6 +2092,7 @@ fn main() {    tauri::Builder::default()
                 regex_open: Mutex::new(false),
                 last_trade: Mutex::new(None),
                 stats: Mutex::new(None),
+                rates: Mutex::new(None),
             });
             // Windows are created only now ("create": false in tauri.conf.json):
             // their pages call commands right away, and those need the state above.
