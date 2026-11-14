@@ -195,6 +195,78 @@ function zoneCard() {
   </div>`;
 }
 
+let DASH = null;
+
+function dashMoney(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "—";
+  if (Math.abs(v) >= 100) return String(Math.round(v));
+  if (Math.abs(v) >= 1) return v.toFixed(1);
+  return v.toFixed(2);
+}
+
+function dashRow(item, currency, divinePrice) {
+  const divine = divinePrice > 0 && Math.abs(item.price) >= divinePrice * 10;
+  const factor = divine ? 1 / divinePrice : 1;
+  const unit = divine ? "divine" : currency;
+  const price = item.price * factor;
+  const change = (Number(item.change) || 0) * factor;
+  const delta = change > 0 ? `+${dashMoney(change)}` : dashMoney(change);
+  const cls = change > 0 ? "good-text" : change < 0 ? "bad-text" : "small";
+  const fav = (S.saved.dashboard_favorites || []).includes(item.api_id);
+  return `<div class="dash-row">
+    <div class="dash-ico">${esc((item.name || "?").slice(0, 1))}</div>
+    <div class="dash-name"><b>${esc(item.name || item.api_id)}</b>
+      <div class="small">${currencyIcon(unit)}${dashMoney(price)} ${esc(unit)}</div></div>
+    <div class="dash-delta ${cls}">${delta}</div>
+    <button class="icon" data-act="dash-fav" data-id="${esc(item.api_id)}" title="${esc(fav ? t("dash.remove_fav") : t("dash.add_fav"))}">${fav ? "★" : "☆"}</button>
+  </div>`;
+}
+
+function renderDashboard() {
+  const box = $("#dashboard");
+  if (!box || !DASH) return;
+  const d = DASH.data;
+  const s = d.session;
+  const maps = (d.maps || []).slice(0, 5);
+  const list = (rows, empty) => (rows && rows.length ? rows.map((x) => dashRow(x, d.base_currency || "exalted", d.divine_price || 0)).join("") : `<div class="small">${esc(empty)}</div>`);
+  box.innerHTML = `<div class="card dash-welcome">
+    <div class="row between">
+      <div><h2>${esc(t("dash.welcome"))}</h2><div class="small">${esc(t("dash.ready"))}</div></div>
+      <div class="row"><span class="small">${esc(d.league || "")}</span><button class="btn sm ghost" data-act="dash-refresh">${esc(t("dash.refresh"))}</button></div>
+    </div>
+    ${d.error ? `<div class="small bad-text">${esc(t("dash.error"))}: ${esc(d.error)}</div>` : ""}
+    <div class="grid c2" style="margin-top:10px">
+      <div class="card tight"><h3>${esc(t("dash.session"))}</h3>
+        <div class="small">${esc(t("dash.minutes"))}: ${s.minutes} · ${esc(t("dash.zones"))}: ${s.zones} · ${esc(t("dash.deaths"))}: ${s.deaths} · ${esc(t("dash.levels"))}: ${s.levels}</div>
+        ${s.zone ? `<div class="small">${esc(s.zone)}</div>` : ""}</div>
+      <div class="card tight"><h3>${esc(t("dash.maps"))}</h3>
+        ${maps.length ? maps.map((m) => `<div class="small">${esc(fmtTime(m.ts))} · ${esc(m.title)}${m.detail ? " — " + esc(m.detail) : ""}</div>`).join("") : `<div class="small">${esc(t("dash.no_maps"))}</div>`}</div>
+    </div>
+    <div class="grid c3" style="margin-top:10px">
+      <div class="card tight"><h3>${esc(t("dash.favorites"))}</h3>${list(d.favorites, t("dash.no_data"))}</div>
+      <div class="card tight"><h3>${esc(t("dash.gainers"))}</h3>${list(d.gainers, t("dash.no_data"))}</div>
+      <div class="card tight"><h3>${esc(t("dash.losers"))}</h3>${list(d.losers, t("dash.no_data"))}</div>
+    </div>
+  </div>`;
+}
+
+async function loadDashboard(force = false) {
+  const box = $("#dashboard");
+  if (!box) return;
+  if (!force && DASH && Date.now() - DASH.at < 60000) {
+    renderDashboard();
+    return;
+  }
+  box.innerHTML = `<div class="small">${esc(t("dash.loading"))}</div>`;
+  try {
+    DASH = { at: Date.now(), data: await invoke("dashboard") };
+    renderDashboard();
+  } catch (e) {
+    box.innerHTML = `<div class="small bad-text">${esc(t("dash.error"))}: ${esc(String(e))}</div>`;
+  }
+}
+
 function renderHome() {
   const p = profile();
   const step = stepAt(p?.step ?? 0);
@@ -220,6 +292,7 @@ function renderHome() {
 
   $("#content").innerHTML = `
     ${warnings.join("")}
+    <div id="dashboard"></div>
     ${zoneCard()}
     <div class="card">
       <div class="row between">
@@ -303,6 +376,7 @@ function renderHome() {
         }</div>
       </div>
     </div>`;
+  loadDashboard();
   if (!historyLoaded) ensureHistory().then(() => { if (section === "home") renderSection(); });
 }
 
@@ -1941,6 +2015,15 @@ async function act(name, el) {
       break;
     case "trade-run":
       await runTradeSearch($("#trade-q")?.value || "");
+      break;
+    case "dash-refresh":
+      DASH = null;
+      await loadDashboard(true);
+      break;
+    case "dash-fav":
+      await invoke("dashboard_favorite", { apiId: el.dataset.id });
+      DASH = null;
+      await loadDashboard(true);
       break;
     case "chat-copy":
       await invoke("copy_text", { text: el.dataset.text || "" });

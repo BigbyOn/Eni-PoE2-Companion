@@ -230,3 +230,11 @@ a:hover{color:var(--gold2)}
 .dot-online{display:inline-block;width:7px;height:7px;border-radius:50%;background:#6b4a3a;margin-right:4px;vertical-align:middle}
 .dot-online.on{background:#5fae6b}
 .cur-icon{width:16px;height:16px;vertical-align:-2px;margin-right:4px}
+
+.dash-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(180,150,90,.12)}
+.dash-row:last-child{border-bottom:0}
+.dash-ico{width:24px;height:24px;border-radius:6px;background:rgba(180,150,90,.16);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--gold);flex:0 0 auto}
+.dash-name{flex:1;min-width:0}
+.dash-name b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-delta{font-variant-numeric:tabular-nums;font-size:12px;white-space:nowrap}
+.dash-welcome h2{margin:0}

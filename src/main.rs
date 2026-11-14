@@ -227,6 +227,8 @@ struct App {
     scout: Mutex<Option<(std::time::Instant, scout::Scout)>>,
     /// poe2scout item prices for the current league, cached for 15 minutes.
     scout_items: Mutex<Option<(String, std::time::Instant, Vec<scout::ScoutItem>)>>,
+    /// poe2scout 24h price history for the current league.
+    scout_history: Mutex<Option<(String, std::time::Instant, Vec<scout::PriceChange>)>>,
     /// Last rendered Mobalytics page, so a variant can be imported without
     /// spawning Edge again.
     guide_cache: Mutex<Option<(String, std::time::Instant, guide::GuideSet)>>,
@@ -1163,6 +1165,54 @@ fn scout_items_cached(state: &App, league: &str) -> Result<Vec<scout::ScoutItem>
     let items = scout::fetch_items(league)?;
     *state.scout_items.lock().unwrap() = Some((league.to_string(), std::time::Instant::now(), items.clone()));
     Ok(items)
+}
+
+fn scout_history_cached(state: &App, league: &str) -> Result<Vec<scout::PriceChange>, String> {
+    {
+        let cache = state.scout_history.lock().unwrap();
+        if let Some((cached_league, at, history)) = cache.as_ref() {
+            if cached_league == league && at.elapsed() < Duration::from_secs(900) {
+                return Ok(history.clone());
+            }
+        }
+    }
+    let history = scout::fetch_price_history(league)?;
+    *state.scout_history.lock().unwrap() = Some((league.to_string(), std::time::Instant::now(), history.clone()));
+    Ok(history)
+}
+
+#[derive(Serialize)]
+struct DashboardItem {
+    api_id: String,
+    name: String,
+    icon: String,
+    category: String,
+    price: f64,
+    change: f64,
+    change_pct: f64,
+}
+
+#[derive(Serialize, Clone)]
+struct DashboardSession {
+    minutes: i64,
+    zones: u32,
+    deaths: u32,
+    levels: u32,
+    zone: String,
+    started: String,
+}
+
+#[derive(Serialize)]
+struct DashboardData {
+    league: String,
+    base_currency: String,
+    divine_price: f64,
+    session: DashboardSession,
+    maps: Vec<HistoryEvent>,
+    favorites: Vec<DashboardItem>,
+    gainers: Vec<DashboardItem>,
+    losers: Vec<DashboardItem>,
+    error: Option<String>,
 }
 
 fn current_rates(state: &App) -> (Option<f64>, Option<f64>) {
@@ -2675,6 +2725,116 @@ async fn trade_search(
         .map(|(listings, url)| TradeSearchView { listings, url })
 }
 
+/// Home dashboard: local session/map history + poe2scout prices and 24h changes.
+#[tauri::command]
+async fn dashboard(app: AppHandle, state: State<'_, App>) -> Result<DashboardData, String> {
+    let (favorites, maps, session, league_pref) = {
+        let s = state.snap.lock().unwrap();
+        let minutes = chrono::DateTime::parse_from_rfc3339(&s.session_started)
+            .ok()
+            .map(|t| (chrono::Utc::now() - t.with_timezone(&chrono::Utc)).num_minutes().max(0))
+            .unwrap_or(0);
+        let profile = s.saved.profile();
+        (
+            s.saved.dashboard_favorites.clone(),
+            s.saved.history.iter().filter(|e| e.kind == "map").rev().take(6).cloned().collect::<Vec<_>>(),
+            DashboardSession {
+                minutes,
+                zones: s.session_zones,
+                deaths: s.session_deaths,
+                levels: s.session_levels,
+                zone: profile.map(|p| p.zone.clone()).unwrap_or_default(),
+                started: s.session_started.clone(),
+            },
+            s.saved.trade.league.clone(),
+        )
+    };
+    let _ = league_pref;
+    let session_copy = session.clone();
+    let maps_copy = maps.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || -> Result<DashboardData, String> {
+        let st = app.state::<App>();
+        let scout = known_scout(&st).map(Ok).unwrap_or_else(scout::fetch)?;
+        let items = scout_items_cached(&st, &scout.league)?;
+        let history = scout_history_cached(&st, &scout.league)?;
+        let changes: std::collections::HashMap<i64, &scout::PriceChange> =
+            history.iter().map(|h| (h.item_id, h)).collect();
+        let make = |item: &scout::ScoutItem| DashboardItem {
+            api_id: item.api_id.clone(),
+            name: item.text.clone(),
+            icon: item.icon.clone(),
+            category: item.category.clone(),
+            price: changes.get(&item.item_id).map(|c| c.price).unwrap_or(item.current_price),
+            change: changes.get(&item.item_id).map(|c| c.change).unwrap_or(0.0),
+            change_pct: changes.get(&item.item_id).map(|c| c.change_pct).unwrap_or(0.0),
+        };
+        let favorites_out: Vec<DashboardItem> = favorites
+            .iter()
+            .filter_map(|tag| items.iter().find(|i| i.api_id.eq_ignore_ascii_case(tag)))
+            .map(make)
+            .collect();
+        let market = |positive: bool| -> Vec<DashboardItem> {
+            let mut rows: Vec<DashboardItem> = items
+                .iter()
+                .filter(|i| matches!(i.category.as_str(), "currency" | "fragments" | "runes" | "essences" | "expedition"))
+                .filter(|i| changes.get(&i.item_id).map(|c| if positive { c.change > 0.0 } else { c.change < 0.0 }).unwrap_or(false))
+                .map(make)
+                .collect();
+            rows.sort_by(|a, b| b.change.partial_cmp(&a.change).unwrap_or(std::cmp::Ordering::Equal));
+            if positive {
+                rows.truncate(3);
+            } else {
+                rows.sort_by(|a, b| a.change.partial_cmp(&b.change).unwrap_or(std::cmp::Ordering::Equal));
+                rows.truncate(3);
+            }
+            rows
+        };
+        Ok(DashboardData {
+            league: scout.league.clone(),
+            base_currency: scout.base_currency.clone(),
+            divine_price: scout.divine_price,
+            session,
+            maps,
+            favorites: favorites_out,
+            gainers: market(true),
+            losers: market(false),
+            error: None,
+        })
+    })
+    .await
+    .map_err(|e| format!("Дашборд: {e}"))?;
+    match result {
+        Ok(data) => Ok(data),
+        Err(e) => Ok(DashboardData {
+            league: String::new(),
+            base_currency: "exalted".into(),
+            divine_price: 0.0,
+            session: session_copy,
+            maps: maps_copy,
+            favorites: Vec::new(),
+            gainers: Vec::new(),
+            losers: Vec::new(),
+            error: Some(e),
+        }),
+    }
+}
+
+#[tauri::command]
+fn dashboard_favorite(app: AppHandle, state: State<App>, api_id: String) -> Vec<String> {
+    state.update(&app, |s, _| {
+        let tag = api_id.trim().to_lowercase();
+        if let Some(index) = s.saved.dashboard_favorites.iter().position(|x| *x == tag) {
+            s.saved.dashboard_favorites.remove(index);
+        } else if !tag.is_empty() {
+            s.saved.dashboard_favorites.push(tag);
+            if s.saved.dashboard_favorites.len() > 24 {
+                s.saved.dashboard_favorites.remove(0);
+            }
+        }
+    });
+    state.snap.lock().unwrap().saved.dashboard_favorites.clone()
+}
+
 #[tauri::command]
 fn stash_search_now(app: AppHandle, state: State<App>) {
     state.stash_search(&app);
@@ -2954,6 +3114,8 @@ fn main() {
             zone_todo_remove,
             trade_request_clear,
             stash_search_now,
+            dashboard,
+            dashboard_favorite,
             trade_action,
             build_select,
             build_import_pob,
@@ -3092,6 +3254,7 @@ fn main() {
                 rates: Mutex::new(None),
                 scout: Mutex::new(None),
                 scout_items: Mutex::new(None),
+                scout_history: Mutex::new(None),
                 guide_cache: Mutex::new(None),
             });
             // Windows are created only now ("create": false in tauri.conf.json):

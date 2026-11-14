@@ -497,6 +497,9 @@ pub struct Saved {
     /// Manual location checklists ("chest not looted", "mini-boss left").
     #[serde(default)]
     pub zone_todos: Vec<ZoneTodo>,
+    /// Dashboard favourites (poe2scout trade tags).
+    #[serde(default = "default_favorites")]
+    pub dashboard_favorites: Vec<String>,
     pub buildings_dir: Option<PathBuf>,
     pub shots_dir: Option<PathBuf>,
     pub ai: AiCfg,
@@ -526,6 +529,7 @@ impl Default for Saved {
             regexes: default_regexes(),
             guides: Vec::new(),
             zone_todos: Vec::new(),
+            dashboard_favorites: default_favorites(),
             buildings_dir: None,
             shots_dir: None,
             ai: AiCfg::default(),
@@ -552,6 +556,10 @@ pub fn default_regexes() -> Vec<RegexItem> {
     ]
 }
 
+pub fn default_favorites() -> Vec<String> {
+    vec!["divine".into(), "mirror".into()]
+}
+
 pub fn default_aliases() -> Vec<ZoneAlias> {
     vec![
         ZoneAlias { alias: "Берег реки".into(), zone: "The Riverbank".into() },
@@ -574,6 +582,10 @@ impl Saved {
     pub fn sanitized(mut self) -> Self {
         self.schema = SCHEMA;
         // Keep known client-name aliases even in states created by older builds.
+        self.dashboard_favorites.retain(|tag| !tag.trim().is_empty());
+        self.dashboard_favorites.iter_mut().for_each(|tag| *tag = tag.trim().to_lowercase());
+        self.dashboard_favorites.dedup();
+        self.dashboard_favorites.truncate(24);
         for known in default_aliases() {
             if !self.zone_aliases.iter().any(|a| a.alias.eq_ignore_ascii_case(&known.alias)) {
                 self.zone_aliases.push(known);

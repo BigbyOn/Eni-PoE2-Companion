@@ -92,6 +92,9 @@ pub fn fetch() -> Result<Scout, String> {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 #[serde(default)]
 pub struct ScoutItem {
+    /// poe2scout item id (used by the price-history endpoint).
+    #[serde(default)]
+    pub item_id: i64,
     /// Trade tag used by the official trade API (`regal-shard`, `divine`, …).
     pub api_id: String,
     pub text: String,
@@ -103,6 +106,8 @@ pub struct ScoutItem {
 
 #[derive(Deserialize)]
 struct ItemRow {
+    #[serde(rename = "ItemId", default)]
+    item_id: i64,
     #[serde(rename = "ApiId", default)]
     api_id: Option<String>,
     #[serde(rename = "Text", default)]
@@ -128,6 +133,7 @@ pub fn parse_items(json: &str) -> Result<Vec<ScoutItem>, String> {
                 return None;
             }
             Some(ScoutItem {
+                item_id: row.item_id,
                 api_id,
                 text: row.text.unwrap_or_default(),
                 category: row.category.unwrap_or_default(),
@@ -136,6 +142,90 @@ pub fn parse_items(json: &str) -> Result<Vec<ScoutItem>, String> {
             })
         })
         .collect())
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct PriceChange {
+    pub item_id: i64,
+    /// Latest price in the league base currency.
+    pub price: f64,
+    /// Price about 24 hours ago (or the oldest point).
+    pub old_price: f64,
+    pub change: f64,
+    pub change_pct: f64,
+}
+
+#[derive(Deserialize)]
+struct HistoryResponse {
+    #[serde(rename = "ItemHistories", default)]
+    histories: Vec<ItemHistory>,
+}
+
+#[derive(Deserialize)]
+struct ItemHistory {
+    #[serde(rename = "ItemId", default)]
+    item_id: i64,
+    #[serde(rename = "History", default)]
+    history: Vec<HistoryPoint>,
+}
+
+#[derive(Deserialize)]
+struct HistoryPoint {
+    #[serde(rename = "Price", default)]
+    price: f64,
+    #[serde(rename = "Time", default)]
+    time: String,
+}
+
+fn parse_time(value: &str) -> Option<chrono::DateTime<chrono::Utc>> {
+    chrono::DateTime::parse_from_rfc3339(value).ok().map(|t| t.with_timezone(&chrono::Utc))
+}
+
+/// 24h change for every item that has at least two history points.
+pub fn parse_price_history(json: &str) -> Result<Vec<PriceChange>, String> {
+    let parsed: HistoryResponse = serde_json::from_str(json).map_err(|e| format!("poe2scout history: ответ не разобран: {e}"))?;
+    let cutoff = chrono::Utc::now() - chrono::Duration::hours(24);
+    let mut out = Vec::new();
+    for entry in parsed.histories {
+        let points: Vec<&HistoryPoint> = entry.history.iter().filter(|p| p.price > 0.0).collect();
+        if points.len() < 2 {
+            continue;
+        }
+        let current = points[0].price;
+        let old = points
+            .iter()
+            .find(|p| parse_time(&p.time).map(|t| t <= cutoff).unwrap_or(false))
+            .map(|p| p.price)
+            .unwrap_or_else(|| points[points.len() - 1].price);
+        if old <= 0.0 {
+            continue;
+        }
+        out.push(PriceChange {
+            item_id: entry.item_id,
+            price: current,
+            old_price: old,
+            change: current - old,
+            change_pct: (current - old) / old * 100.0,
+        });
+    }
+    Ok(out)
+}
+
+pub fn fetch_price_history(league: &str) -> Result<Vec<PriceChange>, String> {
+    let league = league.replace(' ', "%20");
+    let mut res = agent()
+        .get(&format!("{BASE}/Leagues/{league}/Items/PriceHistory"))
+        .header("User-Agent", "Eni-PoE2-Companion (github.com/BigbyOn/Eni-PoE2-Companion)")
+        .header("Accept", "application/json")
+        .call()
+        .map_err(|e| format!("poe2scout history: сеть: {e}"))?;
+    let status = res.status().as_u16();
+    let text = res.body_mut().read_to_string().map_err(|e| format!("poe2scout history: чтение: {e}"))?;
+    if !(200..300).contains(&status) {
+        return Err(format!("poe2scout history HTTP {status}"));
+    }
+    parse_price_history(&text)
 }
 
 pub fn fetch_items(league: &str) -> Result<Vec<ScoutItem>, String> {
