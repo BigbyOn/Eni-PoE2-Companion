@@ -144,6 +144,10 @@
 
 `guide_refresh` перечитывает страницу без 10-минутного кэша, собирает документ с тем же `build_id`, перезаписывает файл билда и обновляет запись гайда (вариант, камни, снаряжение, `ts`), сохраняя `owned`.
 
+### Русский клиент и trade API
+
+`src/trade_i18n.rs` загружает `assets/trade_i18n/ru_items.json` (RU-имя → английская база/уникальное имя) и `ru_stats.json` (RU-шаблон мода → `explicit.stat_*`). `localize` подменяет базу/имя, `filters` строит `StatFilter` по номерам из строки и отдаёт их в `trade::check_with`; при отсутствии перевода работает прежний fallback. Данные — из Exiled Exchange 2 (MIT), см. `assets/trade_i18n/NOTICE.txt`.
+
 ### Сравнение билдов и статус продавца
 
 `build_compare` берёт два `GuideRecord` по `build_id` и сравнивает камни/поддержки/слоты предметов; UI рисует недостающее и переиспользует `trade_search_guide` для «Найти». В лотах торговли `ListingView.status` приходит из `account.online.status` (`afk` или `online`), `offline` — когда `online` равно null; `stash` берётся из `listing.stash.name`.

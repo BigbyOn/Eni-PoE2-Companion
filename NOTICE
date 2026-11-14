@@ -34,3 +34,11 @@ Eni-PoE2-Companion — персональный помощник и оверле
 ## Иконка
 
 `icons/icon.ico` сгенерирована `scripts/make_icon.py` (чистый Python, без внешних библиотек) и не содержит сторонних изображений.
+
+## Переводы для русского клиента (trade API)
+
+`assets/trade_i18n/ru_items.json` и `ru_stats.json` — производные от данных
+Exiled Exchange 2 (https://github.com/Kvan7/Exiled-Exchange-2, MIT,
+© 2020 Alexander Drozdov), форка Awakened PoE Trade. Полный текст лицензии и
+источники — в `assets/trade_i18n/NOTICE.txt`. Названия предметов принадлежат
+Grinding Gear Games и используются только локально для перевода.

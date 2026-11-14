@@ -24,6 +24,7 @@ mod screens;
 mod scout;
 mod tail;
 mod trade;
+mod trade_i18n;
 mod trade_req;
 
 use model::*;
@@ -601,6 +602,9 @@ impl App {
             show_price_window(app);
             return;
         };
+        let parsed = trade_i18n::localize(parsed);
+        let (ru_filters, _ru_unmatched) = trade_i18n::filters(&parsed.mods, filters, headroom);
+        let precomputed = (!ru_filters.is_empty()).then_some(ru_filters);
         self.update(app, |s, _| {
             s.quick_price = Some(QuickPrice {
                 name: parsed.name.clone(),
@@ -618,7 +622,7 @@ impl App {
             if let Some(stats) = &stats {
                 write_stats_cache(&dir, stats);
             }
-            let result = trade::check(&parsed, &league, stats.as_deref(), filters, headroom);
+            let result = trade::check_with(&parsed, &league, stats.as_deref(), filters, headroom, precomputed);
             let quick = match result {
                 Ok(r) => QuickPrice {
                     name: parsed.name.clone(),
@@ -2287,6 +2291,11 @@ async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceRe
     if !enabled {
         return Err("Проверка цен выключена: включи её в настройках (официальный trade API).".into());
     }
+    // Russian client: translate the base and build stat filters from the
+    // bundled RU->EN table before the English-only trade API sees the item.
+    let parsed = trade_i18n::localize(parsed);
+    let (ru_filters, _ru_unmatched) = trade_i18n::filters(&parsed.mods, filters, headroom);
+    let precomputed = (!ru_filters.is_empty()).then_some(ru_filters);
     // Outside the snapshot lock: preferred_league() takes it again.
     let league = state.preferred_league();
     {
@@ -2302,7 +2311,7 @@ async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceRe
     // Stat filters need the dataset: memory, then the disk cache, then one request.
     let stats = ensure_stats(&state).await;
     let mut result = tauri::async_runtime::spawn_blocking(move || {
-        trade::check(&parsed, &league, stats.as_deref(), filters, headroom)
+        trade::check_with(&parsed, &league, stats.as_deref(), filters, headroom, precomputed)
     })
     .await
     .map_err(|e| format!("Запрос прерван: {e}"))??;
@@ -2549,6 +2558,8 @@ async fn trade_search(
         }
         *last = Some(std::time::Instant::now());
     }
+    // A Russian base/unique name typed into the search box is translated too.
+    let query = trade_i18n::translate_name(&query).unwrap_or(query);
     let opts = opts.unwrap_or_default();
     let search = trade::SearchOpts {
         category: opts.category.unwrap_or_default(),

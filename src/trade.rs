@@ -815,10 +815,26 @@ pub fn resolve_league(preferred: &str) -> Result<String, String> {
 /// With `stats` the item's modifiers become filters; if that leaves no results,
 /// the search is repeated without them and the note says so.
 pub fn check(item: &ParsedItem, league_pref: &str, stats: Option<&[StatDef]>, limit: usize, headroom: u8) -> Result<PriceResult, String> {
+    check_with(item, league_pref, stats, limit, headroom, None)
+}
+
+/// `precomputed` filters skip the English stat matcher: used for Russian items,
+/// where stat ids come from the translation table.
+pub fn check_with(
+    item: &ParsedItem,
+    league_pref: &str,
+    stats: Option<&[StatDef]>,
+    limit: usize,
+    headroom: u8,
+    precomputed: Option<Vec<StatFilter>>,
+) -> Result<PriceResult, String> {
     let league = resolve_league(league_pref)?;
-    let (filters, unmatched) = stats
-        .map(|s| match_stats(item, s, limit.min(3), headroom))
-        .unwrap_or_default();
+    let (filters, unmatched) = match precomputed {
+        Some(filters) if !filters.is_empty() => (filters, Vec::new()),
+        _ => stats
+            .map(|s| match_stats(item, s, limit.min(3), headroom))
+            .unwrap_or_default(),
+    };
     let mut result = match search(item, &league, &filters, !filters.is_empty(), true) {
         Ok(result) => result,
         Err(e) if e.contains("Unknown item base type") || e.contains("Unknown item name") => {
