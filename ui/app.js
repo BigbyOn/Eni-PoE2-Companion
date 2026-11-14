@@ -646,7 +646,18 @@ function renderTrade() {
                </select>
                <label class="small"><input type="checkbox" id="trade-online" checked> ${esc(t("trade.online"))}</label>
              </div>
-             <div id="trade-recent" class="chips" style="margin-top:8px"></div>
+             <div class="card tight" style="margin-top:10px">
+        <div class="small">${esc(t("trade.chat"))}</div>
+        <div class="row" style="margin-top:5px;flex-wrap:wrap">
+          <button class="btn sm ghost" data-act="chat-copy" data-text="/invite @last">/invite @last</button>
+          <button class="btn sm ghost" data-act="chat-copy" data-text="/tradewith @last">/tradewith @last</button>
+          <button class="btn sm ghost" data-act="chat-copy" data-text="@last hi, one moment please">@last hi</button>
+          <button class="btn sm ghost" data-act="chat-copy" data-text="/hideout">/hideout</button>
+          <button class="btn sm ghost" data-act="chat-copy" data-text="/kick @last">/kick @last</button>
+        </div>
+        <div class="small" style="margin-top:4px">${esc(t("trade.chat_hint"))}</div>
+      </div>
+      <div id="trade-recent" class="chips" style="margin-top:8px"></div>
         <div id="trade-out" style="margin-top:10px"></div>`
           : `<div class="small bad-text">${esc(t("trade.disabled"))}</div>`
       }
@@ -756,7 +767,9 @@ async function runTradeSearch(q) {
           (l) => `<tr>
             <td><b>${esc(String(l.price))} ${esc(l.currency)}</b></td>
             <td>${esc(l.name || l.base)}<div class="small">${esc(l.base)}${l.rarity ? " · " + esc(l.rarity) : ""}</div></td>
-            <td class="small"><span class="dot-online ${l.online ? "on" : "off"}"></span> ${esc(l.account)}</td>
+            <td class="small"><span class="dot-online ${l.online ? "on" : "off"}"></span> ${esc(l.account)}
+              <span class="small">${esc(l.status === "afk" ? t("trade.status_afk") : l.online ? t("trade.status_online") : t("trade.status_offline"))}</span>
+              ${l.stash ? `<div class="small">${esc(t("trade.stash"))}: ${esc(l.stash)}</div>` : ""}</td>
             <td><div class="row">
               ${l.whisper ? `<button class="btn sm ghost" data-act="trade-copy" data-text="${esc(l.whisper)}">${esc(t("trade.copy"))}</button>` : ""}
               <button class="btn sm ghost" data-act="trade-open" data-url="${esc(res.url)}">${esc(t("trade.open"))}</button>
@@ -1202,8 +1215,35 @@ function renderGuide(g) {
 async function loadGuide(buildId) {
   try {
     const g = await invoke("guide_for_build", { buildId });
-    if (g) renderGuide(g);
+    if (g) {
+      renderGuide(g);
+      renderCompare();
+    }
   } catch {}
+}
+
+function renderCompare() {
+  let card = $("#compare-card");
+  if (!card) {
+    card = document.createElement("div");
+    card.id = "compare-card";
+    card.className = "card";
+    $("#content").appendChild(card);
+  }
+  const active = S.saved.profiles?.[0]?.build_id;
+  const others = (BUILDS || []).filter((b) => b.id !== active);
+  if (!others.length) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  card.innerHTML = `<h2>${esc(t("build.compare"))}</h2>
+    <div class="small" style="margin-bottom:6px">${esc(t("build.compare_hint"))}</div>
+    <div class="row">
+      <select id="compare-target">${others.map((b) => `<option value="${esc(b.id)}">${esc(l10n(b.name))}</option>`).join("")}</select>
+      <button class="btn sm primary" data-act="build-compare">${esc(t("build.compare"))}</button>
+    </div>
+    <div id="compare-out" style="margin-top:8px"></div>`;
 }
 
 function openPobImport() {
@@ -1317,6 +1357,10 @@ function renderSettings() {
         <input type="range" id="st-opacity" min="0" max="100" step="2" value="${o.opacity}"><output id="st-opacity-v">${o.opacity}%</output></div>
       <div class="slider"><span>${esc(t("set.scale"))}</span>
         <input type="range" id="st-scale" min="60" max="200" step="5" value="${o.scale}"><output id="st-scale-v">${o.scale}%</output></div>
+      <div class="slider"><span>${esc(t("set.price_scale"))}</span>
+        <input type="range" id="st-price-scale" min="70" max="150" step="5" value="${o.price_scale ?? 100}"><output id="st-price-scale-v">${o.price_scale ?? 100}%</output></div>
+      <div class="slider"><span>${esc(t("set.price_offset"))}</span>
+        <input type="range" id="st-price-offset" min="0" max="80" step="2" value="${o.price_offset ?? 18}"><output id="st-price-offset-v">${o.price_offset ?? 18}px</output></div>
       <div class="row" style="margin-top:10px">
         <button class="btn sm ghost" data-act="reset-pos">${esc(t("set.reset_pos"))}</button>
         <span class="small">x=${o.x}, y=${o.y}</span>
@@ -1666,6 +1710,8 @@ function collectSettings({ keepKey = false } = {}) {
     scale: Number($("#st-scale")?.value ?? S.saved.overlay.scale),
     visible: $("#st-visible")?.checked ?? true,
     only_in_game: $("#st-only-game")?.checked ?? true,
+    price_scale: Number($("#st-price-scale")?.value ?? 100),
+    price_offset: Number($("#st-price-offset")?.value ?? 18),
   };
   const aliases = $$("#alias-rows .arow")
     .map((row) => ({ alias: row.querySelector(".alias").value.trim(), zone: row.querySelector(".zone").value.trim() }))
@@ -1869,6 +1915,10 @@ async function act(name, el) {
     case "trade-run":
       await runTradeSearch($("#trade-q")?.value || "");
       break;
+    case "chat-copy":
+      await invoke("copy_text", { text: el.dataset.text || "" });
+      toast(t("trade.copied"));
+      break;
     case "trade-invite":
     case "trade-trade":
     case "trade-reply": {
@@ -1934,6 +1984,34 @@ async function act(name, el) {
         toast(`${t("guide.refresh_failed")}: ${String(e)}`, true);
       } finally {
         el.disabled = false;
+      }
+      break;
+    }
+    case "build-compare": {
+      const out = $("#compare-out");
+      const target = $("#compare-target")?.value || "";
+      if (out) out.innerHTML = `<div class="small">${esc(t("guide.wait"))}</div>`;
+      try {
+        const d = await invoke("build_compare", { currentBuild: S.saved.profiles[0].build_id, targetBuild: target });
+        if (!out) break;
+        const gems = d.missing_gems.length ? d.missing_gems.map((x) => `<li>${esc(x)}</li>`).join("") : `<li>${esc(t("build.compare_none"))}</li>`;
+        const sups = d.supports.length ? d.supports.map((x) => `<li>${esc(x)}</li>`).join("") : `<li>${esc(t("build.compare_none"))}</li>`;
+        const gear = d.gear.length
+          ? `<table class="table"><thead><tr><th>${esc(t("guide.slot"))}</th><th>${esc(t("trade.item"))}</th><th>${esc(t("build.compare_replace"))}</th><th></th></tr></thead><tbody>${d.gear
+              .map(
+                (g) => `<tr><td class="small">${esc(slotLabel(g.slot))}</td><td><b>${esc(g.target)}</b></td>
+                  <td class="small">${g.kind === "missing" ? esc(t("build.compare_missing")) : esc(g.current)}</td>
+                  <td><button class="btn sm ghost" data-act="guide-find" data-guide="${esc(d.target_guide)}" data-slot="${esc(g.slot)}">${esc(t("guide.buy"))}</button>
+                    <div class="guide-out small" style="margin-top:4px"></div></td></tr>`
+              )
+              .join("")}</tbody></table>`
+          : `<div class="small">${esc(t("build.compare_none"))}</div>`;
+        out.innerHTML = `<div class="grid c2">
+          <div><h3>${esc(t("build.compare_missing_gems"))}</h3><ul class="small">${gems}</ul></div>
+          <div><h3>${esc(t("build.compare_supports"))}</h3><ul class="small">${sups}</ul></div>
+        </div><h3>${esc(t("build.compare_gear"))}</h3>${gear}`;
+      } catch (e) {
+        if (out) out.innerHTML = `<div class="small bad-text">${esc(String(e))}</div>`;
       }
       break;
     }

@@ -139,6 +139,20 @@ pub struct OverlayCfg {
     pub visible: bool,
     /// Hide the overlay while the game is not in front (it never steals focus).
     pub only_in_game: bool,
+    /// Price card size, percent of 380×170.
+    #[serde(default = "default_price_scale")]
+    pub price_scale: u32,
+    /// Distance from the cursor to the price card, pixels.
+    #[serde(default = "default_price_offset")]
+    pub price_offset: i32,
+}
+
+pub fn default_price_scale() -> u32 {
+    100
+}
+
+pub fn default_price_offset() -> i32 {
+    18
 }
 
 impl Default for OverlayCfg {
@@ -151,6 +165,8 @@ impl Default for OverlayCfg {
             scale: 100,
             visible: true,
             only_in_game: true,
+            price_scale: 100,
+            price_offset: 18,
         }
     }
 }

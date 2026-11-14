@@ -256,7 +256,15 @@ struct Listing {
     #[serde(default)]
     account: Account,
     #[serde(default)]
+    stash: Option<Stash>,
+    #[serde(default)]
     whisper: String,
+}
+
+#[derive(Default, Deserialize)]
+struct Stash {
+    #[serde(default)]
+    name: String,
 }
 
 #[derive(Default, Deserialize)]
@@ -302,6 +310,12 @@ pub struct ListingView {
     pub account: String,
     /// The seller is online right now.
     pub online: bool,
+    /// "online" | "afk" | "offline".
+    #[serde(default)]
+    pub status: String,
+    /// Stash tab name from the listing, when the API provides it.
+    #[serde(default)]
+    pub stash: String,
     pub whisper: String,
 }
 
@@ -436,6 +450,15 @@ pub fn parse_listings(json: &str) -> Result<Vec<ListingView>, String> {
                 base: x.item.type_line,
                 rarity: x.item.rarity,
                 online: x.listing.account.online.is_some(),
+                status: match &x.listing.account.online {
+                    None => "offline".into(),
+                    Some(value) => value
+                        .get("status")
+                        .and_then(|s| s.as_str())
+                        .unwrap_or("online")
+                        .to_string(),
+                },
+                stash: x.listing.stash.map(|s| s.name).unwrap_or_default(),
                 account: x.listing.account.name,
                 whisper: x.listing.whisper,
             })

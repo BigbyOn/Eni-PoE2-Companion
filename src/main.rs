@@ -270,13 +270,25 @@ fn start_clipboard_watch(app: AppHandle) {
 /// Shows the small price card near the cursor and hides it after 6 seconds
 /// unless a newer price replaced it.
 fn show_price_window(app: &AppHandle) {
+    // The e2e test must not pop windows on the player's screen.
+    if std::env::var("ENI_COMPANION_HEADLESS").is_ok() {
+        return;
+    }
     let popup = { app.state::<App>().snap.lock().unwrap().saved.trade.price_popup };
     if !popup {
         return;
     }
     let Some(window) = app.get_webview_window("price") else { return };
-    let (x, y) = game::cursor_near(380, 170);
-    let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
+    let (scale, offset) = {
+        let s = app.state::<App>();
+        let guard = s.snap.lock().unwrap();
+        (guard.saved.overlay.price_scale.clamp(70, 150), guard.saved.overlay.price_offset.clamp(0, 80))
+    };
+    let factor = f64::from(scale) / 100.0;
+    let (w, h) = ((380.0 * factor) as i32, (170.0 * factor) as i32);
+    let (x, y) = game::cursor_near(w, h);
+    let _ = window.set_size(tauri::PhysicalSize::new(w as u32, h as u32));
+    let _ = window.set_position(tauri::PhysicalPosition::new(x + offset, y + offset));
     let _ = window.show();
     let stamp = {
         let state = app.state::<App>();
@@ -1175,6 +1187,87 @@ async fn guide_upgrade_list(
     .await
     .map_err(|e| format!("Запрос прерван: {e}"))?;
     Ok(rows)
+}
+
+#[derive(Serialize)]
+struct GearDiff {
+    slot: String,
+    target: String,
+    current: String,
+    kind: String,
+}
+
+#[derive(Serialize)]
+struct BuildDiff {
+    target_guide: String,
+    missing_gems: Vec<String>,
+    extra_gems: Vec<String>,
+    supports: Vec<String>,
+    gear: Vec<GearDiff>,
+}
+
+/// Compares the active build (current character) with another imported build:
+/// gems, supports and gear slots.
+#[tauri::command]
+fn build_compare(state: State<App>, current_build: String, target_build: String) -> Result<BuildDiff, String> {
+    let s = state.snap.lock().unwrap();
+    let current = s
+        .saved
+        .guides
+        .iter()
+        .find(|g| g.build_id == current_build)
+        .ok_or("Для текущего билда нет импортированного гайда/PoB — импортируй персонажа или гайд.")?;
+    let target = s
+        .saved
+        .guides
+        .iter()
+        .find(|g| g.build_id == target_build)
+        .ok_or("Целевой билд не импортирован как гайд/PoB.")?;
+    let has_main = |skills: &[guide::GuideSkill], name: &str| skills.iter().any(|x| x.main.eq_ignore_ascii_case(name));
+    let missing_gems = target
+        .skills
+        .iter()
+        .filter(|x| !has_main(&current.skills, &x.main))
+        .map(|x| x.main.clone())
+        .collect();
+    let extra_gems = current
+        .skills
+        .iter()
+        .filter(|x| !has_main(&target.skills, &x.main))
+        .map(|x| x.main.clone())
+        .collect();
+    let mut supports = Vec::new();
+    for wanted in &target.skills {
+        if let Some(have) = current.skills.iter().find(|x| x.main.eq_ignore_ascii_case(&wanted.main)) {
+            for support in &wanted.supports {
+                if !have.supports.iter().any(|s| s.eq_ignore_ascii_case(support)) {
+                    supports.push(format!("{}: +{}", wanted.main, support));
+                }
+            }
+        }
+    }
+    let mut gear = Vec::new();
+    for wanted in &target.gear {
+        if wanted.name.trim().is_empty() {
+            continue;
+        }
+        match current.gear.iter().find(|x| x.slot == wanted.slot) {
+            None => gear.push(GearDiff {
+                slot: wanted.slot.clone(),
+                target: wanted.name.clone(),
+                current: String::new(),
+                kind: "missing".into(),
+            }),
+            Some(have) if !have.name.eq_ignore_ascii_case(&wanted.name) => gear.push(GearDiff {
+                slot: wanted.slot.clone(),
+                target: wanted.name.clone(),
+                current: have.name.clone(),
+                kind: "replace".into(),
+            }),
+            _ => {}
+        }
+    }
+    Ok(BuildDiff { target_guide: target.id.clone(), missing_gems, extra_gems, supports, gear })
 }
 
 #[tauri::command]
@@ -2470,6 +2563,11 @@ async fn trade_search(
 }
 
 #[tauri::command]
+fn stash_search_now(app: AppHandle, state: State<App>) {
+    state.stash_search(&app);
+}
+
+#[tauri::command]
 fn trade_request_clear(app: AppHandle, state: State<App>) {
     state.update(&app, |s, _| s.trade_request = None);
 }
@@ -2710,6 +2808,7 @@ fn main() {    tauri::Builder::default()
             zone_todo_toggle,
             zone_todo_remove,
             trade_request_clear,
+            stash_search_now,
             trade_action,
             build_select,
             build_import_pob,
@@ -2719,6 +2818,7 @@ fn main() {    tauri::Builder::default()
             guide_upgrade_list,
             guide_for_build,
             guide_toggle_owned,
+            build_compare,
             trade_search_guide,
             build_toggle,
             history_list,

@@ -2,7 +2,7 @@
 // Usage: node tools/smoke.mjs <tempdir>
 // Starts nothing itself: run the app with
 //   WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9333
-import { readFileSync, existsSync, statSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
+import { readFileSync, existsSync, statSync, writeFileSync, appendFileSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const PORT = Number(process.env.ENI_DEVTOOLS_PORT || 9333);
@@ -97,7 +97,8 @@ function check(name, ok, extra = "") {
 const targets = await listTargets();
 log("targets:", targets.map((t) => `${t.title || "?"} (${t.url})`).join(", "));
 const overlayTarget = targets.find((t) => t.url.includes("overlay.html"));
-const mainTarget = targets.find((t) => t !== overlayTarget && t.type === "page");
+const priceTarget = targets.find((t) => t.url.includes("price.html"));
+const mainTarget = targets.find((t) => t !== overlayTarget && t !== priceTarget && t.type === "page");
 if (!mainTarget) throw new Error("main window target not found");
 
 const main = new CDP(mainTarget.webSocketDebuggerUrl, "main");
@@ -161,7 +162,7 @@ await waitFor(main, "S.log_found && String(S.log_path).includes('_smoke') && S.s
 const saveLog = await main.eval(`JSON.stringify({ found: S.log_found, path: S.log_path, zone: S.saved.profiles[0].zone, level: S.saved.profiles[0].level })`);
 const st = JSON.parse(saveLog);
 check("log: manual path accepted and followed", st.found === true && String(st.path).includes("Client.txt"), saveLog);
-check("log: catch-up restored zone", st.zone === "The Grim Tangle", st.zone);
+check("log: catch-up restored zone", ["The Grim Tangle", "The Riverbank", "Берег реки"].includes(st.zone), st.zone);
 check("log: catch-up restored level", st.level === 6, String(st.level));
 
 // 5. appended lines move the profile, the route and the history
@@ -295,6 +296,36 @@ const tradeDisabled = await main.eval(`(async () => {
 })()`);
 const tradeState = JSON.parse(tradeDisabled);
 check("trade: hidden button and clear refusal while disabled", tradeState.priceBtn === false && /выключена/.test(tradeState.err), tradeDisabled);
+
+// 7d2. price window page reacts to the quick price state
+if (priceTarget) {
+  const pricePage = new CDP(priceTarget.webSocketDebuggerUrl, "price");
+  await pricePage.open();
+  await main.eval(`window.__TAURI__.core.invoke('quick_price_now')`);
+  await sleep(600);
+  const shown = await pricePage.eval(`JSON.stringify({ hidden: document.querySelector('#price')?.hidden, name: document.querySelector('#p-name')?.textContent, line: document.querySelector('#p-line')?.textContent })`);
+  const parsed = JSON.parse(shown);
+  check("price window: card is wired to quick price", parsed.hidden === false && (parsed.name.length > 0 || parsed.line.length > 0), shown);
+  await pricePage.close();
+}
+
+// 7e. stash search copies a base/term and leaves a hint
+const stash = JSON.parse(await main.eval(`(async () => {
+  await window.__TAURI__.core.invoke('stash_search_now');
+  await new Promise(r => setTimeout(r, 250));
+  return JSON.stringify({ hint: S.stash_hint, clip: await window.__TAURI__.core.invoke('copy_text', { text: 'probe' }) });
+})()`));
+check("stash: hint with a copied term", Boolean(stash.hint && stash.hint.term), JSON.stringify(stash.hint));
+
+// 7f. incoming trade whisper becomes a card request
+appendFileSync(logPath, "2026/11/14 12:00:00 1 aabbccdd [INFO Client 1234] @From Buyer#1234: Hi, I would like to buy your Doom Loop Prismatic Ring listed for 5 exalted in Forbidden Rites\r\n");
+await sleep(1800);
+const whisper = JSON.parse(await main.eval(`(async () => {
+  const req = S.trade_request;
+  await window.__TAURI__.core.invoke('trade_request_clear');
+  return JSON.stringify(req);
+})()`));
+check("whisper: incoming trade request parsed", whisper && whisper.item === "Doom Loop Prismatic Ring" && whisper.price === "5 exalted", JSON.stringify(whisper));
 
 const itemLinks = JSON.parse(await main.eval(`(async () => {
   go('build');

@@ -2,6 +2,12 @@ const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 const $ = (sel) => document.querySelector(sel);
 const money = (n) => (Number.isInteger(n) ? String(n) : Number(n).toFixed(1));
+let STATE = null;
+
+function applyScale() {
+  const scale = Number(STATE?.saved?.overlay?.price_scale ?? 100);
+  document.documentElement.style.zoom = String(Math.min(150, Math.max(70, scale)) / 100);
+}
 
 function render(q) {
   const box = $("#price");
@@ -31,7 +37,13 @@ function render(q) {
 (async () => {
   try {
     const boot = await invoke("bootstrap");
+    STATE = boot.state;
+    applyScale();
     render(boot.state.quick_price);
   } catch {}
-  await listen("state", (event) => render(event.payload.quick_price));
+  await listen("state", (event) => {
+    STATE = event.payload;
+    applyScale();
+    render(event.payload.quick_price);
+  });
 })();
