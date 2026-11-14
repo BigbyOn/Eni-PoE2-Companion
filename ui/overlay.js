@@ -102,7 +102,14 @@ function renderQuick(q) {
   } else if (q.total === 0) {
     line = `<div class="small">${esc(q.note || t("guide.empty"))}</div>`;
   } else {
-    const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+    const money = (n) => {
+      const v = Number(n);
+      if (!Number.isFinite(v)) return "—";
+      if (Number.isInteger(v)) return String(v);
+      if (Math.abs(v) >= 1) return v.toFixed(1);
+      if (Math.abs(v) >= 0.01) return v.toFixed(3);
+      return v.toFixed(4);
+    };
     line = `<div class="quick-price">${currencyIcon(q.currency)}${money(q.min)}–${money(q.median)} <span>${esc(q.currency)}</span></div>
       <div class="small">${q.total} ${esc(t("items.price_lots"))}${q.divine != null ? ` · ≈ ${money(q.divine)} divine` : ""}${q.matched ? ` · ${esc(t("items.mods_used"))}: ${q.matched}` : ""}${q.note ? " · " + esc(q.note) : ""}</div>`;
   }

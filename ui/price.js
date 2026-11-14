@@ -1,7 +1,14 @@
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 const $ = (sel) => document.querySelector(sel);
-const money = (n) => (Number.isInteger(n) ? String(n) : Number(n).toFixed(1));
+const money = (n) => {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "—";
+  if (Number.isInteger(v)) return String(v);
+  if (Math.abs(v) >= 1) return v.toFixed(1);
+  if (Math.abs(v) >= 0.01) return v.toFixed(3);
+  return v.toFixed(4);
+};
 const CURRENCY_ICONS = {
   divine: "icons/currency/divine.png",
   exalted: "icons/currency/exalted.png",
@@ -46,7 +53,7 @@ function render(q) {
     return;
   }
   $("#p-value").innerHTML = `${currencyIcon(q.currency)}${money(q.min)}–${money(q.median)} ${q.currency}`;
-  $("#p-line").textContent = `${q.total} лотов${q.divine != null ? ` · ≈ ${money(q.divine)} divine` : ""}${q.matched ? ` · модов: ${q.matched}` : ""}`;
+  $("#p-line").textContent = `${q.total} ${q.total === 1 ? "лот" : "лотов"}${q.divine != null ? ` · ≈ ${money(q.divine)} divine` : ""}${q.matched ? ` · модов: ${q.matched}` : ""}`;
   $("#p-note").textContent = q.note || "";
 }
 

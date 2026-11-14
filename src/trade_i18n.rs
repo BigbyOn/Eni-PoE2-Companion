@@ -27,6 +27,7 @@ struct StatEntry {
 
 static ITEMS: OnceLock<HashMap<String, String>> = OnceLock::new();
 static STATS: OnceLock<Vec<StatEntry>> = OnceLock::new();
+static TAGS: OnceLock<HashMap<String, String>> = OnceLock::new();
 
 fn norm(value: &str) -> String {
     value
@@ -71,6 +72,19 @@ fn stats() -> &'static Vec<StatEntry> {
         let raw = include_str!("../assets/trade_i18n/ru_stats.json");
         serde_json::from_str(raw).unwrap_or_default()
     })
+}
+
+fn tags() -> &'static HashMap<String, String> {
+    TAGS.get_or_init(|| {
+        let raw = include_str!("../assets/trade_i18n/item_tags.json");
+        let parsed: HashMap<String, String> = serde_json::from_str(raw).unwrap_or_default();
+        parsed.into_iter().map(|(name, tag)| (norm(&name), tag)).collect()
+    })
+}
+
+/// Trade API tag (`regal-shard`, `divine`, …) for a base/unique name.
+pub fn trade_tag(name: &str) -> Option<String> {
+    tags().get(&norm(name)).cloned()
 }
 
 /// English base or unique name for a Russian one, when the table knows it.
@@ -166,6 +180,7 @@ mod tests {
     fn translates_a_russian_base() {
         assert_eq!(translate_name("Студёный посох").as_deref(), Some("Gelid Staff"));
         assert!(translate_name("Такой базы нет").is_none());
+        assert_eq!(trade_tag("Осколок царей").as_deref(), Some("regal-shard"));
     }
 
     #[test]

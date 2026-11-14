@@ -89,6 +89,71 @@ pub fn fetch() -> Result<Scout, String> {
     parse(&text)
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct ScoutItem {
+    /// Trade tag used by the official trade API (`regal-shard`, `divine`, …).
+    pub api_id: String,
+    pub text: String,
+    pub category: String,
+    /// Price in the league base currency (usually exalted).
+    pub current_price: f64,
+    pub icon: String,
+}
+
+#[derive(Deserialize)]
+struct ItemRow {
+    #[serde(rename = "ApiId", default)]
+    api_id: Option<String>,
+    #[serde(rename = "Text", default)]
+    text: Option<String>,
+    #[serde(rename = "CategoryApiId", default)]
+    category: Option<String>,
+    #[serde(rename = "CurrentPrice", default)]
+    current_price: Option<f64>,
+    #[serde(rename = "IconUrl", default)]
+    icon: Option<String>,
+}
+
+/// Parses the league item list; only items with a trade tag and a positive
+/// price are useful for a price card.
+pub fn parse_items(json: &str) -> Result<Vec<ScoutItem>, String> {
+    let rows: Vec<ItemRow> = serde_json::from_str(json).map_err(|e| format!("poe2scout items: ответ не разобран: {e}"))?;
+    Ok(rows
+        .into_iter()
+        .filter_map(|row| {
+            let api_id = row.api_id?;
+            let price = row.current_price?;
+            if api_id.trim().is_empty() || price <= 0.0 {
+                return None;
+            }
+            Some(ScoutItem {
+                api_id,
+                text: row.text.unwrap_or_default(),
+                category: row.category.unwrap_or_default(),
+                current_price: price,
+                icon: row.icon.unwrap_or_default(),
+            })
+        })
+        .collect())
+}
+
+pub fn fetch_items(league: &str) -> Result<Vec<ScoutItem>, String> {
+    let league = league.replace(' ', "%20");
+    let mut res = agent()
+        .get(&format!("{BASE}/Leagues/{league}/Items"))
+        .header("User-Agent", "Eni-PoE2-Companion (github.com/BigbyOn/Eni-PoE2-Companion)")
+        .header("Accept", "application/json")
+        .call()
+        .map_err(|e| format!("poe2scout items: сеть: {e}"))?;
+    let status = res.status().as_u16();
+    let text = res.body_mut().read_to_string().map_err(|e| format!("poe2scout items: чтение: {e}"))?;
+    if !(200..300).contains(&status) {
+        return Err(format!("poe2scout items HTTP {status}"));
+    }
+    parse_items(&text)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -695,7 +695,14 @@ async function loadRate() {
   line.textContent = t("trade.rate_wait");
   try {
     const r = await invoke("trade_rate");
-    const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+    const money = (n) => {
+      const v = Number(n);
+      if (!Number.isFinite(v)) return "—";
+      if (Number.isInteger(v)) return String(v);
+      if (Math.abs(v) >= 1) return v.toFixed(1);
+      if (Math.abs(v) >= 0.01) return v.toFixed(3);
+      return v.toFixed(4);
+    };
     const parts = [esc(t("trade.rate_line").replace("{n}", money(r.exalted_per_divine)))];
     if (r.league) parts.push(esc(r.league));
     if (r.chaos_per_divine) parts.push(`1 Divine ≈ ${money(r.chaos_per_divine)} Chaos`);

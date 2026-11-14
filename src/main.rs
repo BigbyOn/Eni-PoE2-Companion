@@ -225,6 +225,8 @@ struct App {
     rates: Mutex<Option<(std::time::Instant, trade::CurrencyRate)>>,
     /// poe2scout league/divine price, cached for 15 minutes.
     scout: Mutex<Option<(std::time::Instant, scout::Scout)>>,
+    /// poe2scout item prices for the current league, cached for 15 minutes.
+    scout_items: Mutex<Option<(String, std::time::Instant, Vec<scout::ScoutItem>)>>,
     /// Last rendered Mobalytics page, so a variant can be imported without
     /// spawning Edge again.
     guide_cache: Mutex<Option<(String, std::time::Instant, guide::GuideSet)>>,
@@ -606,6 +608,60 @@ impl App {
             return;
         };
         let parsed = trade_i18n::localize(parsed);
+        if is_currency_item(&parsed) {
+            if let Some(tag) = currency_tag(&parsed) {
+                let name = parsed.name.clone();
+                self.update(app, |s, _| {
+                    s.quick_price = Some(QuickPrice {
+                        name: name.clone(),
+                        note: "Смотрю цену валюты…".into(),
+                        ts: now_iso(),
+                        ..Default::default()
+                    })
+                });
+                show_price_window(app);
+                let app = app.clone();
+                let league = league.clone();
+                std::thread::spawn(move || {
+                    let state = app.state::<App>();
+                    let result = (|| -> Result<QuickPrice, String> {
+                        let scout = known_scout(&state).map(Ok).unwrap_or_else(scout::fetch)?;
+                        let items = scout_items_cached(&state, &scout.league)?;
+                        let row = items
+                            .iter()
+                            .find(|row| row.api_id.eq_ignore_ascii_case(&tag))
+                            .ok_or_else(|| "poe2scout пока не знает цену этого предмета".to_string())?;
+                        let divine = (scout.divine_price > 0.0).then(|| row.current_price / scout.divine_price);
+                        Ok(QuickPrice {
+                            name: name.clone(),
+                            total: 1,
+                            min: row.current_price,
+                            median: row.current_price,
+                            currency: "exalted".into(),
+                            divine,
+                            matched: 0,
+                            unmatched: 0,
+                            note: format!("poe2scout · цена за 1 шт. (лига {})", scout.league),
+                            error: None,
+                            ts: now_iso(),
+                        })
+                    })();
+                    let quick = match result {
+                        Ok(value) => value,
+                        Err(e) => QuickPrice {
+                            name,
+                            error: Some(e),
+                            ts: now_iso(),
+                            ..Default::default()
+                        },
+                    };
+                    state.update(&app, |s, _| s.quick_price = Some(quick));
+                    show_price_window(&app);
+                });
+                let _ = league;
+                return;
+            }
+        }
         let (ru_filters, _ru_unmatched) = trade_i18n::filters(&parsed.mods, filters, headroom);
         let precomputed = (!ru_filters.is_empty()).then_some(ru_filters);
         self.update(app, |s, _| {
@@ -1066,6 +1122,47 @@ struct UpgradeRow {
     /// Cheapest listing converted to divine (when the rate is known).
     divine: Option<f64>,
     over_budget: bool,
+}
+
+/// Currency items are priced by poe2scout (per unit), not by the listing search.
+fn is_currency_item(item: &item::ParsedItem) -> bool {
+    let class = item.class.to_lowercase();
+    class.contains("валют")
+        || class.contains("currency")
+        || class.contains("оскол")
+        || class.contains("shard")
+        || item.mods.iter().any(|m| {
+            let line = m.to_lowercase();
+            line.contains("размер стопки") || line.contains("stack size")
+        })
+}
+
+fn currency_tag(item: &item::ParsedItem) -> Option<String> {
+    trade_i18n::trade_tag(&item.base).or_else(|| trade_i18n::trade_tag(&item.name))
+}
+
+fn known_scout(state: &App) -> Option<scout::Scout> {
+    state
+        .scout
+        .lock()
+        .unwrap()
+        .as_ref()
+        .filter(|(at, _)| at.elapsed() < Duration::from_secs(900))
+        .map(|(_, value)| value.clone())
+}
+
+fn scout_items_cached(state: &App, league: &str) -> Result<Vec<scout::ScoutItem>, String> {
+    {
+        let cache = state.scout_items.lock().unwrap();
+        if let Some((cached_league, at, items)) = cache.as_ref() {
+            if cached_league == league && at.elapsed() < Duration::from_secs(900) {
+                return Ok(items.clone());
+            }
+        }
+    }
+    let items = scout::fetch_items(league)?;
+    *state.scout_items.lock().unwrap() = Some((league.to_string(), std::time::Instant::now(), items.clone()));
+    Ok(items)
 }
 
 fn current_rates(state: &App) -> (Option<f64>, Option<f64>) {
@@ -2994,6 +3091,7 @@ fn main() {
                 stats: Mutex::new(None),
                 rates: Mutex::new(None),
                 scout: Mutex::new(None),
+                scout_items: Mutex::new(None),
                 guide_cache: Mutex::new(None),
             });
             // Windows are created only now ("create": false in tauri.conf.json):
