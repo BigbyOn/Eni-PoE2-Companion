@@ -80,6 +80,10 @@ struct Snapshot {
     zone_todos: Vec<ZoneTodo>,
     /// Latest incoming trade request from a whisper.
     trade_request: Option<trade_req::TradeRequest>,
+    /// "Stash search" hint shown in the overlay for a few seconds.
+    stash_hint: Option<StashHint>,
+    /// Progress of every route location (for the overview list).
+    zone_overview: Vec<ZoneOverview>,
     /// Session counters, reset when the app starts.
     session_started: String,
     session_deaths: u32,
@@ -143,8 +147,26 @@ struct QuickPrice {
     min: f64,
     median: f64,
     currency: String,
+    divine: Option<f64>,
     note: String,
     error: Option<String>,
+    ts: String,
+}
+
+#[derive(Serialize, Clone, Debug, Default)]
+struct ZoneOverview {
+    id: String,
+    label: String,
+    act: u32,
+    total: usize,
+    done: usize,
+    todos: usize,
+    current: bool,
+}
+
+#[derive(Serialize, Clone, Debug, Default)]
+struct StashHint {
+    term: String,
     ts: String,
 }
 
@@ -288,6 +310,7 @@ fn action_label(action: &str) -> &'static str {
         "regex" => "regex-список",
         "map" => "чек-лист карты",
         "price" => "быстрая цена",
+        "stash" => "поиск в сумке",
         _ => "главное окно",
     }
 }
@@ -384,6 +407,28 @@ impl App {
         s.zone_progress = campaign.zone_progress(&zone, &done, cur, &mode, &aliases);
         let canonical = campaign.resolve(&zone, &aliases);
         s.zone_todos = s.saved.zone_todos.iter().filter(|t| t.zone == canonical).cloned().collect();
+        s.zone_overview = campaign
+            .zones
+            .iter()
+            .filter_map(|z| {
+                let steps: Vec<&campaign::Step> = campaign.steps.iter().filter(|st| st.zone_id == z.id).collect();
+                if steps.is_empty() {
+                    return None;
+                }
+                let zone_key = campaign::normalize(&z.names[0]);
+                let done_count = steps.iter().filter(|st| done.iter().any(|d| d == &st.id)).count();
+                let todos = s.saved.zone_todos.iter().filter(|t| t.zone == zone_key).count();
+                Some(ZoneOverview {
+                    id: z.id.clone(),
+                    label: z.ru.first().cloned().unwrap_or_else(|| z.names[0].clone()),
+                    act: z.act,
+                    total: steps.len(),
+                    done: done_count,
+                    todos,
+                    current: zone_key == canonical,
+                })
+            })
+            .collect();
         s.campaign_len = len;
         s.campaign_version = campaign.version.clone();
         s.campaign_act = s.saved.profile().map(|p| p.act).unwrap_or(1);
@@ -553,6 +598,7 @@ impl App {
             })
         });
         show_price_window(app);
+        let (divine_price, chaos_per_divine) = current_rates(self);
         let app = app.clone();
         let dir = self.dir.clone();
         std::thread::spawn(move || {
@@ -567,7 +613,8 @@ impl App {
                     total: r.total,
                     min: r.min,
                     median: r.median,
-                    currency: r.currency,
+                    currency: r.currency.clone(),
+                    divine: to_divine(r.min, &r.currency, divine_price, chaos_per_divine),
                     note: r.note,
                     error: None,
                     ts: now_iso(),
@@ -609,8 +656,36 @@ impl App {
             "regex" => self.toggle_regex(app),
             "map" => self.update(app, |s, _| s.map_run.open = !s.map_run.open),
             "price" => self.quick_price(app),
+            "stash" => self.stash_search(app),
             _ => toggle_main(app),
         }
+    }
+
+    /// Copies a stash-search term: the base type of the item in the clipboard,
+    /// or plain text, or the first saved regex. The game search box is opened
+    /// by the player (Ctrl+F); nothing is typed into the game automatically.
+    fn stash_search(&self, app: &AppHandle) {
+        let text = clip::read().unwrap_or_default();
+        let term = if let Some(parsed) = item::parse(&text) {
+            if parsed.base.trim().is_empty() { parsed.name } else { parsed.base }
+        } else {
+            let plain = text.trim();
+            if !plain.is_empty() && plain.chars().count() <= 80 {
+                plain.to_string()
+            } else {
+                let s = self.snap.lock().unwrap();
+                s.saved.regexes.first().map(|r| r.value.clone()).unwrap_or_default()
+            }
+        };
+        if term.trim().is_empty() {
+            return;
+        }
+        if clip::copy(&term).is_err() {
+            return;
+        }
+        self.update(app, |s, _| {
+            s.stash_hint = Some(StashHint { term: term.clone(), ts: now_iso() });
+        });
     }
 
     /// Takes a screenshot of the game's client area. The overlay is hidden for
@@ -970,6 +1045,16 @@ struct UpgradeRow {
     /// Cheapest listing converted to divine (when the rate is known).
     divine: Option<f64>,
     over_budget: bool,
+}
+
+fn current_rates(state: &App) -> (Option<f64>, Option<f64>) {
+    if let Some((_, rate)) = state.rates.lock().unwrap().clone() {
+        (Some(rate.exalted_per_divine), rate.chaos_per_divine)
+    } else if let Some((_, scout)) = state.scout.lock().unwrap().clone() {
+        (Some(scout.divine_price), Some(scout.chaos_per_divine).filter(|v| *v > 0.0))
+    } else {
+        (None, None)
+    }
 }
 
 fn to_divine(min: f64, currency: &str, divine_price: Option<f64>, chaos_per_divine: Option<f64>) -> Option<f64> {
@@ -2135,6 +2220,8 @@ async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceRe
         s.saved.items.iter().find(|x| x.id == id).and_then(|r| r.price_history.last().cloned())
     };
     result.previous = previous;
+    let (divine_price, chaos_per_divine) = current_rates(&state);
+    result.divine = to_divine(result.min, &result.currency, divine_price, chaos_per_divine);
     if result.total > 0 {
         let mut s = state.snap.lock().unwrap();
         if let Some(record) = s.saved.items.iter_mut().find(|x| x.id == id) {
@@ -2738,6 +2825,8 @@ fn main() {    tauri::Builder::default()
                     zone_progress: campaign::ZoneProgress::default(),
                     zone_todos: Vec::new(),
                     trade_request: None,
+                    stash_hint: None,
+                    zone_overview: Vec::new(),
                     session_started: now_iso(),
                     session_deaths: 0,
                     session_zones: 0,
@@ -2844,13 +2933,13 @@ mod tests {
     #[test]
     fn hotkeys_parse_and_reject_duplicates() {
         let mut h = Hotkeys::default();
-        assert_eq!(parse_hotkeys(&h).unwrap().len(), 10);
+        assert_eq!(parse_hotkeys(&h).unwrap().len(), 11);
         h.screenshot = h.next.clone();
         assert!(parse_hotkeys(&h).unwrap_err().contains("занято"));
         h.screenshot = "Ctrl+Nonsense".into();
         assert!(parse_hotkeys(&h).is_err());
         h.screenshot = String::new();
-        assert_eq!(parse_hotkeys(&h).unwrap().len(), 9, "an empty field is simply unused");
+        assert_eq!(parse_hotkeys(&h).unwrap().len(), 10, "an empty field is simply unused");
     }
 
     #[test]

@@ -195,6 +195,9 @@ pub struct PriceResult {
     /// Previous price check of the same item (filled by the command).
     #[serde(default)]
     pub previous: Option<crate::model::PricePoint>,
+    /// Cheapest listing converted to divine (filled by the command).
+    #[serde(default)]
+    pub divine: Option<f64>,
     /// Human-readable caveat for the UI (e.g. rare items without stat filters).
     pub note: String,
 }

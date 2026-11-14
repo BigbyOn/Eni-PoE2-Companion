@@ -85,6 +85,8 @@ pub struct Hotkeys {
     pub map: String,
     /// Price the item in the clipboard right away.
     pub price: String,
+    /// Copy the base/item name for the stash search box.
+    pub stash: String,
 }
 
 impl Default for Hotkeys {
@@ -100,12 +102,13 @@ impl Default for Hotkeys {
             regex: "Ctrl+Alt+KeyR".into(),
             map: "Ctrl+Alt+KeyJ".into(),
             price: "Ctrl+Alt+KeyP".into(),
+            stash: "Ctrl+Alt+KeyE".into(),
         }
     }
 }
 
 impl Hotkeys {
-    pub fn entries(&self) -> [(&'static str, &String); 10] {
+    pub fn entries(&self) -> [(&'static str, &String); 11] {
         [
             ("next", &self.next),
             ("prev", &self.prev),
@@ -117,6 +120,7 @@ impl Hotkeys {
             ("regex", &self.regex),
             ("map", &self.map),
             ("price", &self.price),
+            ("stash", &self.stash),
         ]
     }
 }

@@ -498,6 +498,24 @@ function renderCampaign() {
     .map((z) => `<option value="${esc(z.names[0])}">${esc(z.names[0])}</option>`)
     .join("");
 
+  const overviewRows = (S.zone_overview || []).filter((z) => z.act === (p?.act || 1));
+  const overviewHtml = `<div class="card">
+    <h3>${esc(t("zone.overview"))}</h3>
+    <div class="small" style="margin-bottom:6px">${esc(t("zone.overview_hint"))}</div>
+    ${overviewRows.length
+      ? `<table class="table"><thead><tr><th>${esc(t("camp.zone"))}</th><th>${esc(t("camp.steps"))}</th><th>${esc(t("zone.pending_short"))}</th></tr></thead>
+         <tbody>${overviewRows
+           .map(
+             (z) => `<tr>
+               <td>${z.current ? "▶ " : ""}<b>${esc(z.label)}</b>${z.current ? ` <span class="small">${esc(t("zone.current"))}</span>` : ""}</td>
+               <td class="small">${z.done}/${z.total}</td>
+               <td class="small">${z.todos ? `<span class="warn-text">${z.todos}</span>` : "—"}</td>
+             </tr>`
+           )
+           .join("")}</tbody></table>`
+      : `<div class="small">${esc(t("zone.none"))}</div>`}
+  </div>`;
+
   let html = `
     <div class="card">
       <div class="row between">
@@ -514,6 +532,7 @@ function renderCampaign() {
       <div class="bar" style="margin:10px 0 12px"><i style="width:${total ? Math.round((pos / total) * 100) : 0}%"></i></div>
       ${step ? `<div class="small">${esc(t("camp.next"))}: <b style="color:var(--gold)">${esc(dest ? stepZoneFull(dest) : "—")}</b></div>` : ""}
     </div>
+    ${overviewHtml}
     <div class="card">
       <h3>${esc(t("camp.manual_zone"))}</h3>
       <div class="row">
@@ -595,7 +614,16 @@ function renderTrade() {
       ${enabled ? `<div class="card tight" style="margin-bottom:10px"><div class="row between">
         <span class="small" id="rate-line">${esc(t("trade.rate_wait"))}</span>
         <button class="btn sm ghost" data-act="rate-refresh">${esc(t("trade.refresh"))}</button>
-      </div></div>` : ""}
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="cur-amount" type="number" min="0" step="any" value="1" style="width:90px">
+        <select id="cur-from"><option value="divine">divine</option><option value="exalted">exalted</option><option value="chaos">chaos</option></select>
+        <span>→</span>
+        <select id="cur-to"><option value="exalted">exalted</option><option value="divine">divine</option><option value="chaos">chaos</option></select>
+        <button class="btn sm ghost" data-act="cur-calc">${esc(t("trade.calc"))}</button>
+      </div>
+      <div class="small" id="cur-out" title="${esc(t("trade.calc_hint"))}"></div>
+      </div>` : ""}
       ${
         enabled
           ? `<div class="row"><input type="text" id="trade-q" style="flex:1;min-width:240px" placeholder="${esc(t("trade.placeholder"))}">
@@ -628,6 +656,28 @@ function renderTrade() {
   renderRecent();
 }
 
+let RATE = null;
+
+function calcCurrency() {
+  const out = $("#cur-out");
+  if (!out) return;
+  if (!RATE) {
+    out.textContent = t("trade.rate_wait");
+    return;
+  }
+  const amount = Number($("#cur-amount")?.value || 0);
+  const from = $("#cur-from")?.value || "divine";
+  const to = $("#cur-to")?.value || "exalted";
+  const perDivine = { divine: 1, exalted: RATE.exalted_per_divine || 0, chaos: RATE.chaos_per_divine || 0 };
+  if (!perDivine[from] || !perDivine[to]) {
+    out.textContent = "—";
+    return;
+  }
+  const value = (amount / perDivine[from]) * perDivine[to];
+  const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
+  out.textContent = `${amount} ${from} ≈ ${money(value)} ${to}`;
+}
+
 async function loadRate() {
   const line = $("#rate-line");
   if (!line) return;
@@ -639,6 +689,8 @@ async function loadRate() {
     if (r.league) parts.push(esc(r.league));
     if (r.chaos_per_divine) parts.push(`1 Divine ≈ ${money(r.chaos_per_divine)} Chaos`);
     if (r.offers > 0) parts.push(`${r.offers} ${esc(t("trade.rate_offers"))}`);
+    RATE = r;
+    calcCurrency();
     if (r.source) parts.push(esc(r.source));
     line.innerHTML = parts.join(" · ");
   } catch (e) {
@@ -1211,6 +1263,7 @@ function renderSettings() {
     ["regex", "set.hk_regex"],
     ["map", "set.hk_map"],
     ["price", "set.hk_price"],
+  ["stash", "set.hk_stash"],
   ];
   const providerOptions = [{ id: "disabled", label: t("common.none") }, ...(S.ai_providers || [])]
     .map((p) => `<option value="${esc(p.id)}" ${p.id === (S.saved.ai.provider || "disabled") ? "selected" : ""}>${esc(p.label)}</option>`)
@@ -1838,6 +1891,9 @@ async function act(name, el) {
       localStorage.removeItem(RECENT_KEY);
       renderRecent();
       break;
+    case "cur-calc":
+      calcCurrency();
+      break;
     case "rate-refresh":
       await loadRate();
       break;
@@ -1931,7 +1987,7 @@ async function act(name, el) {
           const line =
             p.total === 0
               ? esc(p.note || t("items.price_failed"))
-              : `${esc(t("items.price_min"))} <b>${money(p.min)} ${esc(p.currency)}</b> · ${esc(t("items.price_median"))} <b>${money(p.median)} ${esc(p.currency)}</b> · ${p.total} ${esc(t("items.price_lots"))}${was}`;
+              : `${esc(t("items.price_min"))} <b>${money(p.min)} ${esc(p.currency)}</b> · ${esc(t("items.price_median"))} <b>${money(p.median)} ${esc(p.currency)}</b> · ${p.total} ${esc(t("items.price_lots"))}${p.divine != null ? ` · ≈ ${money(p.divine)} divine` : ""}${was}`;
           box.innerHTML = `<div class="small">${line}</div>
             <div class="small">${esc(p.league)}${p.note ? " · " + esc(p.note) : ""} · <button class="link" data-act="link" data-url="${esc(p.trade_url)}">${esc(t("items.price_open"))}</button></div>`;
         }

@@ -24,7 +24,7 @@ function render(q) {
     return;
   }
   $("#p-value").textContent = `${money(q.min)}–${money(q.median)} ${q.currency}`;
-  $("#p-line").textContent = `${q.total} лотов`;
+  $("#p-line").textContent = `${q.total} лотов${q.divine != null ? ` · ≈ ${money(q.divine)} divine` : ""}`;
   $("#p-note").textContent = q.note || "";
 }
 

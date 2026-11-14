@@ -87,7 +87,7 @@ function renderQuick(q) {
   } else {
     const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
     line = `<div class="quick-price">${money(q.min)}–${money(q.median)} <span>${esc(q.currency)}</span></div>
-      <div class="small">${q.total} ${esc(t("items.price_lots"))}${q.note ? " · " + esc(q.note) : ""}</div>`;
+      <div class="small">${q.total} ${esc(t("items.price_lots"))}${q.divine != null ? ` · ≈ ${money(q.divine)} divine` : ""}${q.note ? " · " + esc(q.note) : ""}</div>`;
   }
   $("#body").innerHTML = `<div class="quick-name">${esc(q.name || "—")}</div>${line}`;
   reportSize();
@@ -137,6 +137,15 @@ function itemToast() {
   if (!(age >= 0 && age < 8000)) return "";
   setTimeout(() => render(), 1500);
   return `<div class="item-toast">${esc(t("overlay.item_imported"))}: <b>${esc(li.name)}</b> · ${li.score}</div>`;
+}
+
+function stashToast() {
+  const hint = S.stash_hint;
+  if (!hint) return "";
+  const age = Date.now() - new Date(hint.ts || 0).getTime();
+  if (!(age >= 0 && age < 8000)) return "";
+  setTimeout(() => render(), 1500);
+  return `<div class="item-toast">${esc(t("overlay.stash_search"))}: <b>${esc(hint.term)}</b> · ${esc(t("overlay.stash_hint"))}</div>`;
 }
 
 function render() {
@@ -192,7 +201,7 @@ function render() {
   document.querySelector('[data-act="mode"]').title = t("overlay.mode");
   document.querySelector('[data-act="hide"]').title = t("overlay.hide");
 
-  const toast = itemToast();
+  const toast = itemToast() + stashToast();
   if (m === "compact") {
     const zone = esc(p?.zone || zoneLabel(s));
     $("#body").innerHTML = go
