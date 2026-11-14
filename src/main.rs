@@ -24,6 +24,7 @@ mod screens;
 mod scout;
 mod tail;
 mod trade;
+mod trade_req;
 
 use model::*;
 use serde::{Deserialize, Serialize};
@@ -77,6 +78,8 @@ struct Snapshot {
     zone_progress: campaign::ZoneProgress,
     /// Manual "what is left here" notes for the current location.
     zone_todos: Vec<ZoneTodo>,
+    /// Latest incoming trade request from a whisper.
+    trade_request: Option<trade_req::TradeRequest>,
     /// Session counters, reset when the app starts.
     session_started: String,
     session_deaths: u32,
@@ -640,6 +643,11 @@ impl App {
                     s.zone_since = now_iso();
                     push_event(s, "zone", zone, String::new());
                 });
+            }
+            logparse::Event::Whisper { incoming, name, text } => {
+                if let Some(request) = trade_req::parse(&name, &text, incoming) {
+                    self.update(app, |s, _| s.trade_request = Some(request.clone()));
+                }
             }
             logparse::Event::Death { name } => {
                 self.update(app, |s, _| {
@@ -2292,6 +2300,28 @@ async fn trade_search(
 }
 
 #[tauri::command]
+fn trade_request_clear(app: AppHandle, state: State<App>) {
+    state.update(&app, |s, _| s.trade_request = None);
+}
+
+/// Copies `/invite`, `/tradewith` or a short reply for the current buyer.
+#[tauri::command]
+fn trade_action(state: State<App>, kind: String) -> Result<(), String> {
+    let buyer = {
+        let s = state.snap.lock().unwrap();
+        s.trade_request.as_ref().map(|r| r.buyer.clone())
+    }
+    .ok_or("Нет активной торговли")?;
+    let text = match kind.as_str() {
+        "invite" => format!("/invite {buyer}"),
+        "trade" => format!("/tradewith {buyer}"),
+        "reply" => format!("@{buyer} hi, one moment please"),
+        _ => return Err("Неизвестное действие".into()),
+    };
+    clip::copy(&text).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn copy_text(text: String) -> Result<(), String> {
     clip::copy(&text).map_err(|e| e.to_string())
 }
@@ -2509,6 +2539,8 @@ fn main() {    tauri::Builder::default()
             zone_todo_add,
             zone_todo_toggle,
             zone_todo_remove,
+            trade_request_clear,
+            trade_action,
             build_select,
             build_import_pob,
             build_import_url,
@@ -2622,6 +2654,7 @@ fn main() {    tauri::Builder::default()
                     map_run: MapRun::default(),
                     zone_progress: campaign::ZoneProgress::default(),
                     zone_todos: Vec::new(),
+                    trade_request: None,
                     session_started: now_iso(),
                     session_deaths: 0,
                     session_zones: 0,

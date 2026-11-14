@@ -581,6 +581,17 @@ function renderTrade() {
         <span class="small">${esc(t("trade.league"))}: ${esc(S.saved.trade?.league || t("trade.auto"))}</span>
       </div>
       <div class="small" style="margin:4px 0 10px">${esc(t("trade.hint"))}</div>
+      ${S.trade_request ? `<div class="card tight" style="margin-bottom:10px">
+        <div class="small">${esc(t("trade.incoming"))}: <b>${esc(S.trade_request.buyer)}</b></div>
+        <div><b>${esc(S.trade_request.item)}</b></div>
+        <div class="small">${esc(S.trade_request.price)}${S.trade_request.league ? " · " + esc(S.trade_request.league) : ""}${S.trade_request.stash ? " · " + esc(S.trade_request.stash) : ""}</div>
+        <div class="row" style="margin-top:6px">
+          <button class="btn sm primary" data-act="trade-invite">${esc(t("trade.invite"))}</button>
+          <button class="btn sm ghost" data-act="trade-trade">${esc(t("trade.trade"))}</button>
+          <button class="btn sm ghost" data-act="trade-reply">${esc(t("trade.reply"))}</button>
+          <button class="btn sm danger" data-act="trade-clear">${esc(t("trade.clear"))}</button>
+        </div>
+      </div>` : ""}
       ${enabled ? `<div class="card tight" style="margin-bottom:10px"><div class="row between">
         <span class="small" id="rate-line">${esc(t("trade.rate_wait"))}</span>
         <button class="btn sm ghost" data-act="rate-refresh">${esc(t("trade.refresh"))}</button>
@@ -1798,6 +1809,17 @@ async function act(name, el) {
       break;
     case "trade-run":
       await runTradeSearch($("#trade-q")?.value || "");
+      break;
+    case "trade-invite":
+    case "trade-trade":
+    case "trade-reply": {
+      const kind = el.dataset.act.replace("trade-", "");
+      await invoke("trade_action", { kind });
+      toast(t("trade.copied"));
+      break;
+    }
+    case "trade-clear":
+      await invoke("trade_request_clear");
       break;
     case "trade-recent": {
       const q = el.dataset.q || "";

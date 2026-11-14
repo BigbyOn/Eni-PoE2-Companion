@@ -229,6 +229,21 @@ function render() {
     if (rewards.length) html += `<ul class="rewards">${rewards.map((r) => `<li>${esc(r.text)}</li>`).join("")}</ul>`;
     if (!S.log_found) html += `<div class="hint warn">${esc(t("home.log_missing"))}</div>`;
   }
+  if (S.trade_request) {
+    const r = S.trade_request;
+    html += `<div class="trade-req">
+      <div class="trade-title">${esc(t("trade.incoming"))}: <b>${esc(r.buyer)}</b></div>
+      <div class="trade-item">${esc(r.item)}</div>
+      <div class="small">${esc(r.price)}${r.league ? " · " + esc(r.league) : ""}${r.stash ? " · " + esc(r.stash) : ""}</div>
+      <div class="row trade-actions">
+        <button class="chip-btn" data-act="trade-invite">${esc(t("trade.invite"))}</button>
+        <button class="chip-btn" data-act="trade-trade">${esc(t("trade.trade"))}</button>
+        <button class="chip-btn" data-act="trade-reply">${esc(t("trade.reply"))}</button>
+        <button class="chip-btn" data-act="trade-clear">✕</button>
+      </div>
+      <div class="small" id="trade-copied"></div>
+    </div>`;
+  }
   $("#body").innerHTML = html;
   reportSize();
 }
@@ -265,7 +280,14 @@ document.addEventListener("click", (e) => {
     if (what === "prev") invoke("campaign_step", { delta: -1 });
     else if (what === "next") invoke("campaign_step", { delta: 1 });
     else if (what === "hide") invoke("overlay_toggle");
-    else if (what === "mode") {
+    else if (what === "trade-invite" || what === "trade-trade" || what === "trade-reply") {
+      invoke("trade_action", { kind: what.replace("trade-", "") }).then(() => {
+        const line = $("#trade-copied");
+        if (line) line.textContent = t("trade.copied");
+      });
+    } else if (what === "trade-clear") {
+      invoke("trade_request_clear");
+    } else if (what === "mode") {
       const order = ["compact", "standard", "extended"];
       const next = order[(order.indexOf(mode()) + 1) % order.length];
       invoke("save_overlay", { overlay: { ...S.saved.overlay, mode: next } });

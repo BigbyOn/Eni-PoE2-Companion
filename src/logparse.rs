@@ -51,6 +51,8 @@ pub enum Event {
     Truncated,
     /// `: Name has been slain.` / `: Name был повержен.`
     Death { name: Option<String> },
+    /// `@From Name: text` / `@To Name: text` / `@Name: text`
+    Whisper { incoming: Option<bool>, name: String, text: String },
 }
 
 /// Rewards in the log start with one of these after the `] : ` prefix.
@@ -158,6 +160,32 @@ pub fn parse(line: &str) -> Option<Event> {
             let id = after[..close].trim();
             if !id.is_empty() {
                 return Some(Event::Area { id: id.to_string(), level });
+            }
+        }
+    }
+
+    // Whispers start with `@` right after the engine tag: `] @From Name: text`.
+    // Older clients omit the From/To marker, then incoming is unknown.
+    if let Some(close) = line.find("] ") {
+        let rest = &line[close + 2..];
+        if rest.starts_with('@') {
+            let (incoming, body) = if let Some(body) = rest.strip_prefix("@From ") {
+                (Some(true), body)
+            } else if let Some(body) = rest.strip_prefix("@To ") {
+                (Some(false), body)
+            } else {
+                (None, &rest[1..])
+            };
+            if let Some(colon) = body.find(": ") {
+                let name = body[..colon].trim();
+                let text = body[colon + 2..].trim();
+                if !name.is_empty() && !text.is_empty() {
+                    return Some(Event::Whisper {
+                        incoming,
+                        name: name.to_string(),
+                        text: text.to_string(),
+                    });
+                }
             }
         }
     }

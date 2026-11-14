@@ -92,3 +92,8 @@ body{color:var(--ink);font:14px/1.4 var(--serif);-webkit-font-smoothing:antialia
 
 .zone-progress{font-size:11.5px;color:var(--ink-3);padding:2px 0 4px;border-bottom:1px solid var(--line);margin-bottom:5px}
 .zone-progress b{color:var(--gold2)}
+
+.trade-req{margin-top:8px;padding:7px 8px;border:1px solid var(--gold);border-radius:8px;background:rgba(40,30,14,.6)}
+.trade-req .trade-title{font-size:11px;color:var(--gold)}
+.trade-req .trade-item{font-weight:600;margin:2px 0}
+.trade-req .trade-actions{margin-top:5px;gap:4px;flex-wrap:wrap}
