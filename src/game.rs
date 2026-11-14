@@ -241,21 +241,39 @@ mod tests {
 /// screen so the price card never lands off-screen.
 pub fn cursor_near(width: i32, height: i32) -> (i32, i32) {
     use windows::Win32::Foundation::POINT;
+    use windows::Win32::Graphics::Gdi::{
+        GetMonitorInfoW, MonitorFromPoint, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+    };
     use windows::Win32::UI::WindowsAndMessaging::{
         GetCursorPos, GetSystemMetrics, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN,
         SM_YVIRTUALSCREEN,
     };
     let mut point = POINT::default();
     let _ = unsafe { GetCursorPos(&mut point) };
-    let (vx, vy, vw, vh) = unsafe {
-        (
-            GetSystemMetrics(SM_XVIRTUALSCREEN),
-            GetSystemMetrics(SM_YVIRTUALSCREEN),
-            GetSystemMetrics(SM_CXVIRTUALSCREEN),
-            GetSystemMetrics(SM_CYVIRTUALSCREEN),
-        )
+    // Clamp to the work area of the monitor under the cursor, not the whole
+    // virtual desktop: a cursor near the right edge must not push the card onto
+    // the second monitor.
+    let mut info = MONITORINFO {
+        cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+        ..Default::default()
     };
-    let x = (point.x + 18).min(vx + vw - width - 8).max(vx + 8);
-    let y = (point.y + 18).min(vy + vh - height - 8).max(vy + 8);
+    let monitor = unsafe { MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST) };
+    let (left, top, right, bottom) = if !monitor.is_invalid()
+        && unsafe { GetMonitorInfoW(monitor, &mut info) }.as_bool()
+    {
+        (info.rcWork.left, info.rcWork.top, info.rcWork.right, info.rcWork.bottom)
+    } else {
+        let (vx, vy, vw, vh) = unsafe {
+            (
+                GetSystemMetrics(SM_XVIRTUALSCREEN),
+                GetSystemMetrics(SM_YVIRTUALSCREEN),
+                GetSystemMetrics(SM_CXVIRTUALSCREEN),
+                GetSystemMetrics(SM_CYVIRTUALSCREEN),
+            )
+        };
+        (vx, vy, vx + vw, vy + vh)
+    };
+    let x = (point.x + 18).min(right - width - 8).max(left + 8);
+    let y = (point.y + 18).min(bottom - height - 8).max(top + 8);
     (x, y)
 }
