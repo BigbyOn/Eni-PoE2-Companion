@@ -697,6 +697,11 @@ function renderTrade() {
         <button class="btn sm ghost" data-act="cur-calc">${esc(t("trade.calc"))}</button>
       </div>
       <div class="small" id="cur-out" title="${esc(t("trade.calc_hint"))}"></div>
+      </div>
+      <div class="card tight" style="margin-bottom:10px">
+        <div class="row between"><b>${esc(t("stash.title"))}</b>
+          <button class="btn sm ghost" data-act="stash-load">${esc(t("stash.check"))}</button></div>
+        <div class="small" id="stash-out">${esc(t("stash.no_account"))}</div>
       </div>` : ""}
       ${
         enabled
@@ -1527,6 +1532,8 @@ function renderSettings() {
         <label class="check"><input type="checkbox" id="st-trade-enabled" ${S.saved.trade?.enabled ? "checked" : ""}> ${esc(t("set.trade_enable"))}</label>
         <div class="field"><label>${esc(t("set.trade_league"))}</label>
           <input type="text" id="st-trade-league" value="${esc(S.saved.trade?.league || "")}" placeholder="Standard"></div>
+        <div class="field"><label>${esc(t("trade.account"))}</label>
+          <input type="text" id="st-trade-account" value="${esc(S.saved.trade?.account || "")}" placeholder="Name#1234"></div>
         <div class="field"><label>${esc(t("set.trade_filters"))}</label>
           <select id="st-trade-filters">${[0, 1, 2, 3].map((n) => `<option value="${n}" ${n === (S.saved.trade?.filters ?? 2) ? "selected" : ""}>${n}</option>`).join("")}</select>
           <div class="small">${esc(t("set.trade_filters_hint"))}</div>
@@ -1795,6 +1802,7 @@ function baseSettings() {
     trade_league: S.saved.trade?.league || "",
     trade_filters: S.saved.trade?.filters ?? 2,
     trade_headroom: S.saved.trade?.headroom ?? 10,
+    trade_account: S.saved.trade?.account || "",
     trade_auto_price: S.saved.trade?.auto_price ?? true,
     trade_price_popup: S.saved.trade?.price_popup ?? true,
     map_enabled: Boolean(S.saved.map?.enabled),
@@ -1838,6 +1846,7 @@ function collectSettings({ keepKey = false } = {}) {
     trade_league: $("#st-trade-league")?.value.trim() || "",
     trade_filters: Number($("#st-trade-filters")?.value ?? 2),
     trade_headroom: Number($("#st-trade-headroom")?.value ?? 10),
+    trade_account: $("#st-trade-account")?.value.trim() || "",
     trade_auto_price: $("#st-trade-auto")?.checked ?? true,
     trade_price_popup: $("#st-trade-popup")?.checked ?? true,
     map_enabled: $("#st-map-enabled")?.checked ?? false,
@@ -2051,6 +2060,35 @@ async function act(name, el) {
       localStorage.removeItem(RECENT_KEY);
       renderRecent();
       break;
+    case "stash-load": {
+      const out = $("#stash-out");
+      if (out) out.textContent = t("dash.loading");
+      try {
+        const d = await invoke("stash_overview", { refresh: false });
+        if (!out) break;
+        if (d.error) {
+          out.innerHTML = `<span class="bad-text">${esc(d.error)}</span>`;
+          break;
+        }
+        const money = (n) => (Math.abs(n) >= 1 ? Math.floor(n).toLocaleString("ru-RU") : n.toFixed(2));
+        const tabs = (d.tabs || [])
+          .map(
+            (tab) => `<details style="margin-top:4px"><summary class="small">${esc(tab.name)} — <b>${money(tab.total_exalted)}</b> ex · ${tab.items.length} ${esc(t("stash.items"))}</summary>
+              <table class="table"><tbody>${tab.items
+                .map(
+                  (it) => `<tr><td class="small">${esc(it.name)}${it.base && it.base !== it.name ? ` <span class="small">${esc(it.base)}</span>` : ""}</td>
+                    <td class="small">${currencyIcon(it.currency)}${esc(String(it.price))} ${esc(it.currency)}</td>
+                    <td class="small">${it.exalted != null ? money(it.exalted) + " ex" : "—"}</td></tr>`
+                )
+                .join("")}</tbody></table></details>`
+          )
+          .join("");
+        out.innerHTML = `<div class="small">${esc(t("stash.total"))}: <b>${money(d.total_exalted)}</b> ex · ${d.item_count} ${esc(t("stash.items"))}${d.truncated ? ` · ${esc(t("stash.truncated"))} ${d.total_listings}` : ""}</div>${tabs || `<div class="small">${esc(t("stash.empty"))}</div>`}`;
+      } catch (e) {
+        if (out) out.innerHTML = `<span class="bad-text">${esc(String(e))}</span>`;
+      }
+      break;
+    }
     case "cur-calc":
       calcCurrency();
       break;

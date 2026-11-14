@@ -608,6 +608,54 @@ pub fn summarize_prices(listings: &[ListingView]) -> (String, f64, f64) {
 
 /// Runs a ready-made request from a build guide (Mobalytics stores the whole
 /// search body, we only add the league).
+/// Every public listing of one account (up to the API's 100 hashes), used by
+/// the stash tracker. Returns the listings and the total count.
+pub fn search_account(account: &str, league_pref: &str) -> Result<(Vec<ListingView>, u64), String> {
+    let account = account.trim();
+    if account.len() < 3 || !account.contains('#') {
+        return Err("Укажи аккаунт в виде Name#1234 (он есть в игре в социальной панели).".into());
+    }
+    let league = resolve_league(league_pref)?;
+    let body = serde_json::json!({
+        "query": {
+            "status": { "option": "online" },
+            "filters": { "trade_filters": { "filters": { "account": { "input": account } } } }
+        },
+        "sort": { "price": "asc" }
+    });
+    let url = format!("{BASE}/api/trade2/search/poe2/{}", encode(&league));
+    let mut res = agent()
+        .post(&url)
+        .header("User-Agent", &ua())
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
+        .send(body.to_string().as_bytes())
+        .map_err(|e| format!("Сеть: {e}"))?;
+    let status = res.status().as_u16();
+    let text = res.body_mut().read_to_string().map_err(|e| format!("Чтение ответа: {e}"))?;
+    if status == 429 {
+        return Err("Слишком часто: trade API просит подождать.".into());
+    }
+    if !(200..300).contains(&status) {
+        return Err(format!(
+            "Trade API HTTP {status} (лига {league}, запрос {body}): {}",
+            text.chars().take(300).collect::<String>()
+        ));
+    }
+    let (id, total, hashes) = parse_search(&text)?;
+    if hashes.is_empty() {
+        return Ok((Vec::new(), total));
+    }
+    let hashes: Vec<&str> = hashes.iter().take(100).map(|s| s.as_str()).collect();
+    // The fetch endpoint accepts at most 10 hashes per request.
+    let mut listings = Vec::new();
+    for chunk in hashes.chunks(10) {
+        let fetch_url = format!("{BASE}/api/trade2/fetch/{}?query={}", chunk.join(","), encode(&id));
+        listings.extend(parse_listings(&get_json(&fetch_url)?)?);
+    }
+    Ok((listings, total))
+}
+
 pub fn search_raw(query_json: &str, league_pref: &str) -> Result<(Vec<ListingView>, String), String> {
     let body: serde_json::Value = serde_json::from_str(query_json).map_err(|e| format!("Запрос гайда не разобран: {e}"))?;
     if body.get("query").is_none() {

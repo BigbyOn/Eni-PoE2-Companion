@@ -421,6 +421,10 @@ pub struct TradeCfg {
     /// Percent subtracted from modifier values to find "similar" items.
     #[serde(default = "default_trade_headroom")]
     pub headroom: u8,
+    /// Account name with discriminator (`Name#1234`), used to read your public
+    /// stash-tab listings through the official trade API.
+    #[serde(default)]
+    pub account: String,
     /// Watch the clipboard and price items right after Ctrl+C in game.
     #[serde(default = "default_auto_price")]
     pub auto_price: bool,
@@ -447,7 +451,15 @@ pub fn default_trade_filters() -> u8 {
 
 impl Default for TradeCfg {
     fn default() -> Self {
-        TradeCfg { enabled: false, league: String::new(), filters: 2, headroom: 10, auto_price: true, price_popup: true }
+        TradeCfg {
+            enabled: false,
+            league: String::new(),
+            filters: 2,
+            headroom: 10,
+            account: String::new(),
+            auto_price: true,
+            price_popup: true,
+        }
     }
 }
 

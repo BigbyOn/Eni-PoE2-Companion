@@ -229,6 +229,8 @@ struct App {
     scout_items: Mutex<Option<(String, std::time::Instant, Vec<scout::ScoutItem>)>>,
     /// poe2scout 24h price history for the current league.
     scout_history: Mutex<Option<(String, std::time::Instant, Vec<scout::PriceChange>)>>,
+    /// Public stash listings by account, cached for 5 minutes.
+    stash_cache: Mutex<Option<(String, String, std::time::Instant, StashData)>>,
     /// Last rendered Mobalytics page, so a variant can be imported without
     /// spawning Edge again.
     guide_cache: Mutex<Option<(String, std::time::Instant, guide::GuideSet)>>,
@@ -1595,6 +1597,8 @@ struct SettingsIn {
     trade_filters: u8,
     #[serde(default = "crate::model::default_trade_headroom")]
     trade_headroom: u8,
+    #[serde(default)]
+    trade_account: String,
     #[serde(default = "crate::model::default_auto_price")]
     trade_auto_price: bool,
     #[serde(default = "crate::model::default_price_popup")]
@@ -1667,6 +1671,7 @@ fn save_settings(app: AppHandle, state: State<App>, settings: SettingsIn) -> Res
             league: settings.trade_league.trim().chars().take(60).collect(),
             filters: settings.trade_filters.min(3),
             headroom: settings.trade_headroom.min(30),
+            account: settings.trade_account.trim().to_string(),
             auto_price: settings.trade_auto_price,
             price_popup: settings.trade_price_popup,
         };
@@ -2726,6 +2731,121 @@ async fn trade_search(
 }
 
 /// Home dashboard: local session/map history + poe2scout prices and 24h changes.
+#[derive(Serialize, Clone, Debug)]
+struct StashItem {
+    name: String,
+    base: String,
+    tab: String,
+    price: f64,
+    currency: String,
+    exalted: Option<f64>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+struct StashTab {
+    name: String,
+    total_exalted: f64,
+    items: Vec<StashItem>,
+}
+
+#[derive(Serialize, Clone, Debug, Default)]
+struct StashData {
+    account: String,
+    league: String,
+    total_exalted: f64,
+    item_count: usize,
+    total_listings: u64,
+    truncated: bool,
+    tabs: Vec<StashTab>,
+    error: Option<String>,
+}
+
+/// Reads the user's public stash-tab listings by account and sums their prices.
+#[tauri::command]
+async fn stash_overview(state: State<'_, App>, refresh: bool) -> Result<StashData, String> {
+    let account = {
+        let s = state.snap.lock().unwrap();
+        s.saved.trade.account.clone()
+    };
+    let league = state.preferred_league();
+    if account.trim().is_empty() {
+        return Err("Укажи аккаунт Name#1234 в настройках торговли.".into());
+    }
+    if !refresh {
+        let cache = state.stash_cache.lock().unwrap();
+        if let Some((cached_account, cached_league, at, data)) = cache.as_ref() {
+            if cached_account == &account && cached_league == &league && at.elapsed() < Duration::from_secs(300) {
+                return Ok(data.clone());
+            }
+        }
+    }
+    let (divine_price, chaos_per_divine) = current_rates(&state);
+    let account_copy = account.clone();
+    let league_copy = league.clone();
+    let fetched = tauri::async_runtime::spawn_blocking(move || trade::search_account(&account_copy, &league_copy))
+        .await
+        .map_err(|e| format!("Тайник: {e}"))?
+        .map_err(|e| e.to_string());
+    let (listings, total) = match fetched {
+        Ok(value) => value,
+        Err(error) => {
+            return Ok(StashData {
+                account,
+                league,
+                error: Some(error),
+                ..Default::default()
+            })
+        }
+    };
+    let mut items = Vec::new();
+    for listing in &listings {
+        let exalted = match listing.currency.as_str() {
+            "exalted" => Some(listing.price),
+            "divine" => divine_price.map(|rate| listing.price * rate),
+            "chaos" => match (divine_price, chaos_per_divine) {
+                (Some(divine), Some(chaos)) if chaos > 0.0 => Some(listing.price * divine / chaos),
+                _ => None,
+            },
+            _ => None,
+        };
+        let tab = if listing.stash.trim().is_empty() { "(без вкладки)".to_string() } else { listing.stash.clone() };
+        items.push(StashItem {
+            name: if listing.name.trim().is_empty() { listing.base.clone() } else { listing.name.clone() },
+            base: listing.base.clone(),
+            tab,
+            price: listing.price,
+            currency: listing.currency.clone(),
+            exalted,
+        });
+    }
+    let mut tabs: Vec<StashTab> = Vec::new();
+    for item in &items {
+        if let Some(tab) = tabs.iter_mut().find(|tab| tab.name == item.tab) {
+            tab.total_exalted += item.exalted.unwrap_or(0.0);
+            tab.items.push(item.clone());
+        } else {
+            tabs.push(StashTab {
+                name: item.tab.clone(),
+                total_exalted: item.exalted.unwrap_or(0.0),
+                items: vec![item.clone()],
+            });
+        }
+    }
+    tabs.sort_by(|a, b| b.total_exalted.partial_cmp(&a.total_exalted).unwrap_or(std::cmp::Ordering::Equal));
+    let data = StashData {
+        account: account.clone(),
+        league: league.clone(),
+        total_exalted: tabs.iter().map(|tab| tab.total_exalted).sum(),
+        item_count: items.len(),
+        total_listings: total,
+        truncated: total > items.len() as u64,
+        tabs,
+        error: None,
+    };
+    *state.stash_cache.lock().unwrap() = Some((account, league, std::time::Instant::now(), data.clone()));
+    Ok(data)
+}
+
 #[tauri::command]
 async fn dashboard(app: AppHandle, state: State<'_, App>) -> Result<DashboardData, String> {
     let (favorites, maps, session, league_pref) = {
@@ -3116,6 +3236,7 @@ fn main() {
             stash_search_now,
             dashboard,
             dashboard_favorite,
+            stash_overview,
             trade_action,
             build_select,
             build_import_pob,
@@ -3255,6 +3376,7 @@ fn main() {
                 scout: Mutex::new(None),
                 scout_items: Mutex::new(None),
                 scout_history: Mutex::new(None),
+                stash_cache: Mutex::new(None),
                 guide_cache: Mutex::new(None),
             });
             // Windows are created only now ("create": false in tauri.conf.json):
