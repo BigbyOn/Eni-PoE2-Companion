@@ -33,7 +33,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 use tauri::menu::{Menu, MenuItem};
-use tauri::tray::TrayIconBuilder;
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder};
 use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow, WindowEvent};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
@@ -3132,6 +3132,7 @@ fn main() {
             let quit = MenuItem::with_id(tauri_app, "quit", "Выход", true, None::<&str>)?;
             TrayIconBuilder::new()
                 .icon(tauri_app.default_window_icon().unwrap().clone())
+                .show_menu_on_left_click(false)
                 .tooltip("Eni-PoE2-Companion")
                 .menu(&Menu::with_items(tauri_app, &[&open_item, &overlay_item, &shot_item, &next_item, &quit])?)
                 .on_menu_event(|handle, event| match event.id.as_ref() {
@@ -3147,7 +3148,13 @@ fn main() {
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
-                    if let tauri::tray::TrayIconEvent::Click { .. } = event {
+                    // Right-click opens the menu; only left release opens the window.
+                    if let tauri::tray::TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
                         show_main(tray.app_handle());
                     }
                 })
