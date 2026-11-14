@@ -245,6 +245,34 @@ fn start_clipboard_watch(app: AppHandle) {
     });
 }
 
+/// Shows the small price card near the cursor and hides it after 6 seconds
+/// unless a newer price replaced it.
+fn show_price_window(app: &AppHandle) {
+    let Some(window) = app.get_webview_window("price") else { return };
+    let (x, y) = game::cursor_near(380, 170);
+    let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
+    let _ = window.show();
+    let stamp = {
+        let state = app.state::<App>();
+        let s = state.snap.lock().unwrap();
+        s.quick_price.as_ref().map(|q| q.ts.clone())
+    };
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_secs(6));
+        let same = {
+            let state = handle.state::<App>();
+            let s = state.snap.lock().unwrap();
+            s.quick_price.as_ref().map(|q| q.ts.clone()) == stamp
+        };
+        if same {
+            if let Some(w) = handle.get_webview_window("price") {
+                let _ = w.hide();
+            }
+        }
+    });
+}
+
 fn action_label(action: &str) -> &'static str {
     match action {
         "next" => "следующий шаг",
@@ -498,6 +526,7 @@ impl App {
                     ..Default::default()
                 })
             });
+            show_price_window(app);
             return;
         }
         let Some(parsed) = parsed else {
@@ -508,6 +537,7 @@ impl App {
                     ..Default::default()
                 })
             });
+            show_price_window(app);
             return;
         };
         self.update(app, |s, _| {
@@ -518,6 +548,7 @@ impl App {
                 ..Default::default()
             })
         });
+        show_price_window(app);
         let app = app.clone();
         let dir = self.dir.clone();
         std::thread::spawn(move || {
@@ -541,6 +572,7 @@ impl App {
             };
             let state = app.state::<App>();
             state.update(&app, |s, _| s.quick_price = Some(quick));
+            show_price_window(&app);
         });
     }
 

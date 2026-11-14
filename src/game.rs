@@ -235,3 +235,27 @@ mod tests {
         println!("{}", log.display());
     }
 }
+
+
+/// Top-left corner for a small window near the cursor, clamped to the virtual
+/// screen so the price card never lands off-screen.
+pub fn cursor_near(width: i32, height: i32) -> (i32, i32) {
+    use windows::Win32::Foundation::POINT;
+    use windows::Win32::UI::WindowsAndMessaging::{
+        GetCursorPos, GetSystemMetrics, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN,
+        SM_YVIRTUALSCREEN,
+    };
+    let mut point = POINT::default();
+    let _ = unsafe { GetCursorPos(&mut point) };
+    let (vx, vy, vw, vh) = unsafe {
+        (
+            GetSystemMetrics(SM_XVIRTUALSCREEN),
+            GetSystemMetrics(SM_YVIRTUALSCREEN),
+            GetSystemMetrics(SM_CXVIRTUALSCREEN),
+            GetSystemMetrics(SM_CYVIRTUALSCREEN),
+        )
+    };
+    let x = (point.x + 18).min(vx + vw - width - 8).max(vx + 8);
+    let y = (point.y + 18).min(vy + vh - height - 8).max(vy + 8);
+    (x, y)
+}

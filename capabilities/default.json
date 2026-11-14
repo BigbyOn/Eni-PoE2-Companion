@@ -1,6 +1,12 @@
 {
   "identifier": "default",
   "description": "Eni-PoE2-Companion: local-only permissions. No network, no shell, no file-system commands are exposed to the pages; every action goes through a Rust command.",
-  "windows": ["main", "overlay"],
-  "permissions": ["core:default"]
+  "windows": [
+    "main",
+    "overlay",
+    "price"
+  ],
+  "permissions": [
+    "core:default"
+  ]
 }

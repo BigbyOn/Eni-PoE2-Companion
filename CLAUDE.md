@@ -28,6 +28,7 @@
 | `src/clip.rs` | запись в буфер обмена |
 | `ui/index.html`, `ui/app.js`, `ui/app.css`, `ui/i18n.js` | главное окно: 8 разделов, RU/EN |
 | `ui/overlay.*` | оверлей трёх режимов |
+| `ui/price.*` | карточка цены у курсора |
 | `assets/campaign/campaign.json` | маршрут (генерируется `tools/gen_campaign.py`) |
 | `assets/builds/*.json` | билды |
 | `tools/` | генератор маршрута, аудит зависимостей, фальшивое окно и сквозной тест |
@@ -47,7 +48,7 @@
 ## Проверка
 
 ```powershell
-cargo test                    # 96 юнит-тестов (журналы, локации, ручные заметки локации, чек-лист гайда, фильтры торговли, история цены, предметы, trade API с курсами, poe2scout, Mobalytics-варианты, PoB, ИИ-запросы, DPAPI)
+cargo test                    # 99 юнит-тестов (журналы, локации, ручные заметки локации, чек-лист гайда, фильтры торговли, история цены, автопроверка, карточка у курсора, предметы, trade API с курсами, poe2scout, Mobalytics-варианты, PoB, ИИ-запросы, DPAPI)
 cargo build                   # debug
 npx --yes @tauri-apps/cli@2.12.1 build   # NSIS + MSI
 ```

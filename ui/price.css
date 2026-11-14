@@ -1,0 +1,7 @@
+html,body{margin:0;background:transparent;font:13px/1.35 "Segoe UI",system-ui,sans-serif;color:#e9dfc8;overflow:hidden}
+#price{max-width:356px;padding:9px 11px;background:rgba(12,11,9,.94);border:1px solid #b08d42;border-radius:9px;box-shadow:0 8px 22px rgba(0,0,0,.55)}
+#price .row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+#p-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
+#p-value{color:#e8c87a;font-weight:700;white-space:nowrap}
+#p-line{margin-top:3px}
+.muted{color:#9c9280}

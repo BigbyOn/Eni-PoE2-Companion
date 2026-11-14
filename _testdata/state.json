@@ -7,8 +7,8 @@
   },
   "overlay": {
     "mode": "standard",
-    "x": 24,
-    "y": 160,
+    "x": 0,
+    "y": 199,
     "opacity": 88,
     "scale": 100,
     "visible": true,
@@ -29,7 +29,7 @@
   "route": "all",
   "profiles": [
     {
-      "id": "p-1a1d8ef2c2f00",
+      "id": "p-1a1d910337100",
       "name": "Эни",
       "name_auto": false,
       "class": "Ranger",
@@ -41,23 +41,56 @@
       "rewards": [],
       "levels": [
         {
-          "ts": "2026-11-14T10:21:55+03:00",
+          "ts": "2026-11-14T10:58:00+03:00",
           "level": 6
         }
       ],
       "done": [],
       "build_id": "lightning-arrow-deadeye",
       "build_done": [],
-      "created": "2026-11-14T10:21:55+03:00",
-      "updated": "2026-11-14T10:22:03+03:00"
+      "created": "2026-11-14T10:58:00+03:00",
+      "updated": "2026-11-14T10:59:14+03:00"
     }
   ],
-  "active": "p-1a1d8ef2c2f00",
+  "active": "p-1a1d910337100",
   "history": [
     {
-      "id": "h-1a1d8ef2d8d01",
-      "ts": "2026-11-14T10:21:55+03:00",
-      "profile": "p-1a1d8ef2c2f00",
+      "id": "h-1a1d910353e01",
+      "ts": "2026-11-14T10:58:00+03:00",
+      "profile": "p-1a1d910337100",
+      "kind": "zone",
+      "level": 6,
+      "zone": "Берег реки",
+      "act": 1,
+      "title": "Берег реки",
+      "detail": ""
+    },
+    {
+      "id": "h-1a1d910775d02",
+      "ts": "2026-11-14T10:58:17+03:00",
+      "profile": "p-1a1d910337100",
+      "kind": "zone",
+      "level": 6,
+      "zone": "Берег реки",
+      "act": 1,
+      "title": "Берег реки",
+      "detail": ""
+    },
+    {
+      "id": "h-1a1d910c5ce02",
+      "ts": "2026-11-14T10:58:37+03:00",
+      "profile": "p-1a1d910337100",
+      "kind": "zone",
+      "level": 6,
+      "zone": "Берег реки",
+      "act": 1,
+      "title": "Берег реки",
+      "detail": ""
+    },
+    {
+      "id": "h-1a1d9113b4402",
+      "ts": "2026-11-14T10:59:07+03:00",
+      "profile": "p-1a1d910337100",
       "kind": "zone",
       "level": 6,
       "zone": "Берег реки",
