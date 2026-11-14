@@ -70,6 +70,23 @@ function renderRegex() {
   reportSize();
 }
 
+const CURRENCY_ICONS = {
+  divine: "icons/currency/divine.png",
+  exalted: "icons/currency/exalted.png",
+  chaos: "icons/currency/chaos.png",
+  regal: "icons/currency/regal.png",
+  alch: "icons/currency/alch.png",
+  vaal: "icons/currency/vaal.png",
+  annul: "icons/currency/annul.png",
+  mirror: "icons/currency/mirror.png",
+};
+
+function currencyIcon(currency) {
+  const key = String(currency || "").toLowerCase().replace(/ orb$/, "").trim();
+  const src = CURRENCY_ICONS[key];
+  return src ? `<img class="cur-icon" src="${src}" alt="">` : "";
+}
+
 function renderQuick(q) {
   const panel = $("#panel");
   const look = preview || S.saved.overlay;
@@ -86,8 +103,8 @@ function renderQuick(q) {
     line = `<div class="small">${esc(q.note || t("guide.empty"))}</div>`;
   } else {
     const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
-    line = `<div class="quick-price">${money(q.min)}–${money(q.median)} <span>${esc(q.currency)}</span></div>
-      <div class="small">${q.total} ${esc(t("items.price_lots"))}${q.divine != null ? ` · ≈ ${money(q.divine)} divine` : ""}${q.note ? " · " + esc(q.note) : ""}</div>`;
+    line = `<div class="quick-price">${currencyIcon(q.currency)}${money(q.min)}–${money(q.median)} <span>${esc(q.currency)}</span></div>
+      <div class="small">${q.total} ${esc(t("items.price_lots"))}${q.divine != null ? ` · ≈ ${money(q.divine)} divine` : ""}${q.matched ? ` · ${esc(t("items.mods_used"))}: ${q.matched}` : ""}${q.note ? " · " + esc(q.note) : ""}</div>`;
   }
   $("#body").innerHTML = `<div class="quick-name">${esc(q.name || "—")}</div>${line}`;
   reportSize();

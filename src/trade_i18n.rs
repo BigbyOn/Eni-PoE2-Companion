@@ -188,4 +188,14 @@ mod tests {
         let item = localize(item);
         assert_eq!(item.base, "Gelid Staff");
     }
+
+    #[test]
+    fn parses_and_translates_real_ru_item() {
+        let text = "Класс предмета: Шлемы\nРедкость: Редкий\nИспорченный спаситель\nРжавый большой шлем\n--------\nБроня: 29\n--------\nТребуется: Уровень 13\n--------\n+23 к максимуму здоровья\n+10 к силе\n+5 к интеллекту\nРегенерация 5.8 здоровья в секунду";
+        let item = crate::item::parse(text).expect("parse");
+        println!("MODS={:?} BASE={} NAME={} RARITY={} CLASS={}", item.mods, item.base, item.name, item.rarity, item.class);
+        let (filters, unmatched) = filters(&item.mods, 3, 10);
+        println!("FILTERS={:?} UNMATCHED={}", filters, unmatched);
+        assert!(!filters.is_empty(), "russian mods should translate");
+    }
 }

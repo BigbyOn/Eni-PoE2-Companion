@@ -709,6 +709,26 @@ async function loadRate() {
   }
 }
 
+const CURRENCY_ICONS = {
+  divine: "icons/currency/divine.png",
+  exalted: "icons/currency/exalted.png",
+  chaos: "icons/currency/chaos.png",
+  regal: "icons/currency/regal.png",
+  alch: "icons/currency/alch.png",
+  vaal: "icons/currency/vaal.png",
+  annul: "icons/currency/annul.png",
+  mirror: "icons/currency/mirror.png",
+  transmutation: "icons/currency/transmutation.png",
+  augmentation: "icons/currency/augmentation.png",
+  chance: "icons/currency/chance.png",
+};
+
+function currencyIcon(currency) {
+  const key = String(currency || "").toLowerCase().replace(/ orb$/, "").trim();
+  const src = CURRENCY_ICONS[key];
+  return src ? `<img class="cur-icon" src="${src}" alt="">` : "";
+}
+
 const RECENT_KEY = "eni-trade-recent";
 
 function recentSearches() {
@@ -765,7 +785,7 @@ async function runTradeSearch(q) {
       <tbody>${res.listings
         .map(
           (l) => `<tr>
-            <td><b>${esc(String(l.price))} ${esc(l.currency)}</b></td>
+            <td>${currencyIcon(l.currency)}<b>${esc(String(l.price))} ${esc(l.currency)}</b></td>
             <td>${esc(l.name || l.base)}<div class="small">${esc(l.base)}${l.rarity ? " · " + esc(l.rarity) : ""}</div></td>
             <td class="small"><span class="dot-online ${l.online ? "on" : "off"}"></span> ${esc(l.account)}
               <span class="small">${esc(l.status === "afk" ? t("trade.status_afk") : l.online ? t("trade.status_online") : t("trade.status_offline"))}</span>
@@ -2065,7 +2085,7 @@ async function act(name, el) {
           const line =
             p.total === 0
               ? esc(p.note || t("items.price_failed"))
-              : `${esc(t("items.price_min"))} <b>${money(p.min)} ${esc(p.currency)}</b> · ${esc(t("items.price_median"))} <b>${money(p.median)} ${esc(p.currency)}</b> · ${p.total} ${esc(t("items.price_lots"))}${p.divine != null ? ` · ≈ ${money(p.divine)} divine` : ""}${was}`;
+              : `${currencyIcon(p.currency)}${esc(t("items.price_min"))} <b>${money(p.min)} ${esc(p.currency)}</b> · ${esc(t("items.price_median"))} <b>${money(p.median)} ${esc(p.currency)}</b> · ${p.total} ${esc(t("items.price_lots"))}${p.divine != null ? ` · ≈ ${money(p.divine)} divine` : ""}${was}`;
           box.innerHTML = `<div class="small">${line}</div>
             <div class="small">${esc(p.league)}${p.note ? " · " + esc(p.note) : ""} · <button class="link" data-act="link" data-url="${esc(p.trade_url)}">${esc(t("items.price_open"))}</button></div>`;
         }

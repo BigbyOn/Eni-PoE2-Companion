@@ -2,6 +2,22 @@ const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 const $ = (sel) => document.querySelector(sel);
 const money = (n) => (Number.isInteger(n) ? String(n) : Number(n).toFixed(1));
+const CURRENCY_ICONS = {
+  divine: "icons/currency/divine.png",
+  exalted: "icons/currency/exalted.png",
+  chaos: "icons/currency/chaos.png",
+  regal: "icons/currency/regal.png",
+  alch: "icons/currency/alch.png",
+  vaal: "icons/currency/vaal.png",
+  annul: "icons/currency/annul.png",
+  mirror: "icons/currency/mirror.png",
+};
+
+function currencyIcon(currency) {
+  const key = String(currency || "").toLowerCase().replace(/ orb$/, "").trim();
+  const src = CURRENCY_ICONS[key];
+  return src ? `<img class="cur-icon" src="${src}" alt="">` : "";
+}
 let STATE = null;
 
 function applyScale() {
@@ -29,8 +45,8 @@ function render(q) {
     $("#p-note").textContent = "";
     return;
   }
-  $("#p-value").textContent = `${money(q.min)}–${money(q.median)} ${q.currency}`;
-  $("#p-line").textContent = `${q.total} лотов${q.divine != null ? ` · ≈ ${money(q.divine)} divine` : ""}`;
+  $("#p-value").innerHTML = `${currencyIcon(q.currency)}${money(q.min)}–${money(q.median)} ${q.currency}`;
+  $("#p-line").textContent = `${q.total} лотов${q.divine != null ? ` · ≈ ${money(q.divine)} divine` : ""}${q.matched ? ` · модов: ${q.matched}` : ""}`;
   $("#p-note").textContent = q.note || "";
 }
 

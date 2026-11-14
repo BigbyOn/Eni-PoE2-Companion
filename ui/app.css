@@ -229,3 +229,4 @@ a:hover{color:var(--gold2)}
 
 .dot-online{display:inline-block;width:7px;height:7px;border-radius:50%;background:#6b4a3a;margin-right:4px;vertical-align:middle}
 .dot-online.on{background:#5fae6b}
+.cur-icon{width:16px;height:16px;vertical-align:-2px;margin-right:4px}

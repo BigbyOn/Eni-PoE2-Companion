@@ -149,6 +149,9 @@ struct QuickPrice {
     median: f64,
     currency: String,
     divine: Option<f64>,
+    /// Modifier filters actually applied (and how many lines stayed unknown).
+    matched: usize,
+    unmatched: usize,
     note: String,
     error: Option<String>,
     ts: String,
@@ -631,6 +634,8 @@ impl App {
                     median: r.median,
                     currency: r.currency.clone(),
                     divine: to_divine(r.min, &r.currency, divine_price, chaos_per_divine),
+                    matched: r.matched,
+                    unmatched: r.unmatched.len(),
                     note: r.note,
                     error: None,
                     ts: now_iso(),

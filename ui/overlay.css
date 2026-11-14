@@ -97,3 +97,4 @@ body{color:var(--ink);font:14px/1.4 var(--serif);-webkit-font-smoothing:antialia
 .trade-req .trade-title{font-size:11px;color:var(--gold)}
 .trade-req .trade-item{font-weight:600;margin:2px 0}
 .trade-req .trade-actions{margin-top:5px;gap:4px;flex-wrap:wrap}
+.cur-icon{width:15px;height:15px;vertical-align:-2px;margin-right:3px}
