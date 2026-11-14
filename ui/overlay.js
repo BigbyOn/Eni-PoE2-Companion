@@ -218,7 +218,8 @@ function render() {
     html += `<div class="zone-progress">${esc(t("zone.pending"))}: <b>${pendingTodos.length}</b> · ${esc(pendingTodos[0].text)}</div>`;
   }
   if (go) html += `<div class="go">${esc(t("overlay.go_to"))} <span class="dest">${esc(zoneLabel(s))}</span> <span class="pct">· ${esc(p.zone)}</span></div>`;
-  html += `<div class="zone">${esc(zoneLabel(s))}${S.zone_unknown ? ` · <span class="warn">${esc(t("overlay.zone_unknown"))}</span>` : ""}</div>`;
+  const currentZone = go ? (p?.zone || "") : zoneLabel(s);
+  html += `<div class="zone">${esc(currentZone)}${S.zone_unknown && go ? ` · <span class="warn">${esc(t("overlay.zone_unknown"))}</span>` : ""}</div>`;
   html += `<div class="goal">${goalHtml(l10n(s.goal))}</div>`;
   if (s.quest) html += `<div class="quest">${esc(t("home.quest"))}: ${esc(l10n(s.quest))}</div>`;
   if (dest) html += `<div class="then">${esc(t("overlay.next_dest"))}: <b>${esc(zoneLabel(dest))}</b></div>`;

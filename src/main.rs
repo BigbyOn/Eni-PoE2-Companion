@@ -2769,7 +2769,39 @@ fn drag(window: WebviewWindow, app: AppHandle, state: State<App>, phase: String)
 // App startup
 // ---------------------------------------------------------------------------
 
-fn main() {    tauri::Builder::default()
+/// Release builds refuse to start twice: duplicate clipboard watchers and
+/// hotkey registrations are a common source of "Ctrl+C does nothing".
+#[cfg(all(windows, not(debug_assertions)))]
+fn already_running() -> bool {
+    use windows::Win32::Foundation::{GetLastError, ERROR_ALREADY_EXISTS};
+    use windows::Win32::System::Threading::CreateMutexW;
+    if std::env::var("ENI_COMPANION_ALLOW_MULTI").is_ok() {
+        return false;
+    }
+    let name = windows::core::HSTRING::from("Local\\EniPoE2Companion");
+    match unsafe { CreateMutexW(None, true, &name) } {
+        Ok(handle) => {
+            if unsafe { GetLastError() } == ERROR_ALREADY_EXISTS {
+                true
+            } else {
+                // Keep the mutex alive for the whole process lifetime.
+                std::mem::forget(handle);
+                false
+            }
+        }
+        Err(_) => false,
+    }
+}
+
+#[cfg(not(all(windows, not(debug_assertions))))]
+fn already_running() -> bool {
+    false
+}
+
+fn main() {
+    if already_running() {
+        return;
+    }    tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()

@@ -561,6 +561,9 @@ pub fn default_aliases() -> Vec<ZoneAlias> {
         // The 0.5 client calls Ogham Manor "Замок Огам"; the route calls it
         // "Ogham Manor"/"Поместье Огама".
         ZoneAlias { alias: "Замок Огам".into(), zone: "Ogham Manor".into() },
+        // The client calls Traitor's Passage "Тропа Изменницы"; the route uses
+        // "Проход Предателя".
+        ZoneAlias { alias: "Тропа Изменницы".into(), zone: "Traitor's Passage".into() },
         ZoneAlias { alias: "G1_1".into(), zone: "The Riverbank".into() },
         ZoneAlias { alias: "G1_town".into(), zone: "Clearfell Encampment".into() },
     ]
@@ -570,6 +573,12 @@ impl Saved {
     /// Drops fields that a hand-edited or corrupted file could push out of range.
     pub fn sanitized(mut self) -> Self {
         self.schema = SCHEMA;
+        // Keep known client-name aliases even in states created by older builds.
+        for known in default_aliases() {
+            if !self.zone_aliases.iter().any(|a| a.alias.eq_ignore_ascii_case(&known.alias)) {
+                self.zone_aliases.push(known);
+            }
+        }
         if self.lang != "en" {
             self.lang = "ru".into();
         }

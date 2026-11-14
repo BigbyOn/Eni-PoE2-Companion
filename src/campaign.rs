@@ -631,6 +631,13 @@ mod tests {
     }
 
     #[test]
+    fn client_synonyms_resolve_for_traitor_passage() {
+        let c = campaign();
+        let aliases = crate::model::default_aliases();
+        assert_eq!(c.resolve("Тропа Изменницы", &aliases), "traitor's passage");
+    }
+
+    #[test]
     fn fuzzy_zone_names_forgive_transliteration_drift() {
         let c = campaign();
         assert_eq!(c.resolve("Каменоломня Маудун", &[]), "mawdun quarry");
