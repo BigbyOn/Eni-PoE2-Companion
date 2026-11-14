@@ -1337,6 +1337,7 @@ function renderSettings() {
           <select id="st-trade-headroom">${[0, 5, 10, 15, 20].map((n) => `<option value="${n}" ${n === (S.saved.trade?.headroom ?? 10) ? "selected" : ""}>${n}%</option>`).join("")}</select>
         </div>
         <label class="check-item"><input type="checkbox" id="st-trade-auto" ${S.saved.trade?.auto_price ?? true ? "checked" : ""}> ${esc(t("set.trade_auto"))}</label>
+        <label class="check-item"><input type="checkbox" id="st-trade-popup" ${S.saved.trade?.price_popup ?? true ? "checked" : ""}> ${esc(t("set.trade_popup"))}</label>
       </div>
     </div>
 
@@ -1597,6 +1598,7 @@ function baseSettings() {
     trade_filters: S.saved.trade?.filters ?? 2,
     trade_headroom: S.saved.trade?.headroom ?? 10,
     trade_auto_price: S.saved.trade?.auto_price ?? true,
+    trade_price_popup: S.saved.trade?.price_popup ?? true,
     map_enabled: Boolean(S.saved.map?.enabled),
     map_mechanics: S.saved.map?.mechanics || [],
   };
@@ -1637,6 +1639,7 @@ function collectSettings({ keepKey = false } = {}) {
     trade_filters: Number($("#st-trade-filters")?.value ?? 2),
     trade_headroom: Number($("#st-trade-headroom")?.value ?? 10),
     trade_auto_price: $("#st-trade-auto")?.checked ?? true,
+    trade_price_popup: $("#st-trade-popup")?.checked ?? true,
     map_enabled: $("#st-map-enabled")?.checked ?? false,
     map_mechanics: ($("#st-map-mechanics")?.value || "")
       .split(",")

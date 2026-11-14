@@ -404,6 +404,13 @@ pub struct TradeCfg {
     /// Watch the clipboard and price items right after Ctrl+C in game.
     #[serde(default = "default_auto_price")]
     pub auto_price: bool,
+    /// Show the small price card next to the cursor.
+    #[serde(default = "default_price_popup")]
+    pub price_popup: bool,
+}
+
+pub fn default_price_popup() -> bool {
+    true
 }
 
 pub fn default_auto_price() -> bool {
@@ -420,7 +427,7 @@ pub fn default_trade_filters() -> u8 {
 
 impl Default for TradeCfg {
     fn default() -> Self {
-        TradeCfg { enabled: false, league: String::new(), filters: 2, headroom: 10, auto_price: true }
+        TradeCfg { enabled: false, league: String::new(), filters: 2, headroom: 10, auto_price: true, price_popup: true }
     }
 }
 

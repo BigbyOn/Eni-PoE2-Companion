@@ -248,6 +248,10 @@ fn start_clipboard_watch(app: AppHandle) {
 /// Shows the small price card near the cursor and hides it after 6 seconds
 /// unless a newer price replaced it.
 fn show_price_window(app: &AppHandle) {
+    let popup = { app.state::<App>().snap.lock().unwrap().saved.trade.price_popup };
+    if !popup {
+        return;
+    }
     let Some(window) = app.get_webview_window("price") else { return };
     let (x, y) = game::cursor_near(380, 170);
     let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
@@ -1259,6 +1263,8 @@ struct SettingsIn {
     trade_headroom: u8,
     #[serde(default = "crate::model::default_auto_price")]
     trade_auto_price: bool,
+    #[serde(default = "crate::model::default_price_popup")]
+    trade_price_popup: bool,
     #[serde(default)]
     map_enabled: bool,
     #[serde(default)]
@@ -1328,6 +1334,7 @@ fn save_settings(app: AppHandle, state: State<App>, settings: SettingsIn) -> Res
             filters: settings.trade_filters.min(3),
             headroom: settings.trade_headroom.min(30),
             auto_price: settings.trade_auto_price,
+            price_popup: settings.trade_price_popup,
         };
         s.saved.ai = AiCfg {
             enabled: settings.ai_enabled,
@@ -2761,8 +2768,9 @@ fn main() {    tauri::Builder::default()
                 let hwnd = main.hwnd().map_or(0, |h| h.0 as isize);
                 handle.state::<App>().shared.lock().unwrap().main_hwnd = hwnd;
             }
-            // Test knob: keep the window hidden while the pages still load.
-            if std::env::var("ENI_COMPANION_HEADLESS").is_err() {
+            // Start in the tray: never open a window over the game at launch.
+            // The window is available from the tray or the main hotkey.
+            if std::env::var("ENI_COMPANION_SHOW_MAIN").is_ok() {
                 show_main(&handle);
             }
             start_clipboard_watch(handle.clone());

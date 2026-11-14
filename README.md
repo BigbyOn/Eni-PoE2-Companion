@@ -123,6 +123,8 @@ Windows 10/11 x64 · Rust + Tauri 2 + системный WebView2 · без те
 
 ## Установка
 
+> Приложение стартует **в трее** и не открывает окон поверх игры. Главное окно — иконка в трее или `Shift+Space`.
+
 1. Скачайте установщик из [Releases](../../releases):
    - `Eni-PoE2-Companion-Setup.exe` (NSIS, рекомендуется) — или
    - `Eni-PoE2-Companion.msi` (MSI).
