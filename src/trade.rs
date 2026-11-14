@@ -819,17 +819,33 @@ pub fn check(item: &ParsedItem, league_pref: &str, stats: Option<&[StatDef]>, li
     let (filters, unmatched) = stats
         .map(|s| match_stats(item, s, limit.min(3), headroom))
         .unwrap_or_default();
-    let mut result = search(item, &league, &filters, !filters.is_empty())?;
+    let mut result = match search(item, &league, &filters, !filters.is_empty(), true) {
+        Ok(result) => result,
+        Err(e) if e.contains("Unknown item base type") || e.contains("Unknown item name") => {
+            if filters.is_empty() {
+                return Err(
+                    "Русский клиент: trade API не знает русское название базы, а моды не распознаны. \
+                     Переключи клиент на английский для точной цены."
+                        .into(),
+                );
+            }
+            let mut fallback = search(item, &league, &filters, !filters.is_empty(), false)?;
+            fallback.note =
+                "Русская база не переведена: цена по модам, редкости и категории — ориентир, не точная.".into();
+            fallback
+        }
+        Err(e) => return Err(e),
+    };
     result.unmatched = unmatched;
     result.matched = filters.len();
     if result.total == 0 && filters.len() > 2 {
-        result = search(item, &league, &filters[..2], true)?;
+        result = search(item, &league, &filters[..2], true, true)?;
         if result.total > 0 {
             result.note = "Похожие: 2 главных мода с допуском 10%.".into();
         }
     }
     if result.total == 0 && !filters.is_empty() {
-        result = search(item, &league, &[], false)?;
+        result = search(item, &league, &[], false, true)?;
         result.note = "По модификаторам ничего не найдено — показаны цены по базе и редкости.".into();
     }
     if !result.unmatched.is_empty() {
@@ -843,8 +859,66 @@ pub fn check(item: &ParsedItem, league_pref: &str, stats: Option<&[StatDef]>, li
     Ok(result)
 }
 
-fn search(item: &ParsedItem, league: &str, stat_filters: &[StatFilter], used_stats: bool) -> Result<PriceResult, String> {
-    let query = build_query_with(item, stat_filters);
+fn category_for(item: &ParsedItem) -> Option<&'static str> {
+    let class = item.class.to_lowercase();
+    if class.contains("ring") || class.contains("amulet") || class.contains("belt") || class.contains("кольц") || class.contains("амулет") || class.contains("пояс") {
+        Some("accessory")
+    } else if class.contains("staff") || class.contains("wand") || class.contains("bow") || class.contains("sword") || class.contains("axe") || class.contains("mace") || class.contains("spear") || class.contains("crossbow") || class.contains("посох") || class.contains("лук") || class.contains("меч") || class.contains("топор") || class.contains("копь") {
+        Some("weapon")
+    } else if class.contains("body") || class.contains("helmet") || class.contains("glove") || class.contains("boot") || class.contains("shield") || class.contains("armour") || class.contains("брон") || class.contains("шлем") || class.contains("перчат") || class.contains("сапог") || class.contains("щит") {
+        Some("armour")
+    } else if class.contains("flask") || class.contains("флакон") {
+        Some("flask")
+    } else if class.contains("jewel") || class.contains("самоцвет") {
+        Some("jewel")
+    } else {
+        None
+    }
+}
+
+/// Same as `build_query_with`, but can omit the base/name so a Russian base
+/// type (which the trade API does not know) still yields a modifier search.
+fn build_query_filtered(item: &ParsedItem, stat_filters: &[StatFilter], include_type: bool) -> serde_json::Value {
+    let mut query = serde_json::json!({ "status": { "option": "online" } });
+    if include_type && is_unique(item) && !item.name.trim().is_empty() {
+        query["name"] = serde_json::json!(item.name.trim());
+    }
+    if include_type {
+        let base = if item.base.trim().is_empty() { item.name.trim() } else { item.base.trim() };
+        if !base.is_empty() {
+            query["type"] = serde_json::json!(base);
+        }
+    }
+    let mut filters = serde_json::Map::new();
+    if let Some(rarity) = rarity_option(item) {
+        filters.insert("rarity".into(), serde_json::json!({ "option": rarity }));
+    }
+    if !include_type {
+        if let Some(category) = category_for(item) {
+            filters.insert("category".into(), serde_json::json!({ "option": category }));
+        }
+    }
+    if !filters.is_empty() {
+        query["filters"] = serde_json::json!({ "type_filters": { "filters": filters } });
+    }
+    if !stat_filters.is_empty() {
+        let list: Vec<serde_json::Value> = stat_filters
+            .iter()
+            .map(|f| {
+                let mut value = serde_json::json!({ "min": f.min });
+                if let Some(max) = f.max {
+                    value["max"] = serde_json::json!(max);
+                }
+                serde_json::json!({ "id": f.id, "value": value, "disabled": false })
+            })
+            .collect();
+        query["stats"] = serde_json::json!([{ "type": "and", "filters": list }]);
+    }
+    query
+}
+
+fn search(item: &ParsedItem, league: &str, stat_filters: &[StatFilter], used_stats: bool, include_type: bool) -> Result<PriceResult, String> {
+    let query = build_query_filtered(item, stat_filters, include_type);
     let body = serde_json::json!({ "query": query, "sort": { "price": "asc" } });
     let url = format!("{BASE}/api/trade2/search/poe2/{}", encode(league));
     let mut res = agent()
