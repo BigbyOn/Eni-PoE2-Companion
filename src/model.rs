@@ -401,6 +401,13 @@ pub struct TradeCfg {
     /// Percent subtracted from modifier values to find "similar" items.
     #[serde(default = "default_trade_headroom")]
     pub headroom: u8,
+    /// Watch the clipboard and price items right after Ctrl+C in game.
+    #[serde(default = "default_auto_price")]
+    pub auto_price: bool,
+}
+
+pub fn default_auto_price() -> bool {
+    true
 }
 
 pub fn default_trade_headroom() -> u8 {
@@ -413,7 +420,7 @@ pub fn default_trade_filters() -> u8 {
 
 impl Default for TradeCfg {
     fn default() -> Self {
-        TradeCfg { enabled: false, league: String::new(), filters: 2, headroom: 10 }
+        TradeCfg { enabled: false, league: String::new(), filters: 2, headroom: 10, auto_price: true }
     }
 }
 

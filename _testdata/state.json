@@ -29,7 +29,7 @@
   "route": "all",
   "profiles": [
     {
-      "id": "p-1a1d8dbaed500",
+      "id": "p-1a1d8ef2c2f00",
       "name": "Эни",
       "name_auto": false,
       "class": "Ranger",
@@ -41,23 +41,23 @@
       "rewards": [],
       "levels": [
         {
-          "ts": "2026-11-14T10:00:38+03:00",
+          "ts": "2026-11-14T10:21:55+03:00",
           "level": 6
         }
       ],
       "done": [],
       "build_id": "lightning-arrow-deadeye",
       "build_done": [],
-      "created": "2026-11-14T10:00:38+03:00",
-      "updated": "2026-11-14T10:00:43+03:00"
+      "created": "2026-11-14T10:21:55+03:00",
+      "updated": "2026-11-14T10:22:03+03:00"
     }
   ],
-  "active": "p-1a1d8dbaed500",
+  "active": "p-1a1d8ef2c2f00",
   "history": [
     {
-      "id": "h-1a1d8dbb02401",
-      "ts": "2026-11-14T10:00:38+03:00",
-      "profile": "p-1a1d8dbaed500",
+      "id": "h-1a1d8ef2d8d01",
+      "ts": "2026-11-14T10:21:55+03:00",
+      "profile": "p-1a1d8ef2c2f00",
       "kind": "zone",
       "level": 6,
       "zone": "Берег реки",
@@ -98,10 +98,11 @@
     "key_protected": null
   },
   "trade": {
-    "enabled": false,
+    "enabled": true,
     "league": "",
     "filters": 2,
-    "headroom": 10
+    "headroom": 10,
+    "auto_price": true
   },
   "map": {
     "enabled": false,

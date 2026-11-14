@@ -1,6 +1,6 @@
 [package]
 name = "eni-poe2-companion"
-version = "0.18.0"
+version = "0.19.0"
 edition = "2021"
 description = "Eni-PoE2-Companion — помощник и оверлей для Path of Exile 2 (RU/EN)"
 license = "MIT"

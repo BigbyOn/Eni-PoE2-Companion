@@ -204,6 +204,47 @@ struct App {
     guide_cache: Mutex<Option<(String, std::time::Instant, guide::GuideSet)>>,
 }
 
+/// Watches the clipboard while the game is focused: Ctrl+C copies an item and
+/// the price appears without pressing the price hotkey.
+fn start_clipboard_watch(app: AppHandle) {
+    std::thread::spawn(move || {
+        let mut last_seq = clip::sequence();
+        let mut last_at = std::time::Instant::now() - std::time::Duration::from_secs(10);
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(350));
+            let seq = clip::sequence();
+            if seq == 0 || seq == last_seq {
+                continue;
+            }
+            last_seq = seq;
+            if last_at.elapsed() < std::time::Duration::from_millis(1500) {
+                continue;
+            }
+            let state = app.state::<App>();
+            let enabled = {
+                let s = state.snap.lock().unwrap();
+                s.saved.trade.enabled && s.saved.trade.auto_price
+            };
+            if !enabled {
+                continue;
+            }
+            let game_active = {
+                let shared = state.shared.lock().unwrap();
+                shared.game.is_some() && shared.game_hwnd != 0 && game::foreground_is(&[shared.game_hwnd])
+            };
+            if !game_active {
+                continue;
+            }
+            let Ok(text) = clip::read() else { continue };
+            if item::parse(&text).is_none() {
+                continue;
+            }
+            last_at = std::time::Instant::now();
+            state.quick_price(&app);
+        }
+    });
+}
+
 fn action_label(action: &str) -> &'static str {
     match action {
         "next" => "следующий шаг",
@@ -1184,6 +1225,8 @@ struct SettingsIn {
     trade_filters: u8,
     #[serde(default = "crate::model::default_trade_headroom")]
     trade_headroom: u8,
+    #[serde(default = "crate::model::default_auto_price")]
+    trade_auto_price: bool,
     #[serde(default)]
     map_enabled: bool,
     #[serde(default)]
@@ -1252,6 +1295,7 @@ fn save_settings(app: AppHandle, state: State<App>, settings: SettingsIn) -> Res
             league: settings.trade_league.trim().chars().take(60).collect(),
             filters: settings.trade_filters.min(3),
             headroom: settings.trade_headroom.min(30),
+            auto_price: settings.trade_auto_price,
         };
         s.saved.ai = AiCfg {
             enabled: settings.ai_enabled,
@@ -2689,6 +2733,7 @@ fn main() {    tauri::Builder::default()
             if std::env::var("ENI_COMPANION_HEADLESS").is_err() {
                 show_main(&handle);
             }
+            start_clipboard_watch(handle.clone());
             if let Err(e) = handle.state::<App>().register_hotkeys(&handle) {
                 eprintln!("hotkeys: {e}");
             }

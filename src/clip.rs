@@ -2,7 +2,9 @@
 //! From poe2overlay (MIT, © 2026 Michael Malura); see NOTICE.
 
 use windows::Win32::Foundation::{HANDLE, HGLOBAL};
-use windows::Win32::System::DataExchange::{CloseClipboard, EmptyClipboard, GetClipboardData, OpenClipboard, SetClipboardData};
+use windows::Win32::System::DataExchange::{
+    CloseClipboard, EmptyClipboard, GetClipboardData, GetClipboardSequenceNumber, OpenClipboard, SetClipboardData,
+};
 use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE};
 use windows::Win32::System::Ole::CF_UNICODETEXT;
 
@@ -22,6 +24,12 @@ pub fn copy(text: &str) -> windows::core::Result<()> {
         let _ = CloseClipboard();
         result
     }
+}
+
+/// Monotonic clipboard change counter: lets a watcher react to Ctrl+C even
+/// when the copied item text is identical to the previous one.
+pub fn sequence() -> u32 {
+    unsafe { GetClipboardSequenceNumber() }
 }
 
 /// Reads Unicode text from the clipboard (used for item import).
