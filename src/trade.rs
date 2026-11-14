@@ -192,6 +192,9 @@ pub struct PriceResult {
     /// How many modifiers were used as filters.
     #[serde(default)]
     pub matched: usize,
+    /// Previous price check of the same item (filled by the command).
+    #[serde(default)]
+    pub previous: Option<crate::model::PricePoint>,
     /// Human-readable caveat for the UI (e.g. rare items without stat filters).
     pub note: String,
 }

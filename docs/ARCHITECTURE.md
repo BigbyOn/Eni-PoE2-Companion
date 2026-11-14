@@ -144,6 +144,14 @@
 
 `guide_refresh` перечитывает страницу без 10-минутного кэша, собирает документ с тем же `build_id`, перезаписывает файл билда и обновляет запись гайда (вариант, камни, снаряжение, `ts`), сохраняя `owned`.
 
+### История цены
+
+`ItemRecord.price_history` (до 10 точек `PricePoint`) заполняется в `trade_price` после успешной проверки. Запись идёт через `model::save_state` без события состояния, чтобы не перерисовать карточку и не потерять только что показанный результат; предыдущая точка отдаётся в `PriceResult.previous` для строки «было → стало».
+
+### Этапы импорта
+
+`guide::fetch_html_with` принимает колбэк и вызывает его на этапах `edge` → `wait` → `read` → `parse`; `fetch_guide_set` превращает их в событие `guide-progress`, а модалка импорта показывает текст по ключу `build.stage_<этап>`.
+
 ### Фильтры торговли
 
 `trade::search_body` собирает тело официального запроса: `status.option=online` (если включено), `type`, `filters.type_filters.filters.category.option` и `filters.trade_filters.filters.price { max, option }`. Команда `trade_search` принимает необязательный `opts` (категория, макс. цена, валюта, онлайн) и вызывает `search_filtered`; без `opts` поведение прежнее.

@@ -118,12 +118,18 @@ fn cdp_eval(
 /// target, poll `window.__PRELOADED_STATE__` and read `outerHTML` when the
 /// build data is there. Everything is bounded: 120 s overall, 15 s per CDP read.
 pub fn fetch_html(url: &str) -> Result<String, String> {
+    fetch_html_with(url, |_| {})
+}
+
+/// Same as `fetch_html`, but reports coarse stages for the import dialog.
+pub fn fetch_html_with<F: Fn(&str)>(url: &str, phase: F) -> Result<String, String> {
     use std::process::Stdio;
     use std::time::{Duration, Instant};
 
     if !allowed_url(url) {
         return Err("Разрешены только страницы билдов Mobalytics (https://mobalytics.gg/poe-2/...)".into());
     }
+    phase("edge");
     let edge = edge_path().ok_or("Не найден Microsoft Edge: он нужен, чтобы открыть страницу Mobalytics")?;
     let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0);
     let profile = std::env::temp_dir().join(format!("eni-guide-{}-{stamp}", std::process::id()));
@@ -147,6 +153,7 @@ pub fn fetch_html(url: &str) -> Result<String, String> {
         .map_err(|e| format!("Edge не запустился: {e}"))?;
 
     let result = (|| -> Result<String, String> {
+        phase("wait");
         let deadline = Instant::now() + Duration::from_secs(120);
         let mut ws_url: Option<String> = None;
         while Instant::now() < deadline {
@@ -174,6 +181,7 @@ pub fn fetch_html(url: &str) -> Result<String, String> {
             std::thread::sleep(Duration::from_millis(500));
         }
         let ws_url = ws_url.ok_or("Edge не открыл страницу за 120 секунд")?;
+        phase("read");
 
         let (mut socket, _) = tungstenite::connect(&ws_url).map_err(|e| format!("CDP: {e}"))?;
         if let tungstenite::stream::MaybeTlsStream::Plain(stream) = socket.get_mut() {
@@ -215,6 +223,7 @@ pub fn fetch_html(url: &str) -> Result<String, String> {
         if !html.contains("__PRELOADED_STATE__") {
             return Err("На странице нет данных билда — проверь ссылку".into());
         }
+        phase("parse");
         Ok(html)
     })();
 

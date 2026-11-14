@@ -969,7 +969,8 @@ function openGuideImport() {
       <label>${esc(t("build.import_variant"))}</label>
       <select id="guide-variant"></select>
     </div>
-    <div class="small" id="guide-wait" hidden style="margin-top:8px">${esc(t("build.import_url_wait"))}</div>`;
+    <div class="small" id="guide-wait" hidden style="margin-top:8px">${esc(t("build.import_url_wait"))}</div>
+    <div class="small good-text" id="guide-stage" hidden style="margin-top:4px"></div>`;
   $("#modal").hidden = false;
 }
 
@@ -979,6 +980,11 @@ async function loadGuideVariants() {
   if (err) err.textContent = "";
   const wait = $("#guide-wait");
   if (wait) wait.hidden = false;
+  const stage = $("#guide-stage");
+  if (stage) {
+    stage.hidden = true;
+    stage.textContent = "";
+  }
   try {
     const variants = await invoke("guide_variants", { url });
     const select = $("#guide-variant");
@@ -993,6 +999,7 @@ async function loadGuideVariants() {
     if (err) err.textContent = String(e);
   } finally {
     if (wait) wait.hidden = true;
+    if (stage) stage.hidden = true;
   }
 }
 
@@ -1002,6 +1009,11 @@ async function runGuideImport() {
   const wait = $("#guide-wait");
   if (err) err.textContent = "";
   if (wait) wait.hidden = false;
+  const stage = $("#guide-stage");
+  if (stage) {
+    stage.hidden = true;
+    stage.textContent = "";
+  }
   try {
     const variantSelect = $("#guide-variant");
     const variant = variantSelect && !$("#guide-variant-wrap")?.hidden ? Number(variantSelect.value) : null;
@@ -1016,6 +1028,7 @@ async function runGuideImport() {
     if (err) err.textContent = String(e);
   } finally {
     if (wait) wait.hidden = true;
+    if (stage) stage.hidden = true;
   }
 }
 
@@ -1449,6 +1462,8 @@ function itemCard(rec) {
         <button class="link" data-act="link" data-url="https://www.craftofexile.com/?game=poe2">Craft of Exile</button>
       </div>`
     : "";
+  const history = rec.price_history || [];
+  const last = history[history.length - 1];
   const score = a.score || 0;
   const cls = score >= 3 ? "good-text" : score > 0 ? "warn-text" : "bad-text";
   return `<div class="item">
@@ -1464,6 +1479,7 @@ function itemCard(rec) {
     <div class="small">${esc(p.rarity || "")}${p.slot ? " · " + esc(p.slot) : ""}${p.item_level ? ` · ${esc(t("items.ilvl"))} ${p.item_level}` : ""} · ${fmtTime(rec.ts)}</div>
     <div class="chips" style="margin-top:5px">${matches}${warnings}</div>
     ${dangers ? `<div class="chips" style="margin-top:4px">${dangers}</div>` : ""}
+    ${last ? `<div class="small">${esc(t("items.last_price"))}: <b>${last.min}</b> ${esc(last.currency)} · ${fmtTime(last.ts)}${history.length > 1 ? ` · ${esc(t("items.checks"))}: ${history.length}` : ""}</div>` : ""}
     <div class="price-slot" style="margin-top:6px" hidden></div>
     <div class="ai-slot" style="margin-top:6px" ${rec.ai ? "" : "hidden"}>
       ${rec.ai ? `<div class="ai-answer"><div class="small">${esc(t("ai.answer"))}</div><div class="ai-text">${esc(rec.ai).replaceAll("\n", "<br>")}</div></div>` : ""}
@@ -1882,10 +1898,12 @@ async function act(name, el) {
         const p = await invoke("trade_price", { id: el.dataset.id });
         const money = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
         if (box) {
+          const prev = p.previous;
+          const was = prev && prev.currency === p.currency ? ` · ${esc(t("items.was"))} ${money(prev.min)} → ${money(p.min)}` : "";
           const line =
             p.total === 0
               ? esc(p.note || t("items.price_failed"))
-              : `${esc(t("items.price_min"))} <b>${money(p.min)} ${esc(p.currency)}</b> · ${esc(t("items.price_median"))} <b>${money(p.median)} ${esc(p.currency)}</b> · ${p.total} ${esc(t("items.price_lots"))}`;
+              : `${esc(t("items.price_min"))} <b>${money(p.min)} ${esc(p.currency)}</b> · ${esc(t("items.price_median"))} <b>${money(p.median)} ${esc(p.currency)}</b> · ${p.total} ${esc(t("items.price_lots"))}${was}`;
           box.innerHTML = `<div class="small">${line}</div>
             <div class="small">${esc(p.league)}${p.note ? " · " + esc(p.note) : ""} · <button class="link" data-act="link" data-url="${esc(p.trade_url)}">${esc(t("items.price_open"))}</button></div>`;
         }
@@ -2101,7 +2119,15 @@ async function boot() {
   renderNav();
   await loadHistory(200);
   go((location.hash || "#home").slice(1));
-  await listen("state", async (e) => {
+  await listen("guide-progress", (e) => {
+  const el = $("#guide-stage");
+  if (!el) return;
+  const stage = e.payload?.stage || "";
+  el.hidden = false;
+  el.textContent = t("build.stage_" + stage) || stage;
+});
+
+await listen("state", async (e) => {
     S = e.payload;
     // A build imported (or removed) elsewhere must show up here too.
     const ids = BUILDS.map((b) => b.id).sort().join(",");

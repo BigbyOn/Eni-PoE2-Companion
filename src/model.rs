@@ -271,6 +271,17 @@ pub struct HistoryEvent {
     pub detail: String,
 }
 
+/// One price check kept for the item card ("was -> now").
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct PricePoint {
+    pub min: f64,
+    pub median: f64,
+    pub currency: String,
+    pub total: u64,
+    pub ts: String,
+}
+
 /// An item imported from the clipboard, with its local analysis.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct ItemRecord {
@@ -287,6 +298,9 @@ pub struct ItemRecord {
     /// Last AI answer for this item, if the user asked one.
     #[serde(default)]
     pub ai: Option<String>,
+    /// Price checks, newest last (up to 10).
+    #[serde(default)]
+    pub price_history: Vec<PricePoint>,
 }
 
 /// A manual note "what is left in this location" (chest, mini-boss, event).
@@ -564,6 +578,10 @@ impl Saved {
                 item.raw.truncate(8000);
             }
             item.parsed.mods.truncate(24);
+            if item.price_history.len() > 10 {
+                let excess = item.price_history.len() - 10;
+                item.price_history.drain(..excess);
+            }
         }
         if self.items.len() > 200 {
             let keep = self.items.len() - 200;

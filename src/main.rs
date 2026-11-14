@@ -422,6 +422,7 @@ impl App {
             analysis: analysis.clone(),
             dangers,
             ai: None,
+            price_history: Vec::new(),
         };
         let toast = ItemToast { name: parsed.name.clone(), score: analysis.score, slot: parsed.slot.clone(), ts: now_iso() };
         let title = if parsed.name.is_empty() { parsed.base.clone() } else { parsed.name.clone() };
@@ -776,7 +777,7 @@ fn snapshot(state: State<App>) -> Snapshot {
 }
 
 /// Renders (or reuses) the Mobalytics page for a URL.
-async fn load_guide_set(state: &App, url: &str) -> Result<guide::GuideSet, String> {
+async fn load_guide_set(state: &App, url: &str, app: Option<AppHandle>) -> Result<guide::GuideSet, String> {
     if !guide::allowed_url(url) {
         return Err("Разрешены только страницы билдов Mobalytics (https://mobalytics.gg/poe-2/...)".into());
     }
@@ -788,7 +789,7 @@ async fn load_guide_set(state: &App, url: &str) -> Result<guide::GuideSet, Strin
             }
         }
     }
-    let parsed = fetch_guide_set(url.to_string()).await?;
+    let parsed = fetch_guide_set(url.to_string(), app).await?;
     *state.guide_cache.lock().unwrap() = Some((url.to_string(), std::time::Instant::now(), parsed.clone()));
     Ok(parsed)
 }
@@ -803,8 +804,8 @@ struct GuideVariantInfo {
 
 /// Lists the variants of a build page without importing anything.
 #[tauri::command]
-async fn guide_variants(state: State<'_, App>, url: String) -> Result<Vec<GuideVariantInfo>, String> {
-    let set = load_guide_set(&state, &url).await?;
+async fn guide_variants(app: AppHandle, state: State<'_, App>, url: String) -> Result<Vec<GuideVariantInfo>, String> {
+    let set = load_guide_set(&state, &url, Some(app)).await?;
     let lang = { state.snap.lock().unwrap().saved.lang.clone() };
     Ok(set
         .variants
@@ -827,7 +828,7 @@ async fn build_import_url(
     url: String,
     variant: Option<usize>,
 ) -> Result<builds::BuildDoc, String> {
-    let parsed = load_guide_set(&state, &url).await?;
+    let parsed = load_guide_set(&state, &url, Some(app.clone())).await?;
     let chosen = variant
         .filter(|v| parsed.variants.iter().any(|x| x.index == *v))
         .unwrap_or(parsed.variants[0].index);
@@ -1079,12 +1080,18 @@ async fn trade_search_guide(state: State<'_, App>, guide_id: String, slot: Strin
 }
 
 /// Fetches a guide page without the 10-minute cache (used by "refresh").
-async fn fetch_guide_set(url: String) -> Result<guide::GuideSet, String> {
+async fn fetch_guide_set(url: String, app: Option<AppHandle>) -> Result<guide::GuideSet, String> {
     if !guide::allowed_url(&url) {
         return Err("Разрешены только страницы билдов Mobalytics (https://mobalytics.gg/poe-2/...)".into());
     }
     tauri::async_runtime::spawn_blocking(move || {
-        let html = guide::fetch_html(&url)?;
+        let handle = app;
+        let phase = move |stage: &str| {
+            if let Some(handle) = &handle {
+                let _ = handle.emit("guide-progress", serde_json::json!({ "stage": stage }));
+            }
+        };
+        let html = guide::fetch_html_with(&url, phase)?;
         guide::parse(&html, &url)
     })
     .await
@@ -1102,7 +1109,7 @@ async fn guide_refresh(app: AppHandle, state: State<'_, App>, guide_id: String) 
         }
         (guide.url.clone(), guide.build_id.clone(), guide.variant_index, s.saved.lang.clone())
     };
-    let set = fetch_guide_set(url.clone()).await?;
+    let set = fetch_guide_set(url.clone(), Some(app.clone())).await?;
     let chosen = set
         .variants
         .iter()
@@ -2025,9 +2032,37 @@ async fn trade_price(state: State<'_, App>, id: String) -> Result<trade::PriceRe
     }
     // Stat filters need the dataset: memory, then the disk cache, then one request.
     let stats = ensure_stats(&state).await;
-    tauri::async_runtime::spawn_blocking(move || trade::check(&parsed, &league, stats.as_deref(), filters, headroom))
-        .await
-        .map_err(|e| format!("Запрос прерван: {e}"))?
+    let mut result = tauri::async_runtime::spawn_blocking(move || {
+        trade::check(&parsed, &league, stats.as_deref(), filters, headroom)
+    })
+    .await
+    .map_err(|e| format!("Запрос прерван: {e}"))??;
+    // Keep the previous point for "was -> now" and persist without re-rendering
+    // (a state event would wipe the result the user is looking at).
+    let previous = {
+        let s = state.snap.lock().unwrap();
+        s.saved.items.iter().find(|x| x.id == id).and_then(|r| r.price_history.last().cloned())
+    };
+    result.previous = previous;
+    if result.total > 0 {
+        let mut s = state.snap.lock().unwrap();
+        if let Some(record) = s.saved.items.iter_mut().find(|x| x.id == id) {
+            record.price_history.push(model::PricePoint {
+                min: result.min,
+                median: result.median,
+                currency: result.currency.clone(),
+                total: result.total,
+                ts: now_iso(),
+            });
+            if record.price_history.len() > 10 {
+                record.price_history.remove(0);
+            }
+        }
+        if let Err(e) = model::save_state(&state.dir.join("state.json"), &s.saved) {
+            eprintln!("state.json: {e}");
+        }
+    }
+    Ok(result)
 }
 
 #[tauri::command]
