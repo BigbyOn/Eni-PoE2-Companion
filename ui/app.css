@@ -238,3 +238,9 @@ a:hover{color:var(--gold2)}
 .dash-name b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dash-delta{font-variant-numeric:tabular-nums;font-size:12px;white-space:nowrap}
 .dash-welcome h2{margin:0}
+
+.stash-chart{width:100%;height:96px;display:block;margin-top:4px}
+.stash-bar{display:flex;align-items:center;gap:6px;margin:4px 0}
+.stash-bar span{flex:0 0 42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stash-bar i{display:block;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));min-width:2px}
+.stash-bar b{flex:0 0 auto;font-weight:400;color:var(--muted)}

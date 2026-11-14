@@ -223,6 +223,34 @@ function dashRow(item, currency, divinePrice) {
   </div>`;
 }
 
+
+function stashChart(points) {
+  if (!points || points.length < 2) return `<div class="small">${esc(t("stash.not_enough"))}</div>`;
+  const w = 520, h = 110, pad = 6;
+  const vals = points.map((p) => Number(p.total_exalted) || 0);
+  const max = Math.max(...vals, 1), min = Math.min(...vals, 0);
+  const span = Math.max(max - min, 1);
+  const step = points.length > 1 ? (w - pad * 2) / (points.length - 1) : 0;
+  const coords = vals.map((v, i) => [pad + i * step, h - pad - ((v - min) / span) * (h - pad * 2)]);
+  const line = coords.map((c) => c.join(",")).join(" ");
+  const area = `${pad},${h - pad} ${line} ${pad + (points.length - 1) * step},${h - pad}`;
+  return `<svg viewBox="0 0 ${w} ${h}" class="stash-chart" preserveAspectRatio="none">
+    <polygon points="${area}" fill="rgba(180,150,90,.12)"></polygon>
+    <polyline points="${line}" fill="none" stroke="var(--gold)" stroke-width="2"></polyline>
+    <text x="${pad}" y="12" fill="var(--muted)" font-size="10">${dashMoney(max)} ex</text>
+    <text x="${pad}" y="${h - 2}" fill="var(--muted)" font-size="10">${dashMoney(min)} ex</text>
+  </svg>`;
+}
+
+function stashBars(tabs) {
+  if (!tabs || !tabs.length) return "";
+  const total = tabs.reduce((sum, x) => sum + (Number(x.total_exalted) || 0), 0) || 1;
+  return tabs.slice(0, 8).map((tab) => {
+    const pct = Math.max(2, Math.round(((Number(tab.total_exalted) || 0) / total) * 100));
+    return `<div class="stash-bar"><span class="small">${esc(tab.name)}</span><i style="width:${pct}%"></i><b class="small">${dashMoney(tab.total_exalted)} ex</b></div>`;
+  }).join("");
+}
+
 function renderDashboard() {
   const box = $("#dashboard");
   if (!box || !DASH) return;
@@ -2083,7 +2111,12 @@ async function act(name, el) {
                 .join("")}</tbody></table></details>`
           )
           .join("");
-        out.innerHTML = `<div class="small">${esc(t("stash.total"))}: <b>${money(d.total_exalted)}</b> ex · ${d.item_count} ${esc(t("stash.items"))}${d.truncated ? ` · ${esc(t("stash.truncated"))} ${d.total_listings}` : ""}</div>${tabs || `<div class="small">${esc(t("stash.empty"))}</div>`}`;
+        out.innerHTML = `<div class="small">${esc(t("stash.total"))}: <b>${money(d.total_exalted)}</b> ex · ${d.item_count} ${esc(t("stash.items"))}${d.truncated ? ` · ${esc(t("stash.truncated"))} ${d.total_listings}` : ""}</div>
+          <div class="grid c2" style="margin-top:8px">
+            <div><h4>${esc(t("stash.history"))}</h4>${stashChart(d.history)}</div>
+            <div><h4>${esc(t("stash.distribution"))}</h4>${stashBars(d.tabs)}</div>
+          </div>
+          ${tabs || `<div class="small">${esc(t("stash.empty"))}</div>`}`;
       } catch (e) {
         if (out) out.innerHTML = `<span class="bad-text">${esc(String(e))}</span>`;
       }

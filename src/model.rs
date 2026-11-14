@@ -512,6 +512,9 @@ pub struct Saved {
     /// Dashboard favourites (poe2scout trade tags).
     #[serde(default = "default_favorites")]
     pub dashboard_favorites: Vec<String>,
+    /// Stash value snapshots (newest last).
+    #[serde(default)]
+    pub stash_history: Vec<StashPoint>,
     pub buildings_dir: Option<PathBuf>,
     pub shots_dir: Option<PathBuf>,
     pub ai: AiCfg,
@@ -542,6 +545,7 @@ impl Default for Saved {
             guides: Vec::new(),
             zone_todos: Vec::new(),
             dashboard_favorites: default_favorites(),
+            stash_history: Vec::new(),
             buildings_dir: None,
             shots_dir: None,
             ai: AiCfg::default(),
@@ -566,6 +570,14 @@ pub fn default_regexes() -> Vec<RegexItem> {
         RegexItem { name: "Скорость бега".into(), value: r#""movement speed|скорость передвижения""#.into() },
         RegexItem { name: "Камни и руны".into(), value: r#""gem|rune|камень|руна""#.into() },
     ]
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct StashPoint {
+    pub ts: String,
+    pub total_exalted: f64,
+    pub items: usize,
 }
 
 pub fn default_favorites() -> Vec<String> {
@@ -594,6 +606,10 @@ impl Saved {
     pub fn sanitized(mut self) -> Self {
         self.schema = SCHEMA;
         // Keep known client-name aliases even in states created by older builds.
+        if self.stash_history.len() > 200 {
+            let excess = self.stash_history.len() - 200;
+            self.stash_history.drain(..excess);
+        }
         self.dashboard_favorites.retain(|tag| !tag.trim().is_empty());
         self.dashboard_favorites.iter_mut().for_each(|tag| *tag = tag.trim().to_lowercase());
         self.dashboard_favorites.dedup();

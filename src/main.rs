@@ -2757,6 +2757,7 @@ struct StashData {
     total_listings: u64,
     truncated: bool,
     tabs: Vec<StashTab>,
+    history: Vec<StashPoint>,
     error: Option<String>,
 }
 
@@ -2832,7 +2833,7 @@ async fn stash_overview(state: State<'_, App>, refresh: bool) -> Result<StashDat
         }
     }
     tabs.sort_by(|a, b| b.total_exalted.partial_cmp(&a.total_exalted).unwrap_or(std::cmp::Ordering::Equal));
-    let data = StashData {
+    let mut data = StashData {
         account: account.clone(),
         league: league.clone(),
         total_exalted: tabs.iter().map(|tab| tab.total_exalted).sum(),
@@ -2840,8 +2841,25 @@ async fn stash_overview(state: State<'_, App>, refresh: bool) -> Result<StashDat
         total_listings: total,
         truncated: total > items.len() as u64,
         tabs,
+        history: Vec::new(),
         error: None,
     };
+    {
+        let mut snapshot = state.snap.lock().unwrap();
+        snapshot.saved.stash_history.push(model::StashPoint {
+            ts: now_iso(),
+            total_exalted: data.total_exalted,
+            items: data.item_count,
+        });
+        if snapshot.saved.stash_history.len() > 200 {
+            let excess = snapshot.saved.stash_history.len() - 200;
+            snapshot.saved.stash_history.drain(..excess);
+        }
+        data.history = snapshot.saved.stash_history.clone();
+        if let Err(e) = model::save_state(&state.dir.join("state.json"), &snapshot.saved) {
+            eprintln!("state.json: {e}");
+        }
+    }
     *state.stash_cache.lock().unwrap() = Some((account, league, std::time::Instant::now(), data.clone()));
     Ok(data)
 }
