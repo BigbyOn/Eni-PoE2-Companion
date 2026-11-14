@@ -2210,8 +2210,21 @@ async fn trade_rate(state: State<'_, App>) -> Result<trade::CurrencyRate, String
     Ok(rate)
 }
 
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+struct SearchOptsIn {
+    category: Option<String>,
+    max_price: Option<f64>,
+    currency: Option<String>,
+    online: Option<bool>,
+}
+
 #[tauri::command]
-async fn trade_search(state: State<'_, App>, query: String) -> Result<TradeSearchView, String> {
+async fn trade_search(
+    state: State<'_, App>,
+    query: String,
+    opts: Option<SearchOptsIn>,
+) -> Result<TradeSearchView, String> {
     let enabled = {
         let s = state.snap.lock().unwrap();
         s.saved.trade.enabled
@@ -2230,7 +2243,14 @@ async fn trade_search(state: State<'_, App>, query: String) -> Result<TradeSearc
         }
         *last = Some(std::time::Instant::now());
     }
-    tauri::async_runtime::spawn_blocking(move || trade::search_text(&query, &league))
+    let opts = opts.unwrap_or_default();
+    let search = trade::SearchOpts {
+        category: opts.category.unwrap_or_default(),
+        max_price: opts.max_price,
+        currency: opts.currency.unwrap_or_default(),
+        online: opts.online.unwrap_or(true),
+    };
+    tauri::async_runtime::spawn_blocking(move || trade::search_filtered(&query, &league, &search))
         .await
         .map_err(|e| format!("Запрос прерван: {e}"))?
         .map(|(listings, url)| TradeSearchView { listings, url })

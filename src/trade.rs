@@ -482,18 +482,64 @@ fn get_json(url: &str) -> Result<String, String> {
 }
 
 /// Free-text item search: `type`/name online listings sorted by price.
+#[derive(Clone, Debug)]
+pub struct SearchOpts {
+    pub category: String,
+    pub max_price: Option<f64>,
+    pub currency: String,
+    pub online: bool,
+}
+
+impl Default for SearchOpts {
+    fn default() -> Self {
+        Self { category: String::new(), max_price: None, currency: String::new(), online: true }
+    }
+}
+
+/// Builds the official search body: text plus optional category, price cap and online status.
+pub fn search_body(text: &str, opts: &SearchOpts) -> serde_json::Value {
+    let mut query = serde_json::Map::new();
+    if opts.online {
+        query.insert("status".into(), serde_json::json!({ "option": "online" }));
+    }
+    query.insert("type".into(), serde_json::json!(text));
+    let mut filters = serde_json::Map::new();
+    let category = opts.category.trim();
+    if !category.is_empty() && category != "any" {
+        filters.insert(
+            "type_filters".into(),
+            serde_json::json!({ "filters": { "category": { "option": category } } }),
+        );
+    }
+    if let Some(max) = opts.max_price.filter(|p| *p > 0.0) {
+        let currency = if opts.currency.trim().is_empty() { "exalted" } else { opts.currency.trim() };
+        filters.insert(
+            "trade_filters".into(),
+            serde_json::json!({ "filters": { "price": { "max": max, "option": currency } } }),
+        );
+    }
+    if !filters.is_empty() {
+        query.insert("filters".into(), serde_json::Value::Object(filters));
+    }
+    serde_json::json!({ "query": serde_json::Value::Object(query), "sort": { "price": "asc" } })
+}
+
 pub fn search_text(query_text: &str, league_pref: &str) -> Result<(Vec<ListingView>, String), String> {
+    search_filtered(query_text, league_pref, &SearchOpts::default())
+}
+
+pub fn search_filtered(
+    query_text: &str,
+    league_pref: &str,
+    opts: &SearchOpts,
+) -> Result<(Vec<ListingView>, String), String> {
     let text = query_text.trim();
     if text.chars().count() < 2 {
         return Err("Слишком короткий запрос: минимум 2 символа".into());
     }
     let league = resolve_league(league_pref)?;
-    let query = serde_json::json!({
-        "status": { "option": "online" },
-        "type": text,
-    });
     let url = format!("{BASE}/api/trade2/search/poe2/{}", encode(&league));
-    let body = serde_json::json!({ "query": query, "sort": { "price": "asc" } });
+    let body = search_body(text, opts);
     let mut res = agent()
         .post(&url)
         .header("User-Agent", &ua())
@@ -987,6 +1033,24 @@ mod tests {
         ]}"#;
         assert_eq!(parse_divine_prices(json), vec![499.0, 505.0]);
         assert_eq!(median(vec![505.0, 499.0, 510.0]), 505.0);
+    }
+
+    #[test]
+    fn search_body_applies_filters() {
+        let opts = SearchOpts {
+            category: "accessory".into(),
+            max_price: Some(5.0),
+            currency: "exalted".into(),
+            online: true,
+        };
+        let body = search_body("Stellar Amulet", &opts);
+        assert_eq!(body["query"]["filters"]["type_filters"]["filters"]["category"]["option"], "accessory");
+        assert_eq!(body["query"]["filters"]["trade_filters"]["filters"]["price"]["max"], 5.0);
+        assert_eq!(body["query"]["filters"]["trade_filters"]["filters"]["price"]["option"], "exalted");
+        assert_eq!(body["query"]["status"]["option"], "online");
+        let offline = search_body("Stellar Amulet", &SearchOpts { online: false, ..Default::default() });
+        assert!(offline["query"].get("status").is_none());
+        assert!(offline["query"].get("filters").is_none());
     }
 
     #[test]

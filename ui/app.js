@@ -589,6 +589,24 @@ function renderTrade() {
         enabled
           ? `<div class="row"><input type="text" id="trade-q" style="flex:1;min-width:240px" placeholder="${esc(t("trade.placeholder"))}">
              <button class="btn primary" data-act="trade-run">${esc(t("trade.search"))}</button></div>
+             <div class="row" style="margin-top:8px">
+               <input type="number" id="trade-max" min="0" step="1" placeholder="${esc(t("trade.max"))}" style="width:130px">
+               <select id="trade-cur">
+                 <option value="exalted">exalted</option>
+                 <option value="divine">divine</option>
+                 <option value="chaos">chaos</option>
+               </select>
+               <select id="trade-cat">
+                 <option value="">${esc(t("trade.cat_any"))}</option>
+                 <option value="weapon">${esc(t("trade.cat_weapon"))}</option>
+                 <option value="armour">${esc(t("trade.cat_armour"))}</option>
+                 <option value="accessory">${esc(t("trade.cat_accessory"))}</option>
+                 <option value="flask">${esc(t("trade.cat_flask"))}</option>
+                 <option value="jewel">${esc(t("trade.cat_jewel"))}</option>
+                 <option value="gem">${esc(t("trade.cat_gem"))}</option>
+               </select>
+               <label class="small"><input type="checkbox" id="trade-online" checked> ${esc(t("trade.online"))}</label>
+             </div>
              <div id="trade-recent" class="chips" style="margin-top:8px"></div>
         <div id="trade-out" style="margin-top:10px"></div>`
           : `<div class="small bad-text">${esc(t("trade.disabled"))}</div>`
@@ -655,7 +673,13 @@ async function runTradeSearch(q) {
   }
   out.innerHTML = `<div class="small">${esc(t("trade.wait"))}</div>`;
   try {
-    const res = await invoke("trade_search", { query });
+    const opts = {
+      maxPrice: Number($("#trade-max")?.value || 0) || null,
+      currency: $("#trade-cur")?.value || "exalted",
+      category: $("#trade-cat")?.value || "",
+      online: $("#trade-online")?.checked ?? true,
+    };
+    const res = await invoke("trade_search", { query, opts });
     rememberSearch(query);
     renderRecent();
     if (!res.listings.length) {
