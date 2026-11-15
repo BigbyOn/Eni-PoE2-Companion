@@ -414,6 +414,7 @@ pub fn state_summary(ctx: &Context) -> Value {
         "ok": true,
         "stale": stale,
         "zone_basis": zone_basis,
+        "league": ctx.preferred_league(&saved),
         "state_age_seconds": age,
         "game": {
             "last_event_at": last_event.as_ref().map(|(at, _)| at.to_rfc3339()),
@@ -424,6 +425,7 @@ pub fn state_summary(ctx: &Context) -> Value {
         },
         "profile_updated": profile.updated,
         "character": {
+            "id": profile.id,
             "name": profile.name,
             "class": profile.class,
             "ascendancy": profile.ascendancy,
@@ -700,12 +702,24 @@ pub fn evaluate_item(ctx: &Context, params: Value) -> Result<Value, ApiError> {
         .unwrap_or_default();
     let priority_matches = match_priorities(&priorities, &parsed.mods);
 
-    let equipped_text = params
+    let explicit_equipped = params
         .get("equipped_text")
         .and_then(Value::as_str)
         .map(str::trim)
         .filter(|text| !text.is_empty());
-    let equipped = equipped_text
+    let cached_equipped = params
+        .get("equipped_by_slot")
+        .and_then(Value::as_object)
+        .and_then(|slots| slots.get(&parsed.slot))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|text| !text.is_empty());
+    let (equipped_raw, equipped_source) = match (explicit_equipped, cached_equipped) {
+        (Some(text), _) => (Some(text), "explicit"),
+        (None, Some(text)) => (Some(text), "profile_slot"),
+        (None, None) => (None, "none"),
+    };
+    let equipped = equipped_raw
         .and_then(crate::item::parse)
         .filter(|item| item.slot == parsed.slot);
     let equipped_analysis = equipped
@@ -753,7 +767,7 @@ pub fn evaluate_item(ctx: &Context, params: Value) -> Result<Value, ApiError> {
         "build": if build_id.is_empty() { Value::Null } else { json!({ "id": build_id }) },
         "priority_matches": priority_matches,
         "equipped_known": equipped_known,
-        "equipped_source": if equipped_known { "explicit" } else { "none" },
+        "equipped_source": if equipped_known { equipped_source } else { "none" },
         "equipped": equipped.as_ref().map(|item| json!({
             "name": item.name,
             "slot": item.slot,
@@ -906,16 +920,99 @@ pub fn resolve_stat_key(key: &str) -> Option<StatSpec> {
     Some(spec)
 }
 
-/// Broad PoE2 trade categories are the only ones the official API exposes
-/// (`armour`, `accessory`, `weapon`, ...). Slot precision comes from the stat
-/// filters, which is why the applied filters are verified in the final query.
+/// Precise PoE2 trade categories. The official site accepts subcategories such
+/// as `armour.boots` and `accessory.belt` even though `data/items` lists only
+/// the broad roots. Weapon slots stay broad: the exact weapon class is unknown.
 pub fn category_for_slot(slot: &str) -> &'static str {
     match slot {
-        "body" | "helmet" | "gloves" | "boots" | "shield" => "armour",
-        "amulet" | "belt" | "ring" | "leftRing" | "rightRing" => "accessory",
+        "body" => "armour.chest",
+        "helmet" => "armour.helmet",
+        "gloves" => "armour.gloves",
+        "boots" => "armour.boots",
+        "shield" => "armour.shield",
+        "amulet" => "accessory.amulet",
+        "belt" => "accessory.belt",
+        "ring" | "leftRing" | "rightRing" => "accessory.ring",
         "mainHand" | "offHand" | "weapon" | "bow" | "crossbow" | "wand" | "staff" => "weapon",
         _ => "",
     }
+}
+
+/// True when the category alone proves the slot (everything except weapons).
+pub fn category_is_exact(slot: &str) -> bool {
+    !category_for_slot(slot).is_empty() && category_for_slot(slot) != "weapon"
+}
+
+/// Re-checks the returned item's base type. The trade API returns `baseType` /
+/// `typeLine`; a ring never becomes a belt just because both are accessories.
+pub fn base_matches_slot(slot: &str, base: &str) -> bool {
+    let base = base.trim().to_lowercase();
+    if base.is_empty() {
+        return false;
+    }
+    let ends = |words: &[&str]| words.iter().any(|word| base.ends_with(word));
+    match slot {
+        "belt" => ends(&["belt"]),
+        "ring" | "leftRing" | "rightRing" => ends(&["ring"]),
+        "amulet" => ends(&["amulet"]),
+        "boots" => ends(&["boots", "shoes", "greaves", "slippers", "leggings"]),
+        "helmet" => ends(&[
+            "helmet",
+            "mask",
+            "tiara",
+            "greathelm",
+            "cap",
+            "hood",
+            "crown",
+        ]),
+        "gloves" => ends(&["gloves", "wraps", "bracers", "mitts", "gauntlets"]),
+        "body" => ends(&[
+            "raiment", "robe", "armour", "vest", "coat", "tunic", "jacket", "plate",
+        ]),
+        "shield" => base.contains("shield") || ends(&["targe", "buckler"]),
+        // The exact weapon class is not in the request, so a fetched lot cannot
+        // be confirmed; such lots are kept out of the recommended set.
+        _ => false,
+    }
+}
+
+/// Picks at most one fetched listing whose type is confirmed for the slot.
+/// Alternatives of the same slot are never stacked into a set.
+pub fn choose_listing_for_slot(
+    slot: &str,
+    rows: &[trade::ListingView],
+) -> (Option<trade::ListingView>, Vec<String>, String) {
+    let mut skipped: Vec<String> = Vec::new();
+    for row in rows.iter().filter(|row| row.price > 0.0) {
+        if base_matches_slot(slot, &row.base) {
+            let name = if row.name.trim().is_empty() {
+                row.base.clone()
+            } else {
+                format!("{} ({})", row.name, row.base)
+            };
+            return (
+                Some(trade::ListingView {
+                    name,
+                    ..row.clone()
+                }),
+                skipped,
+                String::new(),
+            );
+        }
+        if !row.base.trim().is_empty() && !skipped.iter().any(|item| item == &row.base) {
+            skipped.push(row.base.clone());
+        }
+    }
+    let error = if skipped.is_empty() {
+        "нет лотов с ценой".to_string()
+    } else {
+        format!(
+            "тип лота не подтверждён для слота {}: пропущено {}",
+            slot,
+            skipped.join(", ")
+        )
+    };
+    (None, skipped, error)
 }
 
 #[derive(serde::Deserialize, Debug, Clone, Default)]
@@ -940,6 +1037,9 @@ pub struct PlanSlotRequest {
 struct PlanRequest {
     #[serde(default)]
     league: String,
+    /// True when the league came from the app's own state, not from free text.
+    #[serde(default)]
+    league_known: bool,
     #[serde(default)]
     auto: bool,
     #[serde(default)]
@@ -959,6 +1059,8 @@ pub const NO_LOTS_MESSAGE: &str =
 
 struct SlotPlan {
     slot: String,
+    category: String,
+    category_exact: bool,
     url: String,
     body: Value,
     applied: Vec<Value>,
@@ -966,6 +1068,7 @@ struct SlotPlan {
     notes: Vec<String>,
     lot: Option<budget::Quote>,
     listings_count: usize,
+    skipped_types: Vec<String>,
     error: Option<String>,
 }
 
@@ -1109,8 +1212,16 @@ fn build_slot_plan(
     } else {
         request.category.trim()
     };
+    let category_exact = category_is_exact(&request.slot);
     if !category.is_empty() {
         merge_filters(&mut query, category_patch(category));
+        if !category_exact {
+            notes.push(
+                "Ссылка не ограничена точным слотом: trade API не знает точный класс оружия. \
+                 Лоты без подтверждённого типа не попадут в комплект."
+                    .into(),
+            );
+        }
     }
     append_stat_filters(&mut query, &filters);
     let missing = missing_stat_ids(&query, &filters);
@@ -1118,37 +1229,49 @@ fn build_slot_plan(
         unmatched.push(format!("фильтр не попал в итоговый запрос: {id}"));
     }
 
-    // Hard price ceiling in the query itself.
-    let cap = budget
+    // Hard price ceiling in the query itself. It must not exceed either the
+    // per-item limit or the overall limit; if both are given, both must convert.
+    let per_cap = budget
         .per_item
         .as_ref()
-        .and_then(|limit| {
-            budget::convert(limit.amount, &limit.currency, currency, rates)
-                .map(|amount| (amount, limit))
-        })
-        .or_else(|| {
-            budget.global.as_ref().and_then(|limit| {
-                budget::convert(limit.amount, &limit.currency, currency, rates)
-                    .map(|amount| (amount, limit))
-            })
-        });
+        .and_then(|limit| budget::convert(limit.amount, &limit.currency, currency, rates));
+    let global_cap = budget
+        .global
+        .as_ref()
+        .and_then(|limit| budget::convert(limit.amount, &limit.currency, currency, rates));
+    let cap = match (&budget.per_item, &budget.global) {
+        (Some(_), Some(_)) => match (per_cap, global_cap) {
+            (Some(per), Some(overall)) => Some(per.min(overall)),
+            _ => None,
+        },
+        (Some(_), None) => per_cap,
+        (None, Some(_)) => global_cap,
+        (None, None) => None,
+    };
     match cap {
-        Some((amount, limit)) => {
-            let cap_currency = budget::normalize_currency(&limit.currency);
-            merge_filters(&mut query, price_patch(amount, &cap_currency));
+        Some(amount) => {
+            merge_filters(&mut query, price_patch(amount, currency));
             notes.push(format!(
                 "Ценовой предел в запросе: {amount:.0} {}.",
-                budget::display_currency(&cap_currency)
+                budget::display_currency(currency)
             ));
         }
-        None => notes
+        None if budget.per_item.is_some() && budget.global.is_some() => notes.push(
+            "Оба лимита не подтверждены курсом: ценовой предел не подставлен, \
+             нельзя утверждать, что применены и общий, и поштучный."
+                .into(),
+        ),
+        None if budget.per_item.is_some() || budget.global.is_some() => notes
             .push("Ценовой предел не подставлен: курс или валюта бюджета не определены.".into()),
+        None => notes.push("Бюджет не назван: ценовой предел не подставлен.".into()),
     }
 
     let url = trade::build_trade_url(league, &query);
     let body = json!({ "query": query, "sort": { "price": "asc" } });
     SlotPlan {
         slot: request.slot.clone(),
+        category: category.to_string(),
+        category_exact,
         url,
         body,
         applied,
@@ -1156,6 +1279,7 @@ fn build_slot_plan(
         notes,
         lot: None,
         listings_count: 0,
+        skipped_types: Vec::new(),
         error: None,
     }
 }
@@ -1166,7 +1290,7 @@ fn plan_impl(
     request: PlanRequest,
     slots: Vec<PlanSlotRequest>,
 ) -> Result<Value, ApiError> {
-    let league = {
+    let requested_league = {
         let requested = request.league.trim();
         if requested.is_empty() {
             ctx.preferred_league(saved)
@@ -1174,12 +1298,53 @@ fn plan_impl(
             requested.to_string()
         }
     };
-    if league.trim().is_empty() {
+    if requested_league.trim().is_empty() {
         return Err(ApiError::new(
             "no_league",
             "Лига не определена: укажи лигу в Eni-PoE2 или в запросе.",
         ));
     }
+    // Strict for the companion: never silently searches another league.
+    // Explicit quotes already carry a verified league and need no API call.
+    let explicit_quotes = !request.quotes.is_empty();
+    let league = if explicit_quotes {
+        let quote_leagues: Vec<String> = request
+            .quotes
+            .iter()
+            .map(|quote| quote.league.trim().to_string())
+            .filter(|league| !league.is_empty())
+            .collect();
+        let first = quote_leagues.first().cloned().unwrap_or_default();
+        if quote_leagues.iter().any(|league| league != &first) {
+            return Err(ApiError::new(
+                "quotes_mixed_league",
+                "Переданные лоты из разных лиг: комплект из них не собирается.",
+            ));
+        }
+        if first.is_empty() {
+            return Err(ApiError::new(
+                "quotes_no_league",
+                "У переданных лотов нет лиги: проверить комплект нельзя.",
+            ));
+        }
+        if !requested_league.trim().is_empty()
+            && !first.eq_ignore_ascii_case(requested_league.trim())
+        {
+            return Err(ApiError::new(
+                "league_mismatch",
+                format!(
+                    "Запрошена лига «{}», а лоты из лиги «{first}»: комплект не собираю.",
+                    requested_league.trim()
+                ),
+            ));
+        }
+        first
+    } else if request.league_known && !requested_league.trim().is_empty() {
+        requested_league.trim().to_string()
+    } else {
+        trade::resolve_league_strict(&requested_league)
+            .map_err(|error| ApiError::new("league_unavailable", error))?
+    };
     if slots.is_empty() {
         return Err(ApiError::new("no_slots", "Не указан ни один слот."));
     }
@@ -1219,7 +1384,6 @@ fn plan_impl(
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| budget::EXALTED.to_string());
 
-    let explicit_quotes = !request.quotes.is_empty();
     let mut plans: Vec<SlotPlan> = Vec::new();
     for slot in &slots {
         let mut plan = build_slot_plan(ctx, saved, slot, &league, &budget, &rates, &currency);
@@ -1231,24 +1395,29 @@ fn plan_impl(
                 plan.error = Some("лот не передан".into());
             }
         } else if request.auto {
-            match trade::search_raw(&plan.body.to_string(), &league) {
-                Ok((rows, url)) => {
-                    plan.listings_count = rows.len();
-                    let chosen = rows.iter().find(|row| row.price > 0.0);
-                    match chosen {
-                        Some(row) => {
-                            plan.lot = Some(budget::Quote {
-                                slot: slot.slot.clone(),
-                                name: row.name.clone(),
-                                price: budget::Money::new(row.price, &row.currency),
-                                league: league.clone(),
-                                url: url.clone(),
-                                source: "trade".into(),
-                                priority: plans.len() as u32,
-                            });
-                        }
-                        None => {
-                            plan.error = Some("нет лотов с ценой".into());
+            match trade::search_raw_checked(&plan.body.to_string(), &league) {
+                Ok((rows, url, actual_league)) => {
+                    if actual_league != league {
+                        plan.error = Some(format!(
+                            "Поиск ушёл в лигу {actual_league}, а запрошена {league}: лот не включаю."
+                        ));
+                    } else {
+                        plan.listings_count = rows.len();
+                        let (chosen, skipped, error) = choose_listing_for_slot(&slot.slot, &rows);
+                        plan.skipped_types = skipped;
+                        match chosen {
+                            Some(row) => {
+                                plan.lot = Some(budget::Quote {
+                                    slot: slot.slot.clone(),
+                                    name: row.name.clone(),
+                                    price: budget::Money::new(row.price, &row.currency),
+                                    league: actual_league.clone(),
+                                    url: url.clone(),
+                                    source: "trade".into(),
+                                    priority: plans.len() as u32,
+                                });
+                            }
+                            None => plan.error = Some(error),
                         }
                     }
                 }
@@ -1285,23 +1454,40 @@ fn plan_impl(
     let total_message = if !lots_received {
         NO_LOTS_MESSAGE.to_string()
     } else if let Some(result) = &plan_result {
-        if result.fits {
+        let accepted_count = result.accepted.len();
+        let candidates_count = quotes.len();
+        let candidates = result
+            .set_total
+            .as_ref()
+            .map(|money| money.amount)
+            .unwrap_or(0.0);
+        let accepted = result
+            .accepted_total
+            .as_ref()
+            .map(|money| money.amount)
+            .unwrap_or(0.0);
+        if !result.budget_known {
             format!(
-                "Комплект укладывается: {} {}{}",
-                result
-                    .set_total
-                    .as_ref()
-                    .map(|money| money.amount)
-                    .unwrap_or(0.0),
+                "Бюджет не подтверждён (курс/лимиты): кандидаты — {candidates:.0} {}, \
+                 принято — {accepted:.0} {}. Не утверждаю, что комплект укладывается.",
                 budget::display_currency(&currency),
-                result
-                    .remaining
-                    .as_ref()
-                    .map(|money| format!(", остаток {:.0}", money.amount))
-                    .unwrap_or_default()
+                budget::display_currency(&currency)
+            )
+        } else if result.fits {
+            format!(
+                "Комплект укладывается: {accepted:.0} {} ({} из {}).",
+                budget::display_currency(&currency),
+                accepted_count,
+                candidates_count
             )
         } else {
-            "Комплект не укладывается в бюджет.".to_string()
+            format!(
+                "Кандидаты: {candidates:.0} {}; в бюджет проходит {accepted:.0} {} ({} из {}).",
+                budget::display_currency(&currency),
+                budget::display_currency(&currency),
+                accepted_count,
+                candidates_count
+            )
         }
     } else {
         "Бюджет не указан: итоговую стоимость не проверяю.".to_string()
@@ -1312,11 +1498,15 @@ fn plan_impl(
         .map(|plan| {
             json!({
                 "slot": plan.slot,
+                "category": plan.category,
+                "category_exact": plan.category_exact,
                 "search_url": plan.url,
                 "filters_applied": plan.applied,
                 "filters_unmatched": plan.unmatched,
                 "notes": plan.notes,
                 "listings_count": plan.listings_count,
+                "type_verified": plan.lot.is_some(),
+                "skipped_types": plan.skipped_types,
                 "lot": plan.lot.as_ref().map(|lot| json!({
                     "name": lot.name,
                     "price": lot.price,
@@ -1329,17 +1519,29 @@ fn plan_impl(
         })
         .collect();
 
+    let accepted_count = plan_result
+        .as_ref()
+        .map(|plan| plan.accepted.len())
+        .unwrap_or(0);
+    let rejected_count = plan_result
+        .as_ref()
+        .map(|plan| plan.rejected.len())
+        .unwrap_or(0);
+
     Ok(json!({
         "ok": true,
         "league": league,
-        "lots_received": lots_received,
-        "totals": {
+        "lots_received": lots_received,        "totals": {
             "message": total_message,
             "currency": currency,
             "fits": plan_result.as_ref().map(|plan| plan.fits),
-            "set_total": plan_result.as_ref().and_then(|plan| plan.set_total.clone()),
+            "budget_known": plan_result.as_ref().map(|plan| plan.budget_known),
+            "candidates_total": plan_result.as_ref().and_then(|plan| plan.set_total.clone()),
             "accepted_total": plan_result.as_ref().and_then(|plan| plan.accepted_total.clone()),
             "remaining": plan_result.as_ref().and_then(|plan| plan.remaining.clone()),
+            "candidates_count": quotes.len(),
+            "accepted_count": accepted_count,
+            "rejected_count": rejected_count,
         },
         "plan": plan_result,
         "slots": slot_views,
@@ -1982,7 +2184,7 @@ mod tests {
     }
 
     fn sample_item() -> &'static str {
-        "Rarity: Rare\nDoom Loop\nPrismatic Ring\n--------\nItem Level: 65\n--------\n+25 to maximum Life\n+20% to Fire Resistance\n"
+        "Item Class: Rings\nRarity: Rare\nDoom Loop\nPrismatic Ring\n--------\nItem Level: 65\n--------\n+25 to maximum Life\n+20% to Fire Resistance\n"
     }
 
     #[test]
@@ -2050,6 +2252,7 @@ mod tests {
                 "category": "armour.boots",
                 "mods": ["+60 to maximum Life", "+25% to Fire Resistance"],
                 "league": "Standard",
+                "league_known": true,
                 "budget": { "global": { "amount": 10, "currency": "exalted" } },
                 "auto": false,
             }),
@@ -2077,8 +2280,10 @@ mod tests {
             &ctx,
             json!({
                 "league": "Standard",
+                "league_known": true,
                 "auto": false,
                 "budget": { "global": { "amount": 20, "currency": "exalted" } },
+                "rates": { "league": "Standard", "exalted_per_divine": 10.0, "source": "test" },
                 "slots": [
                     { "slot": "boots", "filters": [
                         { "stat": "movement_speed" },
@@ -2120,6 +2325,7 @@ mod tests {
             &ctx,
             json!({
                 "league": "Standard",
+                "league_known": true,
                 "auto": false,
                 "budget": { "global": { "amount": 20, "currency": "exalted" } },
                 "rates": { "league": "Standard", "exalted_per_divine": 10.0, "source": "test" },
@@ -2153,6 +2359,8 @@ mod tests {
             &ctx,
             json!({
                 "league": "Standard",
+                "league_known": true,
+                "rates": { "league": "Standard", "exalted_per_divine": 10.0, "source": "test" },
                 "slots": [
                     { "slot": "boots", "filters": [] },
                     { "slot": "boots", "filters": [] }
@@ -2233,8 +2441,10 @@ mod tests {
             &ctx,
             json!({
                 "league": "Standard",
+                "league_known": true,
                 "auto": false,
-                "budget": { "global": { "amount": 20, "currency": "exalted" } }
+                "budget": { "global": { "amount": 20, "currency": "exalted" } },
+                "rates": { "league": "Standard", "exalted_per_divine": 10.0, "source": "test" }
             }),
         )
         .unwrap();
@@ -2273,7 +2483,8 @@ mod tests {
     #[test]
     fn explicit_equipped_item_is_compared() {
         let ctx = temp_ctx("explicit-equipped");
-        let equipped = "Rarity: Normal\nSimple Ring\n--------\n+5 to maximum Life\n";
+        let equipped =
+            "Item Class: Rings\nRarity: Normal\nSimple Ring\n--------\n+5 to maximum Life\n";
         let result = evaluate_item(
             &ctx,
             json!({ "text": sample_item(), "equipped_text": equipped }),
@@ -2369,6 +2580,7 @@ mod tests {
             &ctx,
             json!({
                 "league": "Standard",
+                "league_known": true,
                 "auto": false,
                 "budget": { "global": { "amount": 100, "currency": "exalted" } },
                 "rates": { "league": "Standard" },
@@ -2394,12 +2606,13 @@ mod tests {
     }
 
     #[test]
-    fn a_quote_from_another_league_is_rejected() {
+    fn quotes_from_another_league_are_rejected_before_planning() {
         let ctx = temp_ctx("league-mismatch");
-        let result = trade_plan(
+        let error = trade_plan(
             &ctx,
             json!({
                 "league": "Standard",
+                "league_known": true,
                 "auto": false,
                 "budget": { "global": { "amount": 100, "currency": "exalted" } },
                 "rates": { "league": "Standard", "exalted_per_divine": 10.0, "source": "test" },
@@ -2413,14 +2626,159 @@ mod tests {
                 ]
             }),
         )
+        .unwrap_err();
+        assert_eq!(error.code, "quotes_mixed_league");
+        assert!(error.message.contains("разных лиг"));
+    }
+
+    #[test]
+    fn requested_league_must_match_the_quotes() {
+        let ctx = temp_ctx("league-request");
+        let error = trade_plan(
+            &ctx,
+            json!({
+                "league": "Standard",
+                "league_known": true,
+                "auto": false,
+                "budget": { "global": { "amount": 100, "currency": "exalted" } },
+                "rates": { "league": "Standard", "exalted_per_divine": 10.0, "source": "test" },
+                "slots": [ { "slot": "boots", "filters": [] } ],
+                "quotes": [
+                    { "slot": "boots", "name": "B", "price": { "amount": 10, "currency": "exalted" }, "league": "Hardcore", "url": "u1" }
+                ]
+            }),
+        )
+        .unwrap_err();
+        assert_eq!(error.code, "league_mismatch");
+        assert!(error.message.contains("Hardcore"));
+    }
+
+    #[test]
+    fn choose_listing_skips_a_ring_before_a_belt() {
+        let rows = vec![
+            trade::ListingView {
+                price: 5.0,
+                currency: "exalted".into(),
+                name: "Wrong Ring".into(),
+                base: "Gold Ring".into(),
+                ..Default::default()
+            },
+            trade::ListingView {
+                price: 7.0,
+                currency: "exalted".into(),
+                name: "Right Belt".into(),
+                base: "Heavy Belt".into(),
+                ..Default::default()
+            },
+        ];
+        let (chosen, skipped, error) = choose_listing_for_slot("belt", &rows);
+        let chosen = chosen.unwrap();
+        assert_eq!(chosen.base, "Heavy Belt");
+        assert!(skipped.contains(&"Gold Ring".to_string()));
+        assert!(error.is_empty());
+    }
+
+    #[test]
+    fn choose_listing_rejects_an_unconfirmed_type() {
+        let rows = vec![trade::ListingView {
+            price: 5.0,
+            currency: "exalted".into(),
+            name: "Wrong Ring".into(),
+            base: "Gold Ring".into(),
+            ..Default::default()
+        }];
+        let (chosen, skipped, error) = choose_listing_for_slot("belt", &rows);
+        assert!(chosen.is_none());
+        assert!(error.contains("тип лота не подтверждён"));
+        assert_eq!(skipped, vec!["Gold Ring".to_string()]);
+    }
+
+    #[test]
+    fn dual_limits_cap_the_query_at_the_smaller_limit() {
+        let ctx = temp_ctx("dual-cap");
+        let rates = budget::Rates::default();
+        let request = PlanSlotRequest {
+            slot: "boots".into(),
+            category: category_for_slot("boots").into(),
+            filters: vec![],
+        };
+        let budget = budget::Budget {
+            global: Some(budget::Money::new(20.0, "exalted")),
+            per_item: Some(budget::Money::new(8.0, "exalted")),
+        };
+        let plan = build_slot_plan(
+            &ctx,
+            &ctx.saved(),
+            &request,
+            "Standard",
+            &budget,
+            &rates,
+            "exalted",
+        );
+        let price = &plan.body["query"]["filters"]["trade_filters"]["filters"]["price"];
+        assert_eq!(price["max"], 8.0);
+        assert_eq!(price["option"], "exalted");
+    }
+
+    #[test]
+    fn global_20_per_item_15_rejects_two_lots_of_15() {
+        let ctx = temp_ctx("dual-budget");
+        let result = trade_plan(
+            &ctx,
+            json!({
+                "league": "Standard",
+                "league_known": true,
+                "auto": false,
+                "budget": {
+                    "global": { "amount": 20, "currency": "exalted" },
+                    "per_item": { "amount": 15, "currency": "exalted" }
+                },
+                "rates": { "league": "Standard", "exalted_per_divine": 10.0, "source": "test" },
+                "slots": [
+                    { "slot": "boots", "filters": [] },
+                    { "slot": "belt", "filters": [] }
+                ],
+                "quotes": [
+                    { "slot": "boots", "name": "B", "price": { "amount": 15, "currency": "exalted" }, "league": "Standard", "url": "u1" },
+                    { "slot": "belt", "name": "L", "price": { "amount": 15, "currency": "exalted" }, "league": "Standard", "url": "u2" }
+                ]
+            }),
+        )
         .unwrap();
-        assert_eq!(result["plan"]["fits"], false);
-        let rejected = result["plan"]["rejected"].as_array().unwrap();
-        assert!(rejected.iter().any(|item| item["reason"]
-            .as_str()
-            .unwrap()
-            .to_lowercase()
-            .contains("hardcore")));
+        assert_eq!(result["totals"]["fits"], false);
+        assert_eq!(result["totals"]["accepted_count"], 1);
+        assert_eq!(result["totals"]["candidates_total"]["amount"], 30.0);
+        assert_eq!(result["totals"]["accepted_total"]["amount"], 15.0);
+    }
+
+    #[test]
+    fn equipped_by_slot_uses_the_current_profile_mapping() {
+        let ctx = temp_ctx("equipped-map");
+        let equipped =
+            "Item Class: Rings\nRarity: Normal\nSimple Ring\n--------\n+5 to maximum Life\n";
+        let result = evaluate_item(
+            &ctx,
+            json!({
+                "text": sample_item(),
+                "equipped_by_slot": { "ring": equipped, "belt": "not an item" }
+            }),
+        )
+        .unwrap();
+        assert_eq!(result["equipped_known"], true);
+        assert_eq!(result["equipped_source"], "profile_slot");
+    }
+
+    #[test]
+    fn equipped_by_slot_ignores_other_slots() {
+        let ctx = temp_ctx("equipped-map-other");
+        let equipped =
+            "Item Class: Boots\nRarity: Normal\nRawhide Boots\n--------\n+5 to maximum Life\n";
+        let result = evaluate_item(
+            &ctx,
+            json!({ "text": sample_item(), "equipped_by_slot": { "boots": equipped } }),
+        )
+        .unwrap();
+        assert_eq!(result["equipped_known"], false);
     }
 
     #[test]
@@ -2447,6 +2805,7 @@ mod tests {
             &ctx,
             json!({
                 "league": "Standard",
+                "league_known": true,
                 "items": [
                     { "slot": "boots", "name": "Boots", "price": { "amount": 15, "currency": "exalted" }, "league": "Standard" },
                     { "slot": "gloves", "name": "Gloves", "price": { "amount": 15, "currency": "exalted" }, "league": "Standard" }
@@ -2467,6 +2826,7 @@ mod tests {
             &ctx,
             json!({
                 "league": "Standard",
+                "league_known": true,
                 "items": [
                     { "slot": "boots", "name": "Boots", "price": { "amount": 2, "currency": "divine" }, "league": "Standard" }
                 ],

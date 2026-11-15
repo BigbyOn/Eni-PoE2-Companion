@@ -657,12 +657,27 @@ pub fn search_account(account: &str, league_pref: &str) -> Result<(Vec<ListingVi
 }
 
 pub fn search_raw(query_json: &str, league_pref: &str) -> Result<(Vec<ListingView>, String), String> {
+    let league = resolve_league(league_pref)?;
+    search_raw_for(query_json, &league)
+}
+
+/// Strict variant for the companion: returns the league actually searched and
+/// never falls back to a different one.
+pub fn search_raw_checked(
+    query_json: &str,
+    league: &str,
+) -> Result<(Vec<ListingView>, String, String), String> {
+    let league = resolve_league_strict(league)?;
+    let (listings, url) = search_raw_for(query_json, &league)?;
+    Ok((listings, url, league))
+}
+
+fn search_raw_for(query_json: &str, league: &str) -> Result<(Vec<ListingView>, String), String> {
     let body: serde_json::Value = serde_json::from_str(query_json).map_err(|e| format!("Запрос гайда не разобран: {e}"))?;
     if body.get("query").is_none() {
         return Err("В запросе гайда нет поля query".into());
     }
-    let league = resolve_league(league_pref)?;
-    let url = format!("{BASE}/api/trade2/search/poe2/{}", encode(&league));
+    let url = format!("{BASE}/api/trade2/search/poe2/{}", encode(league));
     let mut res = agent()
         .post(&url)
         .header("User-Agent", &ua())
@@ -858,6 +873,45 @@ pub fn resolve_league(preferred: &str) -> Result<String, String> {
     Ok(poe2.first().map(|l| l.id.clone()).unwrap_or_else(|| "Standard".to_string()))
 }
 
+/// Strict league resolution for the companion: an explicitly requested league
+/// must exist. It is never silently replaced by another league.
+pub fn resolve_league_strict(preferred: &str) -> Result<String, String> {
+    let text = get_json(&format!("{BASE}/api/trade2/data/leagues"))?;
+    let leagues: Leagues = serde_json::from_str(&text)
+        .map_err(|e| format!("Список лиг не разобран: {e}"))?;
+    let ids: Vec<String> = leagues
+        .result
+        .iter()
+        .filter(|l| l.realm == "poe2" || l.realm.is_empty())
+        .map(|league| league.id.clone())
+        .collect();
+    strict_league_from(&ids, preferred)
+}
+
+/// Pure part of strict resolution, unit-testable without the network.
+pub fn strict_league_from(ids: &[String], preferred: &str) -> Result<String, String> {
+    let preferred = preferred.trim();
+    if preferred.is_empty() {
+        if let Some(id) = ids.iter().find(|id| {
+            !id.starts_with("HC") && id.as_str() != "Standard" && id.as_str() != "Hardcore"
+        }) {
+            return Ok(id.clone());
+        }
+        return Ok(ids
+            .first()
+            .cloned()
+            .unwrap_or_else(|| "Standard".to_string()));
+    }
+    if let Some(id) = ids.iter().find(|id| id.eq_ignore_ascii_case(preferred)) {
+        return Ok(id.clone());
+    }
+    Err(format!(
+        "Лига «{preferred}» недоступна в trade API. Доступные лиги: {}. \
+         Выбери лигу явно — на другую лигу без запроса не переключаюсь.",
+        ids.join(", ")
+    ))
+}
+
 /// Full price check: league, search, first page of listings, summary.
 ///
 /// With `stats` the item's modifiers become filters; if that leaves no results,
@@ -1036,6 +1090,23 @@ fn search(item: &ParsedItem, league: &str, stat_filters: &[StatFilter], used_sta
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn strict_league_never_falls_back() {
+        let ids = vec![
+            "Standard".to_string(),
+            "Hardcore".to_string(),
+            "Forbidden Rites".to_string(),
+        ];
+        assert_eq!(
+            strict_league_from(&ids, "Forbidden Rites").unwrap(),
+            "Forbidden Rites"
+        );
+        assert_eq!(strict_league_from(&ids, "standard").unwrap(), "Standard");
+        let error = strict_league_from(&ids, "No Such League").unwrap_err();
+        assert!(error.contains("недоступна"));
+        assert!(error.contains("Forbidden Rites"));
+    }
 
     fn ring() -> ParsedItem {
         ParsedItem {

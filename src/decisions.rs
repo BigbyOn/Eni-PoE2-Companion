@@ -485,6 +485,36 @@ mod tests {
     }
 
     #[test]
+    fn list_filters_by_build_and_patch() {
+        let dir = temp_dir("list-filter");
+        let path = file_path(&dir);
+        add(&path, sample("build-a", "0.5.5", "Первый")).unwrap();
+        add(&path, sample("build-a", "0.5.6", "Второй")).unwrap();
+        add(&path, sample("build-b", "0.5.5", "Третий")).unwrap();
+
+        let filter = DecisionFilter {
+            build_id: "build-a".into(),
+            patch: "0.5.5".into(),
+            stage_id: String::new(),
+            limit: 10,
+        };
+        let rows = list(&path, &filter);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].patch, "0.5.5");
+        assert_eq!(rows[0].build_id, "build-a");
+
+        // Manual history view may omit the patch, but never mixes builds when
+        // one is requested.
+        let filter = DecisionFilter {
+            build_id: "build-a".into(),
+            patch: String::new(),
+            stage_id: String::new(),
+            limit: 10,
+        };
+        assert_eq!(list(&path, &filter).len(), 2);
+    }
+
+    #[test]
     fn old_records_are_capped() {
         let dir = temp_dir("cap");
         let path = file_path(&dir);
