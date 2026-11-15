@@ -2,7 +2,8 @@
 name = "eni-poe2-companion"
 version = "0.29.0"
 edition = "2021"
-description = "Eni-PoE2-Companion вЂ” РїРѕРјРѕС‰РЅРёРє Рё РѕРІРµСЂР»РµР№ РґР»СЏ Path of Exile 2 (RU/EN)"
+default-run = "eni-poe2-companion"
+description = "Помощник и оверлей для Path of Exile 2 (RU/EN)"
 license = "MIT"
 authors = ["BigbyOn", "Michael Malura"]
 repository = "https://github.com/BigbyOn/Eni-PoE2-Companion"
