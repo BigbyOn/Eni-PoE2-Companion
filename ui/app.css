@@ -244,3 +244,7 @@ a:hover{color:var(--gold2)}
 .stash-bar span{flex:0 0 42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stash-bar i{display:block;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));min-width:2px}
 .stash-bar b{flex:0 0 auto;font-weight:400;color:var(--muted)}
+
+.dash-spark{display:block;width:64px;height:18px;margin-top:2px}
+
+.dash-ico img{width:100%;height:100%;object-fit:contain;border-radius:6px}

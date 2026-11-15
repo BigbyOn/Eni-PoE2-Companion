@@ -154,6 +154,8 @@ pub struct PriceChange {
     pub old_price: f64,
     pub change: f64,
     pub change_pct: f64,
+    /// Oldest -> newest prices for a small inline chart.
+    pub spark: Vec<f64>,
 }
 
 #[derive(Deserialize)]
@@ -201,15 +203,39 @@ pub fn parse_price_history(json: &str) -> Result<Vec<PriceChange>, String> {
         if old <= 0.0 {
             continue;
         }
+        let mut spark: Vec<f64> = points.iter().take(24).map(|p| p.price).collect();
+        spark.reverse();
         out.push(PriceChange {
             item_id: entry.item_id,
             price: current,
             old_price: old,
             change: current - old,
             change_pct: (current - old) / old * 100.0,
+            spark,
         });
     }
     Ok(out)
+}
+
+/// Downloads a poecdn item icon (only the official CDN host).
+pub fn fetch_icon(url: &str) -> Result<Vec<u8>, String> {
+    if !url.starts_with("https://web.poecdn.com/") {
+        return Err("иконка: недопустимый хост".into());
+    }
+    let mut res = agent()
+        .get(url)
+        .header("User-Agent", "Eni-PoE2-Companion (github.com/BigbyOn/Eni-PoE2-Companion)")
+        .call()
+        .map_err(|e| format!("иконка: сеть: {e}"))?;
+    let status = res.status().as_u16();
+    let data = res.body_mut().read_to_vec().map_err(|e| format!("иконка: чтение: {e}"))?;
+    if !(200..300).contains(&status) {
+        return Err(format!("иконка HTTP {status}"));
+    }
+    if data.len() > 512 * 1024 {
+        return Err("иконка слишком большая".into());
+    }
+    Ok(data)
 }
 
 pub fn fetch_price_history(league: &str) -> Result<Vec<PriceChange>, String> {

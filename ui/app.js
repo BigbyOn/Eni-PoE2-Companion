@@ -205,6 +205,20 @@ function dashMoney(n) {
   return v.toFixed(2);
 }
 
+function dashSpark(values) {
+  const v = (values || []).map(Number).filter((x) => Number.isFinite(x));
+  if (v.length < 2) return "";
+  const w = 64, h = 18, pad = 1;
+  const min = Math.min(...v), max = Math.max(...v);
+  const span = Math.max(max - min, 1e-9);
+  const pts = v.map((x, i) => {
+    const px = pad + (i / (v.length - 1)) * (w - pad * 2);
+    const py = h - pad - ((x - min) / span) * (h - pad * 2);
+    return `${px.toFixed(1)},${py.toFixed(1)}`;
+  }).join(" ");
+  return `<svg class="dash-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="var(--gold)" stroke-width="1.3"></polyline></svg>`;
+}
+
 function dashRow(item, currency, divinePrice) {
   const divine = divinePrice > 0 && Math.abs(item.price) >= divinePrice * 10;
   const factor = divine ? 1 / divinePrice : 1;
@@ -215,10 +229,10 @@ function dashRow(item, currency, divinePrice) {
   const cls = change > 0 ? "good-text" : change < 0 ? "bad-text" : "small";
   const fav = (S.saved.dashboard_favorites || []).includes(item.api_id);
   return `<div class="dash-row">
-    <div class="dash-ico">${esc((item.name || "?").slice(0, 1))}</div>
+    <div class="dash-ico">${item.icon_data ? `<img src="${esc(item.icon_data)}" alt="">` : esc((item.name || "?").slice(0, 1))}</div>
     <div class="dash-name"><b>${esc(item.name || item.api_id)}</b>
       <div class="small">${currencyIcon(unit)}${dashMoney(price)} ${esc(unit)}</div></div>
-    <div class="dash-delta ${cls}">${delta}</div>
+    <div class="dash-delta ${cls}">${delta}${dashSpark(item.spark)}</div>
     <button class="icon" data-act="dash-fav" data-id="${esc(item.api_id)}" title="${esc(fav ? t("dash.remove_fav") : t("dash.add_fav"))}">${fav ? "★" : "☆"}</button>
   </div>`;
 }

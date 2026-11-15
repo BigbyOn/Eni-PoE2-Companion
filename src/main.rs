@@ -231,6 +231,8 @@ struct App {
     scout_history: Mutex<Option<(String, std::time::Instant, Vec<scout::PriceChange>)>>,
     /// Public stash listings by account, cached for 5 minutes.
     stash_cache: Mutex<Option<(String, String, std::time::Instant, StashData)>>,
+    /// Item icons as data URIs, keyed by CDN URL.
+    icons: Mutex<std::collections::HashMap<String, String>>,
     /// Last rendered Mobalytics page, so a variant can be imported without
     /// spawning Edge again.
     guide_cache: Mutex<Option<(String, std::time::Instant, guide::GuideSet)>>,
@@ -1192,6 +1194,22 @@ struct DashboardItem {
     price: f64,
     change: f64,
     change_pct: f64,
+    spark: Vec<f64>,
+    icon_data: Option<String>,
+}
+
+fn icon_data(state: &App, url: &str) -> Option<String> {
+    if url.trim().is_empty() {
+        return None;
+    }
+    if let Some(cached) = state.icons.lock().unwrap().get(url) {
+        return Some(cached.clone());
+    }
+    let bytes = scout::fetch_icon(url).ok()?;
+    use base64::Engine as _;
+    let data = format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes));
+    state.icons.lock().unwrap().insert(url.to_string(), data.clone());
+    Some(data)
 }
 
 #[derive(Serialize, Clone)]
@@ -2905,6 +2923,8 @@ async fn dashboard(app: AppHandle, state: State<'_, App>) -> Result<DashboardDat
             price: changes.get(&item.item_id).map(|c| c.price).unwrap_or(item.current_price),
             change: changes.get(&item.item_id).map(|c| c.change).unwrap_or(0.0),
             change_pct: changes.get(&item.item_id).map(|c| c.change_pct).unwrap_or(0.0),
+            spark: changes.get(&item.item_id).map(|c| c.spark.clone()).unwrap_or_default(),
+            icon_data: icon_data(&st, &item.icon),
         };
         let favorites_out: Vec<DashboardItem> = favorites
             .iter()
@@ -3395,6 +3415,7 @@ fn main() {
                 scout_items: Mutex::new(None),
                 scout_history: Mutex::new(None),
                 stash_cache: Mutex::new(None),
+                icons: Mutex::new(std::collections::HashMap::new()),
                 guide_cache: Mutex::new(None),
             });
             // Windows are created only now ("create": false in tauri.conf.json):
