@@ -321,7 +321,17 @@ pub fn similar(
         .into_iter()
         .filter(|r| r.build_id == build_id && r.patch == patch)
         .filter_map(|record| {
-            let mut score = similarity(situation, &record.situation);
+            // A normal question ("Стоит менять лук?") rarely repeats the stored
+            // situation verbatim, so the decision and the reason are searched
+            // too. The situation still weighs the most.
+            let situation_score = similarity(situation, &record.situation);
+            let decision_score = similarity(situation, &record.decision) * 0.9;
+            let reason_score = similarity(situation, &record.reason) * 0.8;
+            let advice_score = similarity(situation, &record.advice) * 0.6;
+            let mut score = situation_score
+                .max(decision_score)
+                .max(reason_score)
+                .max(advice_score);
             if !stage_id.is_empty() && record.stage_id == stage_id {
                 score += 0.1;
             }
@@ -420,6 +430,20 @@ mod tests {
             }
         )
         .is_err());
+    }
+
+    #[test]
+    fn normal_question_matches_a_decision_wording() {
+        let dir = temp_dir("normal-question");
+        let path = file_path(&dir);
+        let mut record = sample("build-a", "0.5.5", "Выбор награды");
+        record.decision = "оставил старый лук".into();
+        record.reason = "новый не подходит по требованиям".into();
+        add(&path, record).unwrap();
+
+        let hits = similar(&path, "build-a", "0.5.5", "stage-2", "Стоит менять лук?", 3);
+        assert_eq!(hits.len(), 1);
+        assert!(hits[0].score > 0.12);
     }
 
     #[test]

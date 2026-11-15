@@ -29,6 +29,8 @@ mod campaign;
 mod companion;
 #[path = "../decisions.rs"]
 mod decisions;
+#[path = "../discover.rs"]
+mod discover;
 #[path = "../guide.rs"]
 mod guide;
 #[path = "../item.rs"]

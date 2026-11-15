@@ -19,6 +19,8 @@ pub const DIVINE: &str = "divine";
 pub const CHAOS: &str = "chaos";
 
 const EPSILON: f64 = 1e-9;
+/// A rate older than this may not be used to confirm a mixed-currency set.
+pub const MAX_RATE_AGE_SECONDS: u64 = 6 * 3600;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 pub struct Money {
@@ -57,6 +59,14 @@ pub struct Rates {
 impl Rates {
     pub fn known(&self) -> bool {
         self.exalted_per_divine.map(|v| v > 0.0).unwrap_or(false)
+    }
+
+    /// A stale rate may still be displayed, but it must not confirm a
+    /// mixed-currency budget.
+    pub fn is_stale(&self) -> bool {
+        self.age_seconds
+            .map(|seconds| seconds > MAX_RATE_AGE_SECONDS)
+            .unwrap_or(true)
     }
 
     pub fn note(&self) -> String {
@@ -285,8 +295,33 @@ pub fn plan(quotes: &[Quote], budget: &Budget, rates: &Rates, league: &str) -> P
     let mut set_total = 0.0;
     let mut every_quote_convertible = true;
     let mut every_quote_allowed = true;
+    let mut seen_slots: Vec<String> = Vec::new();
+    let mixed_currencies = quotes
+        .iter()
+        .any(|quote| normalize_currency(&quote.price.currency) != currency);
 
     for quote in ordered {
+        if !quote.slot.is_empty() {
+            if seen_slots.iter().any(|slot| slot == &quote.slot) {
+                violations.push(format!(
+                    "Слот {} указан дважды: альтернативные лоты одного слота не складываются в комплект.",
+                    quote.slot
+                ));
+                every_quote_allowed = false;
+                decisions.push(QuoteDecision {
+                    slot: quote.slot.clone(),
+                    name: quote.name.clone(),
+                    price: quote.price.clone(),
+                    converted: None,
+                    league: quote.league.clone(),
+                    url: quote.url.clone(),
+                    accepted: false,
+                    reason: "дубликат слота".into(),
+                });
+                continue;
+            }
+            seen_slots.push(quote.slot.clone());
+        }
         let converted_amount = convert(quote.price.amount, &quote.price.currency, &currency, rates);
         let mut reason = String::new();
         let mut allowed = true;
@@ -365,6 +400,15 @@ pub fn plan(quotes: &[Quote], budget: &Budget, rates: &Rates, league: &str) -> P
     if !every_quote_convertible {
         violations
             .push("Часть цен не переводится в общую валюту: комплект нельзя проверить.".into());
+    }
+
+    // Mixed currencies may only be compared with a fresh rate of the same league.
+    if mixed_currencies && (rates.is_stale() || !rates.known()) {
+        budget_known = false;
+        violations.push(
+            "Для смешанных валют нужен свежий курс той же лиги: курс отсутствует или устарел, бюджет не подтверждается."
+                .into(),
+        );
     }
 
     // Greedy selection in priority order for the partial suggestion.
@@ -569,6 +613,38 @@ mod tests {
         // The comparison currency follows the global limit: divine here.
         assert!((result.remaining.as_ref().unwrap().amount - 0.5).abs() < EPSILON);
         assert_eq!(result.currency, DIVINE);
+    }
+
+    #[test]
+    fn duplicate_slot_quotes_never_form_a_set() {
+        let quotes = vec![quote("boots", 5.0, EXALTED), quote("boots", 6.0, EXALTED)];
+        let result = plan(&quotes, &budget(Some(100.0), None), &rates(), "Standard");
+        assert!(!result.fits);
+        assert!(result
+            .violations
+            .iter()
+            .any(|v| v.contains("Слот boots указан дважды")));
+        assert_eq!(result.accepted.len(), 1);
+    }
+
+    #[test]
+    fn stale_rate_blocks_mixed_currency_confirmation() {
+        let mut stale = rates();
+        stale.age_seconds = Some(MAX_RATE_AGE_SECONDS + 1);
+        let quotes = vec![quote("boots", 10.0, EXALTED), quote("belt", 1.0, DIVINE)];
+        let result = plan(&quotes, &budget(Some(100.0), None), &stale, "Standard");
+        assert!(result.budget_known == false);
+        assert!(!result.fits);
+        assert!(result.violations.iter().any(|v| v.contains("свежий курс")));
+    }
+
+    #[test]
+    fn fresh_rate_allows_mixed_currency() {
+        let quotes = vec![quote("boots", 10.0, EXALTED), quote("belt", 1.0, DIVINE)];
+        let result = plan(&quotes, &budget(Some(100.0), None), &rates(), "Standard");
+        assert!(result.budget_known);
+        assert!(result.fits);
+        assert_eq!(result.accepted.len(), 2);
     }
 
     #[test]
