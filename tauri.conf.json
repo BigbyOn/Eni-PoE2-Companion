@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Eni-PoE2-Companion",
-  "version": "0.28.0",
+  "version": "0.29.0",
   "identifier": "io.github.bigbyon.enipoe2companion",
   "build": {
     "frontendDist": "ui"
@@ -73,8 +73,8 @@
     ],
     "publisher": "BigbyOn",
     "shortDescription": "PoE2 companion: progression tracker, builds, screenshots",
-    "longDescription": "Eni-PoE2-Companion — офлайн-помощник для Path of Exile 2: отслеживание прогресса по Client.txt, профили персонажей, локальные билды, скриншоты и оверлей поверх игры. Без телеметрии и сетевых запросов по умолчанию.",
-    "copyright": "MIT License. Based on poe2overlay © 2026 Michael Malura.",
+    "longDescription": "Eni-PoE2-Companion вЂ” РѕС„Р»Р°Р№РЅ-РїРѕРјРѕС‰РЅРёРє РґР»СЏ Path of Exile 2: РѕС‚СЃР»РµР¶РёРІР°РЅРёРµ РїСЂРѕРіСЂРµСЃСЃР° РїРѕ Client.txt, РїСЂРѕС„РёР»Рё РїРµСЂСЃРѕРЅР°Р¶РµР№, Р»РѕРєР°Р»СЊРЅС‹Рµ Р±РёР»РґС‹, СЃРєСЂРёРЅС€РѕС‚С‹ Рё РѕРІРµСЂР»РµР№ РїРѕРІРµСЂС… РёРіСЂС‹. Р‘РµР· С‚РµР»РµРјРµС‚СЂРёРё Рё СЃРµС‚РµРІС‹С… Р·Р°РїСЂРѕСЃРѕРІ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.",
+    "copyright": "MIT License. Based on poe2overlay В© 2026 Michael Malura.",
     "category": "Game",
     "windows": {
       "nsis": {

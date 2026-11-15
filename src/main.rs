@@ -9,10 +9,13 @@
 //! * settings, history and screenshots stay on disk, nothing is uploaded.
 
 mod ai;
+mod budget;
 mod builds;
 mod campaign;
 mod capture;
 mod clip;
+mod companion;
+mod decisions;
 mod discover;
 mod game;
 mod guide;
@@ -1245,13 +1248,18 @@ fn current_rates(state: &App) -> (Option<f64>, Option<f64>) {
     }
 }
 
+/// Convert a listing price to divine through the shared budget module, so the
+/// UI and the MCP bridge can never disagree about conversion.
 fn to_divine(min: f64, currency: &str, divine_price: Option<f64>, chaos_per_divine: Option<f64>) -> Option<f64> {
-    match currency {
-        "divine" => Some(min),
-        "exalted" => divine_price.filter(|p| *p > 0.0).map(|p| min / p),
-        "chaos" => chaos_per_divine.filter(|p| *p > 0.0).map(|p| min / p),
-        _ => None,
-    }
+    let rates = budget::Rates {
+        league: String::new(),
+        exalted_per_divine: divine_price,
+        chaos_per_divine,
+        source: String::new(),
+        as_of: String::new(),
+        age_seconds: None,
+    };
+    budget::convert(min, currency, budget::DIVINE, &rates)
 }
 
 /// Prices every guide slot that has a trade query, with budget and divine totals.
